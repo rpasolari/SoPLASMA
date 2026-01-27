@@ -34,7 +34,8 @@ plasmaTransportModel::plasmaTransportModel
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E
+    const volVectorField& E,
+    const volScalarField& ePotential
 )
 :
     modelName_(modelName),
@@ -43,6 +44,7 @@ plasmaTransportModel::plasmaTransportModel
     dict_(dict),
     specieIndex_(specieIndex),
     E_(E),
+    ePotential_(ePotential),
     fluxScheme_("standard")
 {}
 
@@ -55,7 +57,8 @@ autoPtr<plasmaTransportModel> plasmaTransportModel::New
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E
+    const volVectorField& E,
+    const volScalarField& ePotential
 )
 {
     if (!zeroVectorFieldPtr_.valid())
@@ -98,7 +101,7 @@ autoPtr<plasmaTransportModel> plasmaTransportModel::New
     // Construct and return the model
     return autoPtr<plasmaTransportModel>
     (
-        ctorPtr(modelName, dict, mesh, species, specieIndex, E)
+        ctorPtr(modelName, dict, mesh, species, specieIndex, E, ePotential)
     );
 }
 

@@ -127,5 +127,5 @@ plasmaSpecies species(gasMesh());
 
 Info << "Constructing plasmaTransport\n" << endl;
 
-plasmaTransport transport(species, gasMesh(), E);
+plasmaTransport transport(species, gasMesh(), E, ePotential);
 

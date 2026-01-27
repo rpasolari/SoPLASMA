@@ -86,6 +86,9 @@ protected:
     //- Reference to the electric field
     const volVectorField& E_;
 
+    //- Reference to the electric potential field
+    const volScalarField& ePotential_;
+
     //- Dictionary for this species
     const dictionary& dict_;
 
@@ -115,9 +118,10 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const volScalarField& ePotential
         ),
-        (modelName, dict, mesh, species, specieIndex, E) // macro args
+        (modelName, dict, mesh, species, specieIndex, E, ePotential)
     );
 
     // Constructors
@@ -130,7 +134,8 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const volScalarField& ePotential
         );
 
     //- Selector
@@ -141,7 +146,8 @@ public:
         const fvMesh& mesh,
         const plasmaSpecies& species,
         const label specieIndex,
-        const volVectorField& E
+        const volVectorField& E,
+        const volScalarField& ePotential
     );
 
     //- Destructor

@@ -53,7 +53,7 @@ Author
 #include "plasmaSpecies.H"
 #include "plasmaTransport.H"
 #include "plasmaTimeControl.H"
-#include "adaptiveFvMesh.H"
+// #include "adaptiveFvMesh.H"
 
 int main(int argc, char *argv[])
 {
@@ -75,14 +75,17 @@ int main(int argc, char *argv[])
 
     plasmaTimeControl timeControl(runTime, gasMesh());
     timeControl.setInitialDeltaT(transport);
-
+    
     #include "createCoupledRegions.H"
-    #include "readAMRConfiguration.H"
+    // #include "readAMRConfiguration.H"
 
     #include "readElectricPotentialControls.H"
 
     #include "reportSimulationSummary.H"
     #include "updateChargeDensity.H"
+
+    // Compute the initial Electric field
+    #include "calculateElectricField.H"
 
     Info<< "\nStarting iteration loop\n" << endl;
 
@@ -91,30 +94,28 @@ int main(int argc, char *argv[])
         ++runTime;
 
         Info << "Time = " << runTime.timeName() << nl << endl;
-
-        #include "syncMultiRegionAMR.H"
-
-        // gasMesh().update();
+        // #include "syncMultiRegionAMR.H"
 
         timeControl.adjustDeltaT(transport);
-
-        // Solve the Poisson/Laplace Equation (electric potential)
-        if(coupled)
+        
+        if (poissonSolver == "semiImplicit")
         {
-            #include "solveElectricPotentialCoupled.H"
+            #include "solveElectricPotential.H"
+            #include "calculateElectricField.H"
+
+            transport.correct();
+            #include "updateChargeDensity.H"
+            #include "updateSurfCharge.H"
         }
-        else
+        else if (poissonSolver == "explicit")
         {
-            #include "solveElectricPotentialNonCoupled.H"
+            transport.correct();
+
+            #include "updateChargeDensity.H"
+            #include "updateSurfCharge.H"
+            #include "solveElectricPotential.H"
+            #include "calculateElectricField.H"
         }
-
-        // Update the Electric field
-        #include "calculateElectricField.H"
-
-        transport.correct();
-        // Info << "ELAFKI3" << endl;
-        #include "updateChargeDensity.H"
-        #include "updateSurfCharge.H"
 
         runTime.write();
         runTime.printExecutionTime(Info);

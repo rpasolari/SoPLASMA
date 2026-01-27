@@ -16,3 +16,5 @@ regionProperties rp(runTime);
 
 #include "createGasMesh.H"
 #include "createDielectricMeshes.H"
+
+const label nTotalRegions = gasNames.size() + dielectricNames.size();

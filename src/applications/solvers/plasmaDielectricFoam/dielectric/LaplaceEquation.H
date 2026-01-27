@@ -22,7 +22,7 @@ if (!coupled)
     Info<< "Solving for ePotential in region " 
         << dielectricRegions[i].name() << endl;
 
-    for (int nonOrth = 0; nonOrth <= nNonOrthoCorrDielectricList[i]; ++nonOrth)
+    for (nonOrth = 0; nonOrth <= nNonOrthoCorrDielectricList[i]; ++nonOrth)
     {
         fvScalarMatrix LaplaceEquation
         (
@@ -50,10 +50,10 @@ else
             fvm::laplacian(epsilonDielectric,ePotentialDielectric)
         );
 
-        // if (nonOrth < nonOrthoCorrCoupled)
-        // {
-        //     LaplaceEquation.relax();
-        // }
+        if (nonOrth < nonOrthoCorrCoupled)
+        {
+            LaplaceEquation.relax();
+        }
         
         fvMatrixAssemblyPtr->addFvMatrix(LaplaceEquation);
 }

@@ -12,12 +12,12 @@ Description:
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-// This CLEARS the field. Without this, chargeDensity 
+// This clears the field. Without this, chargeDensity 
 // keeps growing every time correct() is called.
 chargeDensity == dimensionedScalar("zero", chargeDensity.dimensions(), 0.0);
 
 for (label i = 0; i < species.nSpecies(); ++i)
 {
-    // Now we ADD (+=) the contribution of each species
+    // Now we add (+=) the contribution of each species
     chargeDensity += species.speciesCharge(i) * species.numberDensity(i);
 }

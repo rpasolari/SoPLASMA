@@ -1,5 +1,5 @@
 constraints = decompositionConstraints
 
-$(constraints)/preserveEntireMappedInterface/preserveEntireMappedInterfaceConstraint.C
+$(constraints)/preserveMappedInterface/preserveMappedInterfaceConstraint.C
 
 LIB = $(FOAM_USER_LIBBIN)/libplasmaDecompositionMethods

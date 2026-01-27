@@ -24,7 +24,12 @@ namespace Foam
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
 defineTypeNameAndDebug(frozenTransportModel, 0);
-addToRunTimeSelectionTable(plasmaTransportModel, frozenTransportModel, dictionary);
+addToRunTimeSelectionTable
+(
+    plasmaTransportModel,
+    frozenTransportModel, 
+    dictionary
+);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -35,18 +40,27 @@ frozenTransportModel::frozenTransportModel
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E
+    const volVectorField& E,
+    const volScalarField& ePotential
 )
 :
-    plasmaTransportModel(modelName, dict, mesh, species, specieIndex, E)
+    plasmaTransportModel
+    (
+        modelName, 
+        dict, 
+        mesh, 
+        species, 
+        specieIndex, 
+        E, 
+        ePotential
+    )
 {}
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
 void frozenTransportModel::correct()
 {
-    Info << "Correct is called in frozenTransportModel!!" << endl;
-    //Do nothing here    
+    // Do nothing here    
 }
 
 tmp<fvScalarMatrix> frozenTransportModel::nEqn() const

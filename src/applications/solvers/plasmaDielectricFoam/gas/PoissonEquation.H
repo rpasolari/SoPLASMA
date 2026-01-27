@@ -18,12 +18,14 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
+const dimensionedScalar deltaT = gasMesh().time().deltaT();
+
 if (!coupled)
 {
     Info<< "Solving for ePotential in region " 
         << gasRegionName << endl;
 
-    for (int nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+    for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
     {
         if (poissonSolver == "explicit")
         {
@@ -50,13 +52,6 @@ if (!coupled)
         }
         else if (poissonSolver == "semiImplicit")
         {
-            dimensionedScalar deltaT
-            (
-                "dt",
-                dimensionSet(0,0,1,0,0,0,0),
-                gasMesh().time().deltaTValue()
-            );
-
             fvScalarMatrix PoissonEquation(
                 fvm::laplacian(
                     epsilon + deltaT * transport.electricalConductivity(),
@@ -66,7 +61,7 @@ if (!coupled)
                 -chargeDensity
                 - deltaT * transport.diffusiveChargeSource()
             );
-
+            
             fvOptions.constrain(PoissonEquation);
 
             if (nonOrth < nNonOrthoCorr)
@@ -104,22 +99,15 @@ else
 
         fvOptions.constrain(PoissonEquation);
 
-        // if (nonOrth < nonOrthoCorrCoupled)
-        // {
-        //     PoissonEquation.relax();
-        // }
+        if (nonOrth < nonOrthoCorrCoupled)
+        {
+            PoissonEquation.relax();
+        }
 
         fvMatrixAssemblyPtr->addFvMatrix(PoissonEquation);
     }
     else if (poissonSolver == "semiImplicit")
     {
-        dimensionedScalar deltaT
-        (
-            "dt",
-            dimensionSet(0,0,1,0,0,0,0),
-            mesh.time().deltaTValue()
-        );
-
         fvScalarMatrix PoissonEquation(
             fvm::laplacian(
                 epsilon + deltaT * transport.electricalConductivity(),
@@ -132,10 +120,10 @@ else
 
         fvOptions.constrain(PoissonEquation);
 
-        // if (nonOrth < nonOrthoCorrCoupled)
-        // {
-        //     PoissonEquation.relax();
-        // }
+        if (nonOrth < nonOrthoCorrCoupled)
+        {
+            PoissonEquation.relax();
+        }
 
         fvMatrixAssemblyPtr->addFvMatrix(PoissonEquation);
     }
@@ -145,5 +133,4 @@ else
             << "Unknown Poisson solver: " << poissonSolver
             << exit(FatalError);
     }
-
 }

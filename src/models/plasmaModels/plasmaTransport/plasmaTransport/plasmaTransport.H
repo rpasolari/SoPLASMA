@@ -80,11 +80,11 @@ private:
     //- Reference to the electric field
     const volVectorField& E_;
 
+    //- Reference to the electric potential field
+    const volScalarField& ePotential_;
+
     //- Surface Particle Flux [1/s]
     PtrList<surfaceScalarField> particleFlux_;
-
-    //- Volumetric Particle Flux Vector [1/m^2/s]
-    PtrList<volVectorField> Gamma_;
 
     //- Per-species transport models
     PtrList<plasmaTransportModel> transportModels_;
@@ -108,7 +108,8 @@ public:
         (
             plasmaSpecies& species,
             const fvMesh& mesh,
-            const volVectorField& E
+            const volVectorField& E,
+            const volScalarField& ePotential
         );
 
     //- Destructor
@@ -142,12 +143,6 @@ public:
         inline surfaceScalarField& particleFlux(label i);
         inline const PtrList<surfaceScalarField>& particleFlux() const;
         inline PtrList<surfaceScalarField>& particleFlux();
-
-        //- Surface Flux access
-        inline const volVectorField& Gamma(label i) const;
-        inline volVectorField& Gamma(label i);
-        inline const PtrList<volVectorField>& Gamma() const;
-        inline PtrList<volVectorField>& Gamma();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

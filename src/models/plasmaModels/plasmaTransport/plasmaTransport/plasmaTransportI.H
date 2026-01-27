@@ -68,31 +68,6 @@ Foam::plasmaTransport::particleFlux()
     return particleFlux_;
 }
 
-//- Surface Flux access
-inline const Foam::volVectorField&
-Foam::plasmaTransport::Gamma(Foam::label i) const
-{
-    return Gamma_[i];
-}
-
-inline Foam::volVectorField&
-Foam::plasmaTransport::Gamma(Foam::label i)
-{
-    return Gamma_[i];
-}
-
-inline const Foam::PtrList<Foam::volVectorField>&
-Foam::plasmaTransport::Gamma() const
-{
-    return Gamma_;
-}
-
-inline Foam::PtrList<Foam::volVectorField>&
-Foam::plasmaTransport::Gamma()
-{
-    return Gamma_;
-}
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

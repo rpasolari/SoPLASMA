@@ -21,6 +21,13 @@ if (gasNames.size() > 1)
         << "Found " << gasNames.size() << " regions: " << gasNames << nl
         << exit(FatalError);
 }
+else if (gasNames.empty())
+{
+    FatalErrorInFunction
+        << "No gas regions specified in constant/regionProperties." << nl
+        << "This solver requires exactly one gas region to function." << nl
+        << exit(FatalError);
+}
 
 const word gasRegionName = gasNames[0];
 

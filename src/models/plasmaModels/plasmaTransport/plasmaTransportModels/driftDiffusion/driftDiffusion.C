@@ -112,13 +112,23 @@ driftDiffusion::driftDiffusion
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E
+    const volVectorField& E,
+    const volScalarField& ePotential
 )
 :
-    plasmaTransportModel(modelName, dict, mesh, species, specieIndex, E),
+    plasmaTransportModel
+    (
+        modelName, 
+        dict, 
+        mesh, 
+        species, 
+        specieIndex, 
+        E, 
+        ePotential
+    ),
     driftVelocity_(
         IOobject(
-            "driftVelocity" + species.speciesNames()[specieIndex],
+            "driftVelocity_" + species.speciesNames()[specieIndex],
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -127,9 +137,26 @@ driftDiffusion::driftDiffusion
         mesh,
         dimensionedVector
         (
-            "driftVelocity",
+            "driftVelocity_",
             dimensionSet(0, 1, -1, 0, 0, 0, 0),
             vector::zero
+        )
+    ),
+
+    phiDrift_(
+        IOobject(
+            "phiDrift_" + species.speciesNames()[specieIndex],
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "phiDrift_",
+            dimensionSet(0, 3, -1, 0, 0, 0, 0),
+            0.0
         )
     ),
 
@@ -141,7 +168,7 @@ driftDiffusion::driftDiffusion
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(-1, 0, 2, 0, 0, 1, 0), 0.0)
@@ -215,6 +242,10 @@ void driftDiffusion::correct()
     scalar chargeNumber = species_.speciesChargeNumber(specieIndex_);
 
     driftVelocity_ = chargeNumber * mobility_ * E_;
+
+    phiDrift_ = chargeNumber * fvc::interpolate(mobility_) 
+              * (-fvc::snGrad(ePotential_))
+              * mesh_.magSf();
 }
 
 tmp<fvScalarMatrix> driftDiffusion::nEqn() const
@@ -224,18 +255,16 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
     tmp<fvScalarMatrix> tEqn(fvm::ddt(n));
     fvScalarMatrix& nEqn = tEqn.ref();
 
-    surfaceScalarField phiDrift = fvc::flux(driftVelocity_);
-
     if (fluxScheme_ == "ScharfetterGummel")
     {
-        nEqn += fvm::ScharfetterGummel(n, phiDrift, diffusivity_);
+        nEqn += fvm::ScharfetterGummel(n, phiDrift_, diffusivity_);
     }
     else
     {
         if (isExplicit_)
-            nEqn -= fvc::div(phiDrift, n);
+            nEqn += fvc::div(phiDrift_, n);
         else
-            nEqn += fvm::div(phiDrift, n);
+            nEqn += fvm::div(phiDrift_, n);
 
         nEqn -= fvm::laplacian(diffusivity_, n);
     }
@@ -266,15 +295,13 @@ tmp<surfaceScalarField> driftDiffusion::particleFlux() const
 
     surfaceScalarField& phi = tphi.ref();
 
-    surfaceScalarField phiDrift = fvc::flux(driftVelocity_);
-
     if (fluxScheme_== "ScharfetterGummel")
     {
-        phi = fvc::ScharfetterGummel(n, phiDrift, diffusivity_);
+        phi = fvc::ScharfetterGummel(n, phiDrift_, diffusivity_);
     }
     else
     {
-        phi = phiDrift*fvc::interpolate(n)
+        phi = phiDrift_*fvc::interpolate(n)
                     - fvc::interpolate(diffusivity_)
                     * fvc::snGrad(n)
                     * mesh_.magSf();

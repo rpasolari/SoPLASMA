@@ -48,47 +48,49 @@ Info<<
     Info<< endl;
 }
 
-// Adaptive Mesh Refinement (AMR) Configuration
-{
-    Info<< "Adaptive Mesh Refinement (AMR):" << nl;
+// // Adaptive Mesh Refinement (AMR) Configuration
+// {
+//     Info<< "Adaptive Mesh Refinement (AMR):" << nl;
 
-    if (enableAMR)
-    {
-        Info<< "    Status:         ENABLED" << nl;
-        Info<< "    Refine Interval: " << AMRInterval << " steps" << nl;
+//     if (enableAMR)
+//     {
+//         Info<< "    Status:         ENABLED" << nl;
+//         Info<< "    Refine Interval: " << refineInterval << " steps" << nl;
+//         Info<< "    Unrefine Interval: " << unrefineInterval << " steps" << nl;
+//         Info<< "    Balance Interval: " << balanceInterval << " steps" << nl;
 
-        if (restrictAMRToPlasma)
-        {
-            Info<< "    Mode:           RESTRICTED (Plasma region only)" << nl;
-        }
-        else
-        {
-            Info<< "    Mode:           MULTI-REGION" << nl;
+//         if (restrictAMRToPlasma)
+//         {
+//             Info<< "    Mode:           RESTRICTED (Plasma region only)" << nl;
+//         }
+//         else
+//         {
+//             Info<< "    Mode:           MULTI-REGION" << nl;
             
-            word syncStr = conformalAMRSync ? "ENABLED (Conformal)" : "DISABLED";
-            Info<< "    Sync Strategy:  " << syncStr << nl;
+//             word syncStr = conformalAMRSync ? "ENABLED (Conformal)" : "DISABLED";
+//             Info<< "    Sync Strategy:  " << syncStr << nl;
 
-            // Report which regions are participating in the sync
-            if (conformalAMRSync)
-            {
-                string syncRegions = gasMesh().name();
-                forAll(dielectricRegions, i)
-                {
-                    if (touchesGas[i])
-                    {
-                        syncRegions += ", " + dielectricRegions[i].name();
-                    }
-                }
-                Info<< "    Sync Regions:   [" << syncRegions << "]" << nl;
-            }
-        }
-    }
-    else
-    {
-        Info<< "    Status:         DISABLED" << nl;
-    }
-    Info<< endl;
-}
+//             // Report which regions are participating in the sync
+//             if (conformalAMRSync)
+//             {
+//                 string syncRegions = gasMesh().name();
+//                 forAll(dielectricRegions, i)
+//                 {
+//                     if (touchesGas[i])
+//                     {
+//                         syncRegions += ", " + dielectricRegions[i].name();
+//                     }
+//                 }
+//                 Info<< "    Sync Regions:   [" << syncRegions << "]" << nl;
+//             }
+//         }
+//     }
+//     else
+//     {
+//         Info<< "    Status:         DISABLED" << nl;
+//     }
+//     Info<< endl;
+// }
 
 // Electrostatics (Poisson & Region Coupling)
 {
@@ -96,26 +98,25 @@ Info<<
 
     if (coupled)
     {
-        Info<<
-        "    Coupling:       MONOLITHIC (Implicit coupling between regions)"
-        << nl;
-
-        Info<<
-        "    Non-Ortho Corr: " << nonOrthoCorrCoupled << " (Global Max)" << nl;
+        Info<< "    Mode:           MONOLITHIC (Implicit coupling)" << nl;
+        Info<< "    Non-Ortho Corr: " << nonOrthoCorrCoupled 
+            << " (Global Max)" << nl;
+    }
+    else if (nTotalRegions > 1)
+    {
+        Info<< "    Mode:           SEGREGATED (Iterative multi-region)" << nl;
+        Info<< "    Max Outer Iter: " << ePotentialNonCoupledLoopMaxIter << nl;
+        Info<< "    Tolerance:      " << ePotentialNonCoupledTolerance 
+            << " (Gas Region)" << nl;
     }
     else
     {
-        Info<<
-        "    Coupling:       SEGREGATED (Iterative loops over regions)" << nl;
-        Info<<
-        "    Max Outer Iter: " << ePotentialNonCoupledLoopMaxIter << nl;
-        Info<<
-        "    Tolerance:      " << ePotentialNonCoupledTolerance <<
-        " (Gas Region)" << nl;
+        // Only 1 region exists
+        Info<< "    Mode:           SINGLE-REGION (Stand-alone)" << nl;
+        Info<< "    Non-Ortho Corr: " << nNonOrthoCorr << nl;
     }
 
-    Info<< "    Poisson Solver: " << poissonSolver << nl;
-    Info<< endl;
+    Info<< "    Poisson Solver: " << poissonSolver << nl << endl;
 }
 
 // Species Transport Physics and Numerics

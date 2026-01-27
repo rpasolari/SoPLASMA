@@ -19,6 +19,7 @@
 
 scalar ePotentialNonCoupledTolerance;
 int nNonOrthoCorr;
+int nonOrth;
 
 List<scalar> ePotentialNonCoupledToleranceDielectricList
 (
@@ -95,4 +96,9 @@ forAll(dielectricRegions, i)
 if (!foundAnyRegionMaxIter)
 {
     ePotentialNonCoupledLoopMaxIter = 100;
+}
+
+if (nTotalRegions == 1)
+{
+    ePotentialNonCoupledLoopMaxIter = 1;
 }

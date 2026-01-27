@@ -49,7 +49,16 @@ void plasmaTransport::constructModels()
         transportModels_.set
         (
             i,
-            plasmaTransportModel::New(modelName, sDict, mesh_, species_, i, E_)
+            plasmaTransportModel::New
+            (
+                modelName,
+                sDict, 
+                mesh_, 
+                species_, 
+                i, 
+                E_,
+                ePotential_
+            )
         );
     }
 }
@@ -60,7 +69,8 @@ plasmaTransport::plasmaTransport
 (
     plasmaSpecies& species,
     const fvMesh& mesh,
-    const volVectorField& E
+    const volVectorField& E,
+    const volScalarField& ePotential
 )
 :
     regIOobject
@@ -77,14 +87,13 @@ plasmaTransport::plasmaTransport
     mesh_(mesh),
     species_(species),
     E_(E),
+    ePotential_(ePotential),
     transportModels_(species.nSpecies()),
-    particleFlux_(),
-    Gamma_()
+    particleFlux_()
 {
     constructModels();
 
     particleFlux_.setSize(species.nSpecies());
-    Gamma_.setSize(species.nSpecies());
 
     for (label i = 0; i < species.nSpecies(); ++i)
     {
@@ -108,30 +117,6 @@ plasmaTransport::plasmaTransport
                     "zero",
                     dimensionSet(0, 0, -1, 0, 0, 0, 0), 
                     0.0
-                )
-            )
-        );
-
-        // Volumetric Vector Field
-        Gamma_.set
-        (
-            i,
-            new volVectorField
-            (
-                IOobject
-                (
-                    "Gamma_" + species.speciesNames()[i],
-                    mesh_.time().timeName(),
-                    mesh_,
-                    IOobject::NO_READ,
-                    IOobject::AUTO_WRITE
-                ),
-                mesh_,
-                dimensionedVector
-                (
-                    "zero",
-                    dimensionSet(0, -2, -1, 0, 0, 0, 0),
-                    vector::zero
                 )
             )
         );
@@ -168,7 +153,7 @@ void plasmaTransport::correct()
     label eIdx = species_.speciesID("e");
     label iIdx = species_.speciesID("pIon");
 
-    // 1. Update transport properties (mobility, diffusion) based on current E
+    // Update transport properties
     for (label i = 0; i < nSpecies; ++i)
     {
         transportModels_[i].correct();
@@ -178,9 +163,8 @@ void plasmaTransport::correct()
     const volScalarField& ne = species_.numberDensity(eIdx);
     volScalarField Emag(mag(E_));
     
-    dimensionedScalar E_floor("E_floor", Emag.dimensions(), 1.0);
     dimensionedScalar E_unit("E_unit", Emag.dimensions(), 1.0);
-    volScalarField E_num = max(Emag, E_floor) / E_unit;
+    volScalarField E_num = max(Emag, E_unit) / E_unit;
 
     // 3. Calculate Ionization (alpha) and Attachment (eta) coefficients
     volScalarField alpha = (1.1944e6 + 4.3666e26/pow(E_num, 3)) * exp(-2.73e7/E_num) 
@@ -191,39 +175,6 @@ void plasmaTransport::correct()
     // 4. Calculate Drift Velocity magnitude and effective rate
     volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
     volScalarField k_eff = (alpha - eta) * veMag;
-
-    // --- DIAGNOSTIC PRINTING START ---
-    {
-        // Total particles created/lost per second
-        dimensionedScalar totalNetSource = fvc::domainIntegrate(k_eff * ne);
-        // Total population in the domain
-        dimensionedScalar totalElectrons = fvc::domainIntegrate(ne);
-        // Peak values for coefficients
-        scalar maxAlpha = gMax(alpha.primitiveField());
-        scalar maxK = gMax(mag(k_eff.primitiveField()));
-        
-        // Manual calculation of convection magnitude: div(velocity * density)
-        // We use the drift velocity from the electron transport model
-        volVectorField Ue = transportModels_[eIdx].driftVelocity();
-        dimensionedScalar totalConv = fvc::domainIntegrate(mag(fvc::div(fvc::flux(Ue), ne)));
-
-        Info<< "\n--- Plasma Diagnostics [Time: " << mesh_.time().timeName() << "] ---" << endl;
-        Info<< "  Total Electrons:    " << totalElectrons.value() << endl;
-        Info<< "  Max Alpha:          " << maxAlpha << " [m^-1]" << endl;
-        Info<< "  Net Source Rate:    " << totalNetSource.value() << " [s^-1]" << endl;
-        
-        if (maxK > 0)
-        {
-            Info<< "  Chem. Timescale:    " << 1.0/maxK << " [s] (dt: " << mesh_.time().deltaTValue() << ")" << endl;
-        }
-
-        if (totalConv.value() > 1e-20)
-        {
-            Info<< "  Source/Conv Ratio:  " << (mag(totalNetSource).value() / totalConv.value()) << endl;
-        }
-        Info<< "------------------------------------------------------\n" << endl;
-    }
-    // --- DIAGNOSTIC PRINTING END ---
 
     // 5. Solve Electron Continuity Equation
     {

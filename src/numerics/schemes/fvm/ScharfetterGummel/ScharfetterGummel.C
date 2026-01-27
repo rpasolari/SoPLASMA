@@ -39,21 +39,14 @@ namespace fvm
             const dimensionedScalar&
         );        
 
-        // Overload for drift velocity instead of flux
+        // Overload for Electric Potential and Mobility (mu) instead of flux
         template tmp<fvMatrix<scalar>> ScharfetterGummel
         (
             const GeometricField<scalar, fvPatchField, volMesh>&,
-            const volVectorField&,
-            const volScalarField&
-        );
-
-        // Overload for Electric Field (E) and Mobility (mu) instead of flux
-        template tmp<fvMatrix<scalar>> ScharfetterGummel
-        (
-            const GeometricField<scalar, fvPatchField, volMesh>&,
-            const volVectorField&,
             const volScalarField&,
-            const volScalarField&
+            const volScalarField&,
+            const volScalarField&,
+            const scalar
         );
 
 } // End namespace fvm

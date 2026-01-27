@@ -20,18 +20,19 @@ Description:
 
 if 
 (
-    enableAMR 
- && (runTime.timeIndex() % AMRInterval == 0) 
-
+    enableAMR &&
+    totalRegions > 1 &&
+    (
+        (runTime.timeIndex() % refineInterval == 0) 
+     || (runTime.timeIndex() % unrefineInterval == 0)
+     || (runTime.timeIndex() % balanceInterval == 0)
+    )
 )
 {
-    adaptiveFvMesh& gasAMRMesh = refCast<adaptiveFvMesh>(gasMesh());
-
     // Read the refinement field of the gas region, and build the refineField
     if
     (
-           totalRegions > 1 
-        && !restrictAMRToPlasma
+        !restrictAMRToPlasma
         && conformalAMRSync 
         && refineFieldGasPtr.valid()
     )
@@ -53,7 +54,18 @@ if
             }
         }
     }
+}
 
+if 
+(
+    enableAMR &&
+    (
+        (runTime.timeIndex() % refineInterval == 0) 
+     || (runTime.timeIndex() % unrefineInterval == 0)
+     || (runTime.timeIndex() % balanceInterval == 0)
+    )
+)
+{
     bool gasChanged = gasAMRMesh.update();
 
     if (totalRegions > 1)

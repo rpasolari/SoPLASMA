@@ -86,12 +86,9 @@ void plasmaTimeControl::read()
 
 void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
 {
-    if (!adjustTimeStep_ || runTime_.timeIndex() == 1) return;
-
-    scalar newDeltaT = maxDeltaT_;
     const scalar currentDeltaT = runTime_.deltaTValue();
     const scalar eps0 = constant::plasma::epsilon0.value();
-
+    scalar newDeltaT = maxDeltaT_;
     scalar maxSigma = 0.0;
     scalar maxFluxRate = 0.0;
 
@@ -128,32 +125,34 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     }
 
     // Reduction and setting
-    reduce(newDeltaT, minOp<scalar>());
-
-    if (newDeltaT > currentDeltaT)
+    if (adjustTimeStep_)
     {
-        // Cap growth at 20% (factor 1.2)
-        newDeltaT = min(newDeltaT, currentDeltaT * 1.2);
+        // Global reduction for the actual time step decision
+        reduce(newDeltaT, minOp<scalar>());
+
+        if (newDeltaT > currentDeltaT)
+        {
+            newDeltaT = min(newDeltaT, currentDeltaT * 1.2);
+        }
+        runTime_.setDeltaT(newDeltaT);
     }
 
-    // Set the new time step
-    runTime_.setDeltaT(newDeltaT);
-
     // Report
-    Info << "deltaT           = " << newDeltaT << endl;
+    Info << "Time step monitoring:" << endl;
+    Info << "  current deltaT   = " << currentDeltaT << endl;
 
     if (limitDielectricRelaxationRatio_)
     {
-        scalar projectedRatio = (newDeltaT * maxSigma) / eps0;
-        Info << "deltaT/RelaxTime = " << projectedRatio 
-            << " (Limit: " << maxDielectricRelaxationRatio_ << ")" << endl;
+        scalar currentRatio = (currentDeltaT * maxSigma) / eps0;
+        Info << "  deltaT/RelaxTime = " << currentRatio 
+             << " (Limit: " << maxDielectricRelaxationRatio_ << ")" << endl;
     }
 
     if (limitSpeciesCo_)
     {
-        scalar projectedCo = maxFluxRate * newDeltaT;
-        Info << "Courant (" << speciesName_ << ")" << "      = " << projectedCo
-            << " (Limit: " << maxSpeciesCo_ << ")" << endl;
+        scalar currentCo = maxFluxRate * currentDeltaT;
+        Info << "  Courant (" << speciesName_ << ") = " << currentCo
+             << " (Limit: " << maxSpeciesCo_ << ")" << endl;
     }
 }
 

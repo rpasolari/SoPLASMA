@@ -23,8 +23,11 @@ echo "----------------------------------------------"
 
 echo ""
 
-echo ">>> Cleaning NEXT THIRD PARTY"
+echo ">>> Cleaning libROUNDSchemes"
 echo "----------------------------------------------"
 
-echo "----------------------------------------------"
+./libROUNDSchemes/Allwclean 
+
+echo ""
+
 echo ">>> Done cleaning ThirdParty."

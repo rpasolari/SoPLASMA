@@ -68,6 +68,9 @@ private:
     //- Drift velocity
     volVectorField driftVelocity_;
 
+    //- Drift flux
+    surfaceScalarField phiDrift_;
+
     //- Mobility field μ_i(x)
     volScalarField mobility_;
 
@@ -100,7 +103,8 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const volScalarField& ePotential
         );
 
     // Member Functions

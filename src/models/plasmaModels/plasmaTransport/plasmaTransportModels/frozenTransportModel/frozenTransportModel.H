@@ -77,7 +77,8 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const volScalarField& ePotential
         );
 
     // Member Functions

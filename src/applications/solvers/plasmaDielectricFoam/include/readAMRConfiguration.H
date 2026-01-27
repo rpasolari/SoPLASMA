@@ -24,12 +24,16 @@ Switch enableAMR = AMRDict.lookupOrDefault<bool>("enable", false);
 Switch restrictAMRToPlasma = false;
 Switch conformalAMRSync = false;
 
+adaptiveFvMesh& gasAMRMesh = refCast<adaptiveFvMesh>(gasMesh());
+
 label totalRegions = dielectricRegions.size() + 1;
 autoPtr<volScalarField> refineFieldGasPtr;
 PtrList<volScalarField> refineFieldDielectricList(dielectricRegions.size());
 boolList touchesGas(dielectricRegions.size(), false);
 
-label AMRInterval = 1;
+label refineInterval = 1;
+label unrefineInterval = 1;
+label balanceInterval = 1;
 if (enableAMR)
 {
     IOdictionary dynamicMeshDict
@@ -44,7 +48,12 @@ if (enableAMR)
         )
     );
 
-    AMRInterval = dynamicMeshDict.lookupOrDefault<label>("refineInterval", 1);
+    refineInterval =
+        dynamicMeshDict.lookupOrDefault<label>("refineInterval", 1);
+    unrefineInterval = 
+        dynamicMeshDict.lookupOrDefault<label>("unrefineInterval", 1);
+    balanceInterval = 
+       dynamicMeshDict.lookupOrDefault<label>("balanceInterval", refineInterval);
 }
 
 // AMR Controls Reading
@@ -135,13 +144,15 @@ if (enableAMR && !restrictAMRToPlasma && totalRegions > 1 && conformalAMRSync)
     forAll(dielectricRegions, i)
     {
         const fvBoundaryMesh& boundary = dielectricRegions[i].boundary();
-        
+        touchesGas[i] = false; 
+
         forAll(boundary, patchi)
         {
-            if (isA<mappedPatchBase>(boundary[patchi]))
+            const polyPatch& pp = boundary[patchi].patch();
+
+            if (isA<mappedPatchBase>(pp))
             {
-                const mappedPatchBase& mpp = 
-                    refCast<const mappedPatchBase>(boundary[patchi]);
+                const mappedPatchBase& mpp = refCast<const mappedPatchBase>(pp);
 
                 if (mpp.sampleRegion() == gasMesh().name())
                 {
@@ -151,7 +162,7 @@ if (enableAMR && !restrictAMRToPlasma && totalRegions > 1 && conformalAMRSync)
             }
         }
 
-        if (touchesGas[i] && conformalAMRSync)
+        if (touchesGas[i])
         {
             refineFieldDielectricList.set
             (

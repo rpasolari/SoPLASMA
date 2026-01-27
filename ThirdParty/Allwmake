@@ -40,16 +40,17 @@ fi
 
 echo ""
 
-echo ">>> Building NEXT THIRD PARTY"
+echo ">>> Building libROUNDSchemes"
 echo "----------------------------------------------"
 
-# Example for next component
-# if ./Something/Allwmake; then
-#     echo -e "${GREEN}>>> Something built successfully${NC}"
-# else
-#     echo -e "${RED}>>> Something build FAILED (ignored)${NC}"
-#     FAILED+=("Something")
-# fi
+if ./libROUNDSchemes/Allwmake; then
+    echo -e "${GREEN}>>> libROUNDSchemes built successfully${NC}"
+else
+    echo -e "${RED}>>> libROUNDSchemes build FAILED (ignored)${NC}"
+    FAILED+=("libROUNDSchemes")
+fi
+
+echo ""
 
 echo "----------------------------------------------"
 echo ">>> Done building ThirdParty."

@@ -214,38 +214,24 @@ namespace fvc
         return ScharfetterGummel(rho, phiDrift, DField);
     }
 
-    // Overload for drift velocity instead of flux
+    // Overload for Electric Potential and Mobility (mu) instead of flux
     template<class Type>
     tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
     ScharfetterGummel
     (
         const GeometricField<Type, fvPatchField, volMesh>& rho,
-        const volVectorField& vDrift,
-        const volScalarField& D
-    )
-    {
-        // Convert vDrift to phiDrift (Flux)
-        surfaceScalarField phiDrift = flux(vDrift);
-        
-        // Call the core implementation
-        return ScharfetterGummel(rho, phiDrift, D);
-    }
-
-    // Overload for Electric Field (E) and Mobility (mu) instead of flux
-    template<class Type>
-    tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-    ScharfetterGummel
-    (
-        const GeometricField<Type, fvPatchField, volMesh>& rho,
-        const volVectorField& E,
+        const volScalarField& ePotential,
         const volScalarField& mu,
-        const volScalarField& D
+        const volScalarField& D,
+        const scalar chargeNumber
     )    
-    {
-        volVectorField vDrift = mu * E;
+    {   
+        const fvMesh& mesh = rho.mesh();
         
-        surfaceScalarField phiDrift = flux(vDrift);
-        
+        surfaceScalarField phiDrift = chargeNumber * fvc::interpolate(mu)
+                                    * (-fvc::snGrad(ePotential))
+                                    * mesh.magSf();   
+  
         // Call the core implementation
         return ScharfetterGummel(rho, phiDrift, D);
     }
