@@ -159,7 +159,7 @@ namespace fvm
             const auto& DfPatch = Df.boundaryField()[patchi];
             const auto& phiDriftPatch = phiDrift.boundaryField()[patchi];
 
-            // We only fetch these for phusical boundaries.
+            // We only fetch these for physical boundaries.
             // Calling them on coupled patches is unnecessary and can be unsafe.
             const scalarField* alphaPtr = nullptr;
             const scalarField* betaPtr = nullptr;
@@ -198,6 +198,10 @@ namespace fvm
                 }
             }
         }
+
+        // Ensure this is okay!!
+        mat += fvc::laplacian(Df, rho) - fvm::laplacian(Df, rho);
+
         return tmat;
     }
 

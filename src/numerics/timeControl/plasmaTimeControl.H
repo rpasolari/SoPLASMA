@@ -55,7 +55,6 @@ SourceFiles
 namespace Foam
 {
 
-
 class plasmaTransport;    
 /*---------------------------------------------------------------------------*\
                       Class plasmaTimeControl Declaration
@@ -89,11 +88,17 @@ private:
             //- Switch to limit Dielectric Relaxation Ratio
             Switch limitDielectricRelaxationRatio_;
 
+            //- Switch to print Dielectric Relaxation Ratio
+            Switch printDielectricRelaxationRatio_;
+
             //- Coefficient for Dielectric Relaxation ratio 
             scalar maxDielectricRelaxationRatio_;
 
             //- Switch to enable/disable Species Courant limiting
             Switch limitSpeciesCo_;
+
+            //- Switch to print Species Courant limiting
+            Switch printSpeciesCo_;
 
             //- Maximum allowed Courant number for the species
             scalar maxSpeciesCo_;

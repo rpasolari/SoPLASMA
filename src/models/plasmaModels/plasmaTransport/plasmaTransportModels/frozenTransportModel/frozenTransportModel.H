@@ -77,20 +77,21 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E,
-            const volScalarField& ePotential
+            const volVectorField& E
         );
 
     // Member Functions
         
         //- Correct model
-        virtual void correct() override;
+        virtual void correct(const surfaceScalarField& phiE) override;
 
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const override;
 
-        //- Return the total particle flux (Advection + Diffusion) (1/s)
-        virtual tmp<surfaceScalarField> particleFlux() const override;
+        //- Update the particle flux in place (1/s)
+        virtual void updateParticleFlux(surfaceScalarField& flux) const override;
+
+        virtual tmp<surfaceScalarField> phi() const override;
 
         //- Return drift velocity
         virtual const volVectorField& driftVelocity() const override;

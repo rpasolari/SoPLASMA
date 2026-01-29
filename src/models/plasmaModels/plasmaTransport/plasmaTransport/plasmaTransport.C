@@ -14,6 +14,8 @@
 #include "plasmaTransport.H"
 #include "plasmaTransportModel.H"
 
+#include "plasmaProfiler.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -56,8 +58,7 @@ void plasmaTransport::constructModels()
                 mesh_, 
                 species_, 
                 i, 
-                E_,
-                ePotential_
+                E_
             )
         );
     }
@@ -147,34 +148,58 @@ plasmaTransport::plasmaTransport
 //     }
 // }
 
-void plasmaTransport::correct()
+void plasmaTransport::correct(const bool firstIter, const bool finalIter)
 {
     const label nSpecies = species_.nSpecies();
+
+    //- Hard coded this part
     label eIdx = species_.speciesID("e");
     label iIdx = species_.speciesID("pIon");
+    //---------------------------------------
 
-    // Update transport properties
-    for (label i = 0; i < nSpecies; ++i)
+    plasmaProfiler::start("Transport", "phiECalc");
+    surfaceScalarField phiE = -fvc::snGrad(ePotential_) * mesh_.magSf();
+    plasmaProfiler::stop("Transport", "phiECalc");
+
+    static volScalarField k_eff
+    (
+        IOobject("k_eff", mesh_.time().timeName(), mesh_),
+        mesh_,
+        dimensionedScalar(dimensionSet(0,0,-1,0,0,0,0), 0.0)
+    );
+    const volScalarField& ne = species_.numberDensity(eIdx);
+
+    if (firstIter)
     {
-        transportModels_[i].correct();
+        plasmaProfiler::start("Transport", "chemistry");
+        //- Hard coded this part
+        
+        volScalarField Emag(mag(E_));
+        
+        dimensionedScalar E_unit("E_unit", Emag.dimensions(), 1.0);
+        volScalarField E_num = max(Emag, E_unit) / E_unit;
+
+        // 3. Calculate Ionization (alpha) and Attachment (eta) coefficients
+        volScalarField alpha = (1.1944e6 + 4.3666e26/pow(E_num, 3)) * exp(-2.73e7/E_num) 
+                            * dimensionedScalar("invM", dimensionSet(0,-1,0,0,0,0,0), 1.0);
+        
+        dimensionedScalar eta("eta", dimensionSet(0,-1,0,0,0,0,0), 340.75);
+
+        // 4. Calculate Drift Velocity magnitude and effective rate
+        volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
+        k_eff = (alpha - eta) * veMag;
+        plasmaProfiler::stop("Transport", "chemistry");
     }
 
-    // 2. Extract Electric Field magnitude and normalize for empirical fits
-    const volScalarField& ne = species_.numberDensity(eIdx);
-    volScalarField Emag(mag(E_));
-    
-    dimensionedScalar E_unit("E_unit", Emag.dimensions(), 1.0);
-    volScalarField E_num = max(Emag, E_unit) / E_unit;
+    // Update transport properties
+    plasmaProfiler::start("Transport", "correctEveryModel");
+    for (label i = 0; i < nSpecies; ++i)
+    {
+        transportModels_[i].correct(phiE);
+    }
+    plasmaProfiler::stop("Transport", "correctEveryModel");
 
-    // 3. Calculate Ionization (alpha) and Attachment (eta) coefficients
-    volScalarField alpha = (1.1944e6 + 4.3666e26/pow(E_num, 3)) * exp(-2.73e7/E_num) 
-                         * dimensionedScalar("invM", dimensionSet(0,-1,0,0,0,0,0), 1.0);
-    
-    dimensionedScalar eta("eta", dimensionSet(0,-1,0,0,0,0,0), 340.75);
-
-    // 4. Calculate Drift Velocity magnitude and effective rate
-    volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
-    volScalarField k_eff = (alpha - eta) * veMag;
+    //---------------------------------------------------------------------------------
 
     // 5. Solve Electron Continuity Equation
     {
@@ -182,9 +207,13 @@ void plasmaTransport::correct()
         fvScalarMatrix& nEqne = tEqne.ref();
 
         // Use SuSp for the source term S = k_eff * ne
+        plasmaProfiler::start("Transport", "buildElectronEquation");
         nEqne -= fvm::SuSp(k_eff, ne); 
+        plasmaProfiler::stop("Transport", "buildElectronEquation");
 
+        plasmaProfiler::start("Transport", "solveElectronEquation");
         nEqne.solve();
+        plasmaProfiler::stop("Transport", "solveElectronEquation");
     }
 
     // 6. Solve Positive Ion Equation (Immobile ions)
@@ -194,11 +223,23 @@ void plasmaTransport::correct()
         tmp<fvScalarMatrix> tEqni = transportModels_[iIdx].nEqn();
         fvScalarMatrix& nEqni = tEqni.ref();
 
+        plasmaProfiler::start("Transport", "buildandSolveIonEquation");
         // Ion production rate 
         nEqni -= k_eff * neNew;
 
         nEqni.solve();
+        plasmaProfiler::stop("Transport", "buildandSolveIonEquation");
     }
+
+    plasmaProfiler::start("Transport", "updateFlux");
+    if (finalIter)
+    {
+        for (label i = 0; i < nSpecies; ++i)
+        {
+            transportModels_[i].updateParticleFlux(particleFlux_[i]);
+        }
+    }
+    plasmaProfiler::stop("Transport", "updateFlux");
 }
 
 tmp<volScalarField> plasmaTransport::electricalConductivity() const

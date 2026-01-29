@@ -53,6 +53,7 @@ Author
 #include "plasmaSpecies.H"
 #include "plasmaTransport.H"
 #include "plasmaTimeControl.H"
+#include "plasmaProfiler.H"
 // #include "adaptiveFvMesh.H"
 
 int main(int argc, char *argv[])
@@ -103,23 +104,55 @@ int main(int argc, char *argv[])
             #include "solveElectricPotential.H"
             #include "calculateElectricField.H"
 
-            transport.correct();
+            for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+            {
+                bool firstIter = (nonOrth == 0);
+                bool finalIter = (nonOrth == nNonOrthoCorr);
+
+                transport.correct(firstIter, finalIter);
+            }
+
             #include "updateChargeDensity.H"
             #include "updateSurfCharge.H"
         }
         else if (poissonSolver == "explicit")
         {
-            transport.correct();
+            plasmaProfiler::start("Transport");
+            plasmaProfiler::start("Transport", "correct");
 
+            for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+            {
+                bool firstIter = (nonOrth == 0);
+                bool finalIter = (nonOrth == nNonOrthoCorr);
+
+                transport.correct(firstIter, finalIter);
+            }
+
+            plasmaProfiler::stop("Transport", "correct");
+
+            plasmaProfiler::start("Transport", "updateCharge");
             #include "updateChargeDensity.H"
+            plasmaProfiler::stop("Transport", "updateCharge");
+            plasmaProfiler::start("Transport", "updateSurfCharge");
             #include "updateSurfCharge.H"
+            plasmaProfiler::stop("Transport", "updateSurfCharge");
+            plasmaProfiler::stop("Transport");
+
+            plasmaProfiler::start("Poisson");
+            plasmaProfiler::start("Poisson", "solvePoisson");
             #include "solveElectricPotential.H"
+            plasmaProfiler::stop("Poisson", "solvePoisson");
+            plasmaProfiler::start("Poisson", "calcElecField");
             #include "calculateElectricField.H"
+            plasmaProfiler::stop("Poisson", "calcElecField");
+            plasmaProfiler::stop("Poisson");
         }
 
         runTime.write();
         runTime.printExecutionTime(Info);
     }
+
+    plasmaProfiler::report();
 
     Info<< "End\n" << endl;
 

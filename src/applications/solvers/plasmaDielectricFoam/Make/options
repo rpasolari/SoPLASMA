@@ -12,6 +12,7 @@ EXE_INC = \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
     -I$(FOAM_PLASMA_SRC)/numerics/lnInclude \
     -I$(FOAM_PLASMA_SRC)/bcs/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/tools/profiling/lnInclude
 #     -I$(FOAM_PLASMA_SRC)/tools/decompositionMethods/lnInclude \
 #     -I$(FOAM_PLASMA_THIRD_PARTY)/blastAMR/src/dynamicFvMesh/lnInclude \
 #     -I$(FOAM_PLASMA_THIRD_PARTY)/blastAMR/src/dynamicMesh/lnInclude \
@@ -32,6 +33,7 @@ EXE_LIBS = \
     -lplasmaTransport \
     -lplasmaNumerics \
     -lplasmaBCs \
+    -lplasmaProfiler
 #     -lplasmaDecompositionMethods \
 #     -lamrDynamicFvMesh \
 #     -lamrDynamicMesh \

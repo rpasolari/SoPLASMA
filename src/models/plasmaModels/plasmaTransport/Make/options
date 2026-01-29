@@ -6,6 +6,7 @@ EXE_INC = \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
     -I$(FOAM_PLASMA_SRC)/numerics/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/tools/profiling/lnInclude
 
 
 EXE_LIBS = \
@@ -15,4 +16,5 @@ EXE_LIBS = \
     -lfoamPlasmaToolkitConstants \
     -lplasmaSpecies \
     -lplasmaTransport \
-    -lplasmaNumerics
+    -lplasmaNumerics \
+    -lplasmaProfiler

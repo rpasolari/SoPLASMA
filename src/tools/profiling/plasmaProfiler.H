@@ -5,7 +5,7 @@ License
     The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025
+    Copyright (C) 2026
         Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
@@ -22,17 +22,22 @@ License
     with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::plasmaTimeProfiler
+    Foam::plasmaProfiler
 
 Description
 
 SourceFiles
-    plasmaTimeProfiler.C
+    plasmaProfiler.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef plasmaTimeProfiler_H
-#define plasmaTimeProfiler_H
+#ifndef plasmaProfiler_H
+#define plasmaProfiler_H
+
+#include "cpuTime.H"
+#include "Pstream.H"
+#include <map>
+#include <string>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -40,17 +45,40 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                      Class plasmaTimeProfiler Declaration
+                      Class plasmaProfiler Declaration
 \*---------------------------------------------------------------------------*/
 
-class plasmaTimeProfiler
+class plasmaProfiler
 {
 private:
 
     // Private data
 
-        //- 
-        std::map<std::string, double>
+        //- Unique ID: {MainCategory, SubCategory}
+        typedef std::pair<std::string, std::string> ProfKey;
+
+        //- Total seconds accumulated for each ID
+        static std::map<ProfKey, double> cumulativeTimes_;
+
+        //- Starting timestamp for active measurements
+        static std::map<ProfKey, double> startTimes_;
+
+        //- The master stopwatch for the library
+        static cpuTime timer_;
+    
+public:
+
+    //- Start timing a section. Sub-tag is optional
+    static void start(const std::string& main, const std::string& sub = "");
+
+    //- Stop timing and save the duration
+    static void stop(const std::string& main, const std::string& sub = "");
+
+    //- Synchronize parallel data and print the report
+    static void report();
+
+    //- Clear all stored timing data
+    static void reset();
 
 };
 

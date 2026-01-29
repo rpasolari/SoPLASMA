@@ -207,12 +207,12 @@ void solidSurfaceFluxFvPatchScalarField::updateCoeffs()
 
             forAll(p, faceI)
             {
-                scalar Pe = uDrift_n[faceI] / (D_delta[faceI] + SMALL);
+                scalar Pe = uDrift_n[faceI] / (D_delta[faceI] + VSMALL);
 
                 scalar num = D_delta[faceI] * Be(-Pe);
                 scalar den = D_delta[faceI] * Be(Pe) + uWall[faceI];
 
-                scalar K = num / (den + SMALL);
+                scalar K = num / (den + VSMALL);
 
                 f[faceI] = 1.0 - K;
             }
@@ -227,7 +227,7 @@ void solidSurfaceFluxFvPatchScalarField::updateCoeffs()
 
             scalarField num = uWall - uDrift_n;
 
-            this->valueFraction() = num / (denom + SMALL);
+            this->valueFraction() = num / (denom + VSMALL);
         }
     }
     else

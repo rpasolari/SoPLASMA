@@ -83,7 +83,7 @@ private:
     //- Reference to the electric potential field
     const volScalarField& ePotential_;
 
-    //- Surface Particle Flux [1/s]
+    //- Total particle surface Flux [1/s]
     PtrList<surfaceScalarField> particleFlux_;
 
     //- Per-species transport models
@@ -118,7 +118,7 @@ public:
     // Member functions
 
         //- Correct all models
-        void correct();
+        void correct(const bool firstIter, const bool finalIter);
 
         //- Return total electrical conductivity [S/m]
         tmp<volScalarField> electricalConductivity() const;
@@ -138,11 +138,14 @@ public:
         inline plasmaTransportModel& model(const label i);
         inline const plasmaTransportModel& model(const label i) const;
 
-        //- Flux access
+        //- Total number flux access
         inline const surfaceScalarField& particleFlux(label i) const;
         inline surfaceScalarField& particleFlux(label i);
         inline const PtrList<surfaceScalarField>& particleFlux() const;
         inline PtrList<surfaceScalarField>& particleFlux();
+
+        //- Return the total volumetrix flux (m3/s) for a species on the fly
+        inline tmp<surfaceScalarField> phi(const label i) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

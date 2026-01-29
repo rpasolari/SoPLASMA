@@ -86,9 +86,6 @@ protected:
     //- Reference to the electric field
     const volVectorField& E_;
 
-    //- Reference to the electric potential field
-    const volScalarField& ePotential_;
-
     //- Dictionary for this species
     const dictionary& dict_;
 
@@ -101,6 +98,14 @@ protected:
     //- Global shared zero vector field for stationary species
     static autoPtr<volVectorField> zeroVectorFieldPtr_;
 
+    //- Global shared zero surface scalar field for stationary species
+    static autoPtr<surfaceScalarField> zeroSurfaceFieldPtr_;
+
+private:
+
+    //- Initialize zeros once per simulation
+    static void checkSharedFields(const fvMesh& mesh);
+    
 public:
 
     //- Runtime type information
@@ -118,10 +123,9 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E,
-            const volScalarField& ePotential
+            const volVectorField& E
         ),
-        (modelName, dict, mesh, species, specieIndex, E, ePotential)
+        (modelName, dict, mesh, species, specieIndex, E)
     );
 
     // Constructors
@@ -134,8 +138,7 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E,
-            const volScalarField& ePotential
+            const volVectorField& E
         );
 
     //- Selector
@@ -146,8 +149,7 @@ public:
         const fvMesh& mesh,
         const plasmaSpecies& species,
         const label specieIndex,
-        const volVectorField& E,
-        const volScalarField& ePotential
+        const volVectorField& E
     );
 
     //- Destructor
@@ -156,13 +158,16 @@ public:
     // Member Functions
 
         //- Correct model / Update drift velocity (and diffusivity if present)
-        virtual void correct() = 0;
+        virtual void correct(const surfaceScalarField& phiE) = 0;
 
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const = 0;
 
-        //- Return the particle flux (1/s)
-        virtual tmp<surfaceScalarField> particleFlux() const = 0;
+        //- Update the particle flux in place (1/s)
+        virtual void updateParticleFlux(surfaceScalarField& flux) const = 0;
+
+        //- Return volumetric flux (m3/s) (phiDrift + phiGas)
+        virtual tmp<surfaceScalarField> phi() const = 0;
 
         //- Getter for drift velocity
         virtual const volVectorField& driftVelocity() const = 0;

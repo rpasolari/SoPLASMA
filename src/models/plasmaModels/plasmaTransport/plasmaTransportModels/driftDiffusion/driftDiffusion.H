@@ -69,7 +69,7 @@ private:
     volVectorField driftVelocity_;
 
     //- Drift flux
-    surfaceScalarField phiDrift_;
+    surfaceScalarField phi_;
 
     //- Mobility field μ_i(x)
     volScalarField mobility_;
@@ -103,20 +103,22 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E,
-            const volScalarField& ePotential
+            const volVectorField& E
         );
 
     // Member Functions
         
         //- Correct model
-        virtual void correct() override;
+        virtual void correct(const surfaceScalarField& phiE) override;
 
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const override;
 
-        //- Return the total particle flux (Advection + Diffusion) (1/s)
-        virtual tmp<surfaceScalarField> particleFlux() const override;
+        //- Update the particle flux in place (1/s)
+        virtual void updateParticleFlux(surfaceScalarField& flux) const override;
+
+        //- Return drift flux (m3/s)
+        virtual tmp<surfaceScalarField> phi() const override;
 
         //- Return drift velocity
         virtual const volVectorField& driftVelocity() const override;
@@ -124,7 +126,7 @@ public:
         //- Return diffusivity
         virtual const volScalarField* diffusivity() const override;
 
-        //- Return electric conduction coefficient
+         //- Return electric conduction coefficient
         virtual tmp<volScalarField> electricalConductivity() const override;
 
         //- Return electric diffusion charge

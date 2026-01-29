@@ -40,8 +40,7 @@ frozenTransportModel::frozenTransportModel
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E,
-    const volScalarField& ePotential
+    const volVectorField& E
 )
 :
     plasmaTransportModel
@@ -51,14 +50,13 @@ frozenTransportModel::frozenTransportModel
         mesh, 
         species, 
         specieIndex, 
-        E, 
-        ePotential
+        E
     )
 {}
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-void frozenTransportModel::correct()
+void frozenTransportModel::correct(const surfaceScalarField& phiE)
 {
     // Do nothing here    
 }
@@ -70,21 +68,14 @@ tmp<fvScalarMatrix> frozenTransportModel::nEqn() const
     return tmp<fvScalarMatrix>(fvm::ddt(n));
 }
 
-tmp<surfaceScalarField> frozenTransportModel::particleFlux() const
+void frozenTransportModel::updateParticleFlux(surfaceScalarField& flux) const
 {
-    return tmp<surfaceScalarField>::New
-    (
-        IOobject
-        (
-            "phi0", 
-            mesh_.time().timeName(), 
-            mesh_, 
-            IOobject::NO_READ, 
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
-    );
+    // flux *= 0.0;
+}
+
+tmp<surfaceScalarField> frozenTransportModel::phi() const
+{
+    return *zeroSurfaceFieldPtr_;
 }
 
 const volVectorField& frozenTransportModel::driftVelocity() const

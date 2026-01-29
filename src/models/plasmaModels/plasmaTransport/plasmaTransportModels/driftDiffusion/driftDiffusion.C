@@ -112,8 +112,7 @@ driftDiffusion::driftDiffusion
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E,
-    const volScalarField& ePotential
+    const volVectorField& E
 )
 :
     plasmaTransportModel
@@ -123,8 +122,7 @@ driftDiffusion::driftDiffusion
         mesh, 
         species, 
         specieIndex, 
-        E, 
-        ePotential
+        E
     ),
     driftVelocity_(
         IOobject(
@@ -143,9 +141,9 @@ driftDiffusion::driftDiffusion
         )
     ),
 
-    phiDrift_(
+    phi_(
         IOobject(
-            "phiDrift_" + species.speciesNames()[specieIndex],
+            "phi_" + species.speciesNames()[specieIndex],
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -154,7 +152,7 @@ driftDiffusion::driftDiffusion
         mesh,
         dimensionedScalar
         (
-            "phiDrift_",
+            "phi_",
             dimensionSet(0, 3, -1, 0, 0, 0, 0),
             0.0
         )
@@ -234,7 +232,7 @@ driftDiffusion::driftDiffusion
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-void driftDiffusion::correct()
+void driftDiffusion::correct(const surfaceScalarField& phiE)
 {
     mobilityModel_->correct(mobility_);
     diffusivityModel_->correct(diffusivity_);
@@ -243,9 +241,7 @@ void driftDiffusion::correct()
 
     driftVelocity_ = chargeNumber * mobility_ * E_;
 
-    phiDrift_ = chargeNumber * fvc::interpolate(mobility_) 
-              * (-fvc::snGrad(ePotential_))
-              * mesh_.magSf();
+    phi_ = chargeNumber * fvc::interpolate(mobility_) * phiE;
 }
 
 tmp<fvScalarMatrix> driftDiffusion::nEqn() const
@@ -257,14 +253,14 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
 
     if (fluxScheme_ == "ScharfetterGummel")
     {
-        nEqn += fvm::ScharfetterGummel(n, phiDrift_, diffusivity_);
+        nEqn += fvm::ScharfetterGummel(n, phi_, diffusivity_);
     }
     else
     {
         if (isExplicit_)
-            nEqn += fvc::div(phiDrift_, n);
+            nEqn += fvc::div(phi_, n);
         else
-            nEqn += fvm::div(phiDrift_, n);
+            nEqn += fvm::div(phi_, n);
 
         nEqn -= fvm::laplacian(diffusivity_, n);
     }
@@ -272,42 +268,24 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
     return tEqn;
 }
 
-tmp<surfaceScalarField> driftDiffusion::particleFlux() const
+void driftDiffusion::updateParticleFlux(surfaceScalarField& flux) const
 {
     const volScalarField& n = species_.numberDensity(specieIndex_);
 
-    tmp<surfaceScalarField> tphi
-    (
-        new surfaceScalarField
-        (
-            IOobject
-            (
-                "flux_" + species_.speciesNames()[specieIndex_],
-                mesh_.time().timeName(),
-                mesh_,
-                IOobject::NO_READ,
-                IOobject::NO_WRITE
-            ),
-            mesh_,
-            dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
-        )
-    );
-
-    surfaceScalarField& phi = tphi.ref();
-
-    if (fluxScheme_== "ScharfetterGummel")
+    if (fluxScheme_ == "ScharfetterGummel")
     {
-        phi = fvc::ScharfetterGummel(n, phiDrift_, diffusivity_);
+        flux = fvc::ScharfetterGummel(n, phi_, diffusivity_);
     }
     else
     {
-        phi = phiDrift_*fvc::interpolate(n)
-                    - fvc::interpolate(diffusivity_)
-                    * fvc::snGrad(n)
-                    * mesh_.magSf();
+        flux = phi_ * fvc::interpolate(n)
+             - fvc::interpolate(diffusivity_) * fvc::snGrad(n) * mesh_.magSf();
     }
+}
 
-    return tphi; 
+tmp<surfaceScalarField> driftDiffusion::phi() const
+{
+    return phi_;
 }
 
 const volVectorField& driftDiffusion::driftVelocity() const
@@ -333,8 +311,6 @@ tmp<volScalarField> driftDiffusion::diffusiveChargeSource() const
     return species_.speciesCharge(specieIndex_)
            * fvc::laplacian(diffusivity_, species_.numberDensity(specieIndex_));
 }
-
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

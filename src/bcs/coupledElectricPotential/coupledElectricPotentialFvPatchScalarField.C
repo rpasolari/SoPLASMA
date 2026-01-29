@@ -429,7 +429,7 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 
     if (surfChargeName_ != "none" && surfChargeNbrName_ != "none")
     {
-        if (gMax(mag(surfCharge)) > SMALL && gMax(mag(surfChargeNbr)) > SMALL)
+        if (gMax(mag(surfCharge)) > VSMALL && gMax(mag(surfChargeNbr)) > VSMALL)
         {
             WarningInFunction
                 << "Both surfCharge and surfChargeNbr are non-zero "
@@ -464,7 +464,7 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
         const scalar magSf = gSum(patch().magSf());
 
         // Area-averaged normal electric flux density [C/m^2]
-        const scalar q = Q / max(magSf, SMALL);
+        const scalar q = Q / max(magSf, VSMALL);
 
         // Effective dielectric coupling [F/m^2] from Δφ (owner vs cell-center)
         const scalarField qField(epsilonPhiP * snGrad());
@@ -473,13 +473,13 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 
         forAll(deltaPhi, i)
         {
-            if (mag(deltaPhi[i]) > SMALL)
+            if (mag(deltaPhi[i]) > VSMALL)
             {
                 ec[i] = qField[i] / deltaPhi[i];
             }
         }
         const scalar aveEc =
-            gSum(ec * patch().magSf()) / max(magSf, SMALL);
+            gSum(ec * patch().magSf()) / max(magSf, VSMALL);
 
         // Same coupling estimate from Δφ (patch values)
         const scalarField deltaPhiPatch(phiPNbr - phiP);
@@ -487,13 +487,13 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 
         forAll(deltaPhiPatch, i)
         {
-            if (mag(deltaPhiPatch[i]) > SMALL)
+            if (mag(deltaPhiPatch[i]) > VSMALL)
             {
                 ecPatch[i] = qField[i] / deltaPhiPatch[i];
             }
         }
         const scalar aveEcPatch =
-            gSum(ecPatch * patch().magSf()) / max(magSf, SMALL);
+            gSum(ecPatch * patch().magSf()) / max(magSf, VSMALL);
 
         // Potential statistics [V]
         const scalarMinMax phiPMinMax = gMinMax(phiP);

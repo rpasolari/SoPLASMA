@@ -67,11 +67,17 @@ void plasmaTimeControl::read()
         limitDielectricRelaxationRatio_ =
          dict_.lookupOrDefault<Switch>("limitDielectricRelaxationRatio", false);
 
+        printDielectricRelaxationRatio_ =
+         dict_.lookupOrDefault<Switch>("printDielectricRelaxationRatio", false);
+
         maxDielectricRelaxationRatio_ =
             dict_.lookupOrDefault<scalar>("maxDielectricRelaxationRatio", 1.0);
 
         limitSpeciesCo_ = 
             dict_.lookupOrDefault<Switch>("limitSpeciesCo", false);
+
+        printSpeciesCo_ = 
+            dict_.lookupOrDefault<Switch>("printSpeciesCo", false);
 
         if (limitSpeciesCo_)
                 {
@@ -91,9 +97,10 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     scalar newDeltaT = maxDeltaT_;
     scalar maxSigma = 0.0;
     scalar maxFluxRate = 0.0;
+    scalar meanFluxRate = 0.0;
 
     // Dielectric relaxation (tau = epsilon / sigma)
-    if (limitDielectricRelaxationRatio_)
+    if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
         tmp<volScalarField> tSigma = transport.electricalConductivity();
         const volScalarField& sigma = tSigma();
@@ -107,10 +114,10 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     }
 
     // Species Courant Limit
-    if (limitSpeciesCo_)
+    if (limitSpeciesCo_ || printSpeciesCo_)
     {
         label speciesLabel = transport.species().speciesID(speciesName_);
-        const surfaceScalarField& phi = transport.particleFlux(speciesLabel);
+        const surfaceScalarField& phi = transport.phi(speciesLabel);
 
         scalarField sumPhi
         (
@@ -118,8 +125,9 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         );
 
         maxFluxRate = 0.5 * gMax(sumPhi / mesh_.V().field());
+        meanFluxRate = 0.5 * (gSum(sumPhi) / gSum(mesh_.V().field()));
 
-        scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + SMALL);
+        scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
 
         newDeltaT = min(newDeltaT, courantLimit);
     }
@@ -141,18 +149,17 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     Info << "Time step monitoring:" << endl;
     Info << "  current deltaT   = " << currentDeltaT << endl;
 
-    if (limitDielectricRelaxationRatio_)
+    if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
         scalar currentRatio = (currentDeltaT * maxSigma) / eps0;
-        Info << "  deltaT/RelaxTime = " << currentRatio 
-             << " (Limit: " << maxDielectricRelaxationRatio_ << ")" << endl;
+        Info << "  deltaT/RelaxTime = " << currentRatio << endl;
     }
 
-    if (limitSpeciesCo_)
+    if (limitSpeciesCo_ || printSpeciesCo_)
     {
         scalar currentCo = maxFluxRate * currentDeltaT;
-        Info << "  Courant (" << speciesName_ << ") = " << currentCo
-             << " (Limit: " << maxSpeciesCo_ << ")" << endl;
+        Info << "  Max Courant ("<< speciesName_ <<") = " << currentCo << endl;
+        Info << "  Mean Courant ("<< speciesName_<< ") = " << currentCo << endl;
     }
 }
 
