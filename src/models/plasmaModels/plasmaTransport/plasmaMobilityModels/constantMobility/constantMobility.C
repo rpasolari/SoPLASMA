@@ -67,6 +67,8 @@ void constantMobility::correct(volScalarField& mu) const
         mu.dimensions(),
         mu0_
     );
+
+    mu.correctBoundaryConditions();
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

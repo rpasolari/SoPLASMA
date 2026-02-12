@@ -90,7 +90,13 @@ plasmaTransport::plasmaTransport
     E_(E),
     ePotential_(ePotential),
     transportModels_(species.nSpecies()),
-    particleFlux_()
+    particleFlux_(),
+    k_eff_
+    (
+        IOobject("k_eff", mesh.time().timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
+        mesh,
+        dimensionedScalar(dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
+    )
 {
     constructModels();
 
@@ -132,19 +138,62 @@ plasmaTransport::plasmaTransport
 
 //     for (label i = 0; i < nSpecies; ++i)
 //     {
-//         // Update coefficients (mobility, diffusivity, driftVelocity etc.)
-//         transportModels_[i].correct();
+//         surfaceScalarField phiE = fvc::flux(E_);
+//         transportModels_[i].correct(phiE);
 
 //         // Build the matrix
 //         tmp<fvScalarMatrix> tEqn = transportModels_[i].nEqn();
 //         fvScalarMatrix& nEqn = tEqn.ref();
 
-//         // Solve the transport equation
+//         // --- Lambda for the Debug Print ---
+//         auto debugBreakdown = [&](const string& labelTag)
+//         {
+//             label eIdx = species_.speciesID("e");
+//             volScalarField& n = species_.numberDensity(eIdx);
+//             const scalarField& nCurr = n.internalField();
+//             const scalarField& diag = nEqn.diag();
+//             const scalarField& upper = nEqn.upper();
+//             const scalarField& lower = nEqn.lower();
+//             const scalarField& source = nEqn.source();
+//             const labelList& owner = n.mesh().owner();
+//             const labelList& neighbour = n.mesh().neighbour();
+
+//             Pout << "--- [" << labelTag << "] Breakdown Species [" << i << "] ---" << endl;
+
+//             for (label celli = 0; celli <= 5; ++celli) // Small range for readability
+//             {
+//                 scalar leftContrib = 0;
+//                 scalar rightContrib = 0;
+
+//                 for (label facei : n.mesh().cells()[celli])
+//                 {
+//                     if (n.mesh().isInternalFace(facei))
+//                     {
+//                         if (owner[facei] == celli) 
+//                             rightContrib += upper[facei] * nCurr[neighbour[facei]];
+//                         else 
+//                             leftContrib += lower[facei] * nCurr[owner[facei]];
+//                     }
+//                 }
+
+//                 scalar diagTerm = diag[celli] * nCurr[celli];
+//                 scalar residual = (diagTerm + leftContrib + rightContrib) - source[celli];
+
+//                 Pout << "Cell " << celli << " | Diag: " << diagTerm 
+//                      << " | L: " << leftContrib << " | R: " << rightContrib 
+//                      << " | Src: " << source[celli] 
+//                      << " | Res: " << residual << endl;
+//             }
+//         };
+
+//         // 1. Check BEFORE solve (shows the current imbalance/error)
+//         debugBreakdown("BEFORE SOLVE");
+
+//         // 2. Solve
 //         nEqn.solve();
 
-//         // Update fluxes
-//         particleFlux_[i] = transportModels_[i].particleFlux();
-//         Gamma_[i] = fvc::reconstruct(particleFlux_[i]);
+//         // 3. Check AFTER solve (residual should be ~0)
+//         debugBreakdown("AFTER SOLVE");
 //     }
 // }
 
@@ -155,91 +204,57 @@ void plasmaTransport::correct(const bool firstIter, const bool finalIter)
     //- Hard coded this part
     label eIdx = species_.speciesID("e");
     label iIdx = species_.speciesID("pIon");
+    volScalarField& ne = species_.numberDensity(eIdx);
     //---------------------------------------
 
-    plasmaProfiler::start("Transport", "phiECalc");
     surfaceScalarField phiE = -fvc::snGrad(ePotential_) * mesh_.magSf();
-    plasmaProfiler::stop("Transport", "phiECalc");
-
-    static volScalarField k_eff
-    (
-        IOobject("k_eff", mesh_.time().timeName(), mesh_),
-        mesh_,
-        dimensionedScalar(dimensionSet(0,0,-1,0,0,0,0), 0.0)
-    );
-    const volScalarField& ne = species_.numberDensity(eIdx);
-
-    if (firstIter)
-    {
-        plasmaProfiler::start("Transport", "chemistry");
-        //- Hard coded this part
-        
-        volScalarField Emag(mag(E_));
-        
-        dimensionedScalar E_unit("E_unit", Emag.dimensions(), 1.0);
-        volScalarField E_num = max(Emag, E_unit) / E_unit;
-
-        // 3. Calculate Ionization (alpha) and Attachment (eta) coefficients
-        volScalarField alpha = (1.1944e6 + 4.3666e26/pow(E_num, 3)) * exp(-2.73e7/E_num) 
-                            * dimensionedScalar("invM", dimensionSet(0,-1,0,0,0,0,0), 1.0);
-        
-        dimensionedScalar eta("eta", dimensionSet(0,-1,0,0,0,0,0), 340.75);
-
-        // 4. Calculate Drift Velocity magnitude and effective rate
-        volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
-        k_eff = (alpha - eta) * veMag;
-        plasmaProfiler::stop("Transport", "chemistry");
-    }
 
     // Update transport properties
-    plasmaProfiler::start("Transport", "correctEveryModel");
     for (label i = 0; i < nSpecies; ++i)
     {
         transportModels_[i].correct(phiE);
     }
-    plasmaProfiler::stop("Transport", "correctEveryModel");
 
-    //---------------------------------------------------------------------------------
+    volScalarField Emag(mag(E_));
 
-    // 5. Solve Electron Continuity Equation
-    {
-        tmp<fvScalarMatrix> tEqne = transportModels_[eIdx].nEqn();
-        fvScalarMatrix& nEqne = tEqne.ref();
+dimensionedScalar E_const("E_const", Emag.dimensions(), 2.73e7);
+dimensionedScalar E_pow_const("E_pow_const", pow(Emag.dimensions(), 3), 4.3666e26);
+dimensionedScalar alpha_scale("alpha_scale", dimensionSet(0, -1, 0, 0, 0, 0, 0), 1.0);
 
-        // Use SuSp for the source term S = k_eff * ne
-        plasmaProfiler::start("Transport", "buildElectronEquation");
-        nEqne -= fvm::SuSp(k_eff, ne); 
-        plasmaProfiler::stop("Transport", "buildElectronEquation");
+volScalarField alpha = 
+    (1.1944e6 + E_pow_const / pow(Emag, 3)) 
+    * exp(-E_const / Emag)
+    * alpha_scale;
+    
+    alpha.correctBoundaryConditions();
 
-        plasmaProfiler::start("Transport", "solveElectronEquation");
-        nEqne.solve();
-        plasmaProfiler::stop("Transport", "solveElectronEquation");
-    }
+dimensionedScalar eta("eta", alpha.dimensions(), 340.75);
+volScalarField alphaEff = alpha - eta;
+volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
 
-    // 6. Solve Positive Ion Equation (Immobile ions)
-    {
-        const volScalarField& neNew = species_.numberDensity(eIdx);
-        
-        tmp<fvScalarMatrix> tEqni = transportModels_[iIdx].nEqn();
-        fvScalarMatrix& nEqni = tEqni.ref();
+    k_eff_ = alphaEff * veMag;
+    k_eff_.correctBoundaryConditions();
 
-        plasmaProfiler::start("Transport", "buildandSolveIonEquation");
-        // Ion production rate 
-        nEqni -= k_eff * neNew;
+    volScalarField explicitSource = k_eff_ * species_.numberDensity(eIdx);
+    // --- 5. Solve Electron & Ion Continuity (Explicit Source) ---
+    tmp<fvScalarMatrix> tEqne = transportModels_[eIdx].nEqn();
+    fvScalarMatrix& nEqne = tEqne.ref();
+    nEqne -= explicitSource; 
+    
+    tmp<fvScalarMatrix> tEqni = transportModels_[iIdx].nEqn();
+    fvScalarMatrix& nEqni = tEqni.ref();
+    nEqni -= explicitSource; 
 
-        nEqni.solve();
-        plasmaProfiler::stop("Transport", "buildandSolveIonEquation");
-    }
+    nEqni.solve();
+    nEqne.solve();
 
-    plasmaProfiler::start("Transport", "updateFlux");
-    if (finalIter)
-    {
-        for (label i = 0; i < nSpecies; ++i)
-        {
-            transportModels_[i].updateParticleFlux(particleFlux_[i]);
-        }
-    }
-    plasmaProfiler::stop("Transport", "updateFlux");
+    // if (finalIter)
+    // {
+    //     for (label i = 0; i < nSpecies; ++i)
+    //     {
+    //         transportModels_[i].updateParticleFlux(particleFlux_[i]);
+    //     }
+    // }
 }
 
 tmp<volScalarField> plasmaTransport::electricalConductivity() const

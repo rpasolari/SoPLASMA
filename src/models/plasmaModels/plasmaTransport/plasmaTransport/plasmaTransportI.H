@@ -75,6 +75,12 @@ Foam::plasmaTransport::phi(const label i) const
     return transportModels_[i].phi(); 
 }
 
+inline const Foam::volScalarField&
+Foam::plasmaTransport::k_eff() const
+{
+    return k_eff_;
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

@@ -13,6 +13,7 @@ Description:
 \*---------------------------------------------------------------------------*/
 
 E = -fvc::grad(ePotential);
+E.correctBoundaryConditions();
 
 forAll(dielectricRegions, i)
 {
@@ -20,4 +21,5 @@ forAll(dielectricRegions, i)
     volVectorField& EDielectric = EDielectricList[i];
 
     EDielectric = -fvc::grad(ePotentialDielectric);
+    EDielectric.correctBoundaryConditions();
 }

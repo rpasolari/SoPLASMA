@@ -54,7 +54,7 @@ volScalarField surfCharge
         runTime.timeName(),
         gasMesh(),
         IOobject::READ_IF_PRESENT,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     gasMesh(),
     dimensionedScalar("zero", dimensionSet(0, -2, 1, 0, 0, 1, 0), 0.0)

@@ -30,14 +30,14 @@ Description
 
     This function calculates the explicit advective-diffusive face flux field
     based on the exponential profile assumption:
-        J_f = phiDrift * rho - D * grad(rho)
+        J_f = phi * rho - D * grad(rho)
 
     Unlike the fvm equivalent, this function does not build a matrix.
     It returns the evaluated surfaceScalarField (flux) directly:
         J_f = D/h * [ B(-Pe) * rho_P  -  B(Pe) * rho_N ]
 
     Where:
-      - Pe is the local Peclet number: phiDrift / (D/h)
+      - Pe is the local Peclet number: phi / (D/h)
       - B(x) is the Bernoulli function: x / (exp(x) - 1)
       - rho_P, rho_N are the cell-center values of owner and neighbour.
 
@@ -80,7 +80,7 @@ namespace fvc
     ScharfetterGummel
     (
         const GeometricField<Type, fvPatchField, volMesh>& rho,
-        const surfaceScalarField& phiDrift,
+        const surfaceScalarField& phi,
         const volScalarField& D
     )
     {
@@ -101,7 +101,7 @@ namespace fvc
                 ),
                 mesh,
                 dimensioned<Type>
-                ("flux", phiDrift.dimensions()*rho.dimensions(), 0)
+                ("flux", phi.dimensions()*rho.dimensions(), Zero)
             )
         );
 
@@ -113,26 +113,25 @@ namespace fvc
         const labelList& owner = mesh.owner();
         const labelList& neighbour = mesh.neighbour();
 
-        // Interpolate diffusivity
         surfaceScalarField Df = fvc::interpolate(D);
 
         // Bernoulli Function Definition: B(x) = x / exp(x) - 1
         auto Bern = [](scalar x) -> scalar
         {
-            // Limit 1: Singularity at x = 0
-            if (mag(x) < 1e-4) 
+            const scalar ax = mag(x);
+            if (ax < 1e-4)
             {
-                return 1.0 - x/2.0 + sqr(x)/12.0 - pow4(x)/720.0;
+                return 1.0 - 0.5*x + (x*x)/12.0;
             }
-            // Limit 2: B(200) = 0 effectively
-            if (x > 200)    return 0.0;
-
-            // Limit 3: At x -> -inf, B(x) = -x
-            if (x < -200)   return -x;
-
-            // Standard calculation
-            return x / (exp(x) - 1.0); 
+            if (x > 50.0)  return x * Foam::exp(-x);
+            if (x < -50.0) return -x;
+            return x / (Foam::exp(x) - 1.0);
         };
+
+        const scalarField& convFlux = phi.primitiveField();
+        const scalarField diffCond = 
+            Df.primitiveField() * magSf.primitiveField()
+          * deltaCoeffs.primitiveField();
 
         // Internal Face Loop
         for (label facei = 0; facei < owner.size(); ++facei)
@@ -140,46 +139,42 @@ namespace fvc
             label P = owner[facei];
             label N = neighbour[facei];
 
-            scalar diffCond = Df[facei] * magSf[facei] * deltaCoeffs[facei];
-            scalar driftFlux = phiDrift[facei];
+            scalar Pe = convFlux[facei] / (diffCond[facei] + VSMALL);
 
-            // Local Peclet number
-            scalar Pe = driftFlux / (diffCond + VSMALL);
+            scalar coeffP = diffCond[facei] * Bern(-Pe);
+            scalar coeffN = diffCond[facei] * Bern(Pe);
 
-            // Bernoulli weights
-            scalar coeffP = diffCond * Bern(-Pe);
-            scalar coeffN = diffCond * Bern(Pe);
-
-            // Explicit flux calculation
             flux[facei] = (coeffP * rho[P]) - (coeffN * rho[N]);
         }
 
         // Boundary Face Loop
         forAll(rho.boundaryField(), patchi)
         {
-            const fvPatchField<Type>& rhoBoundary = rho.boundaryField()[patchi];
-            tmp<scalarField> tRhoInternal = rhoBoundary.patchInternalField();
-            const scalarField& rhoInternal = tRhoInternal();
+            const fvPatchField<Type>& ptf = rho.boundaryField()[patchi];
+            
+            // Get internal field values for the patch
+            tmp<Field<Type>> tRhoInternal = ptf.patchInternalField();
+            const Field<Type>& rhoInternal = tRhoInternal();
 
             auto& fluxPatch = flux.boundaryFieldRef()[patchi];
 
-            const auto& magSf = mesh.magSf().boundaryField()[patchi];
-            const auto& delta = mesh.deltaCoeffs().boundaryField()[patchi];
-            const auto& DfPatch = Df.boundaryField()[patchi];
-            const auto& phiDriftPatch = phiDrift.boundaryField()[patchi];
+            const scalarField pDiffCond = Df.boundaryField()[patchi] 
+                * mesh.magSf().boundaryField()[patchi] 
+                * mesh.deltaCoeffs().boundaryField()[patchi];
+                
+            const scalarField& pPhi = phi.boundaryField()[patchi];
 
-            forAll(rhoBoundary, facei)
+            forAll(ptf, facei)
             {
-                scalar diffCond = DfPatch[facei] * magSf[facei] *  delta[facei];
-                scalar driftFlux = phiDriftPatch[facei];
-                scalar Pe = driftFlux / (diffCond + VSMALL);
+                scalar Pe = pPhi[facei] / (pDiffCond[facei] + VSMALL);
 
-                scalar coeffP = diffCond * Bern(-Pe);
-                scalar coeffB = diffCond * Bern(Pe);
+                scalar coeffP = pDiffCond[facei] * Bern(-Pe);
+                scalar coeffB = pDiffCond[facei] * Bern(Pe);
 
+                // For FVC, we use the actual boundary values (ptf[facei])
                 fluxPatch[facei] = 
                     (coeffP * rhoInternal[facei]) -
-                    (coeffB * rhoBoundary[facei]);
+                    (coeffB * ptf[facei]);
             }
         }
 
@@ -192,7 +187,7 @@ namespace fvc
     ScharfetterGummel
     (
         const GeometricField<Type, fvPatchField, volMesh>& rho,
-        const surfaceScalarField& phiDrift,
+        const surfaceScalarField& phi,
         const dimensionedScalar& D
     )
     {
@@ -211,7 +206,7 @@ namespace fvc
         );    
         
         // Call the core implementation
-        return ScharfetterGummel(rho, phiDrift, DField);
+        return ScharfetterGummel(rho, phi, DField);
     }
 
     // Overload for Electric Potential and Mobility (mu) instead of flux
@@ -228,12 +223,12 @@ namespace fvc
     {   
         const fvMesh& mesh = rho.mesh();
         
-        surfaceScalarField phiDrift = chargeNumber * fvc::interpolate(mu)
+        surfaceScalarField phi = chargeNumber * fvc::interpolate(mu)
                                     * (-fvc::snGrad(ePotential))
                                     * mesh.magSf();   
   
         // Call the core implementation
-        return ScharfetterGummel(rho, phiDrift, D);
+        return ScharfetterGummel(rho, phi, D);
     }
 
 } // End namespace fvc

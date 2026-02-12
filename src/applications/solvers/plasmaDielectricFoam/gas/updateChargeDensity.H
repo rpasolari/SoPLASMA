@@ -12,8 +12,6 @@ Description:
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-// This clears the field. Without this, chargeDensity 
-// keeps growing every time correct() is called.
 chargeDensity == dimensionedScalar("zero", chargeDensity.dimensions(), 0.0);
 
 for (label i = 0; i < species.nSpecies(); ++i)
@@ -21,3 +19,5 @@ for (label i = 0; i < species.nSpecies(); ++i)
     // Now we add (+=) the contribution of each species
     chargeDensity += species.speciesCharge(i) * species.numberDensity(i);
 }
+
+chargeDensity.correctBoundaryConditions();

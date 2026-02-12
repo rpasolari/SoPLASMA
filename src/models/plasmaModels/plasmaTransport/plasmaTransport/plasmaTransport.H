@@ -86,6 +86,9 @@ private:
     //- Total particle surface Flux [1/s]
     PtrList<surfaceScalarField> particleFlux_;
 
+    //- Effective reaction rate field [1/s]
+    volScalarField k_eff_;
+
     //- Per-species transport models
     PtrList<plasmaTransportModel> transportModels_;
 
@@ -119,6 +122,7 @@ public:
 
         //- Correct all models
         void correct(const bool firstIter, const bool finalIter);
+        // void correct();
 
         //- Return total electrical conductivity [S/m]
         tmp<volScalarField> electricalConductivity() const;
@@ -146,6 +150,9 @@ public:
 
         //- Return the total volumetrix flux (m3/s) for a species on the fly
         inline tmp<surfaceScalarField> phi(const label i) const;
+
+        //- Return the effective reaction rate field [1/s]
+        inline const volScalarField& k_eff() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -130,7 +130,7 @@ driftDiffusion::driftDiffusion
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         mesh,
         dimensionedVector
@@ -240,6 +240,7 @@ void driftDiffusion::correct(const surfaceScalarField& phiE)
     scalar chargeNumber = species_.speciesChargeNumber(specieIndex_);
 
     driftVelocity_ = chargeNumber * mobility_ * E_;
+    driftVelocity_.correctBoundaryConditions();
 
     phi_ = chargeNumber * fvc::interpolate(mobility_) * phiE;
 }
@@ -258,15 +259,19 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
     else
     {
         if (isExplicit_)
+        {
             nEqn += fvc::div(phi_, n);
+        }
         else
+        {
             nEqn += fvm::div(phi_, n);
+        }
 
         nEqn -= fvm::laplacian(diffusivity_, n);
     }
 
     return tEqn;
-}
+} 
 
 void driftDiffusion::updateParticleFlux(surfaceScalarField& flux) const
 {

@@ -29,10 +29,15 @@ plasmaTimeControl::plasmaTimeControl(Time& runTime, const fvMesh& mesh)
     adjustTimeStep_(false),
     maxDeltaT_(GREAT),
     limitDielectricRelaxationRatio_(false),
+    printDielectricRelaxationRatio_(false),
     maxDielectricRelaxationRatio_(1.0),
     limitSpeciesCo_(false),
+    printSpeciesCo_(false),
     maxSpeciesCo_(1.0),
-    speciesName_("e")
+    speciesName_("e"),
+    limitChemistryCo_(false),
+    printChemistryCo_(false),
+    maxChemistryCo_(1.0)
 {
     read();
 }
@@ -87,6 +92,15 @@ void plasmaTimeControl::read()
                     speciesName_ = 
                         dict_.lookupOrDefault<word>("speciesName", "e");
                 }
+
+        limitChemistryCo_ = 
+            dict_.lookupOrDefault<Switch>("limitChemistryCo", false);
+
+        printChemistryCo_ = 
+            dict_.lookupOrDefault<Switch>("printChemistryCo", false);
+
+        maxChemistryCo_ = 
+            dict_.lookupOrDefault<scalar>("maxChemistryCo", 1.0);
     }
 }
 
@@ -95,9 +109,11 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     const scalar currentDeltaT = runTime_.deltaTValue();
     const scalar eps0 = constant::plasma::epsilon0.value();
     scalar newDeltaT = maxDeltaT_;
+
     scalar maxSigma = 0.0;
     scalar maxFluxRate = 0.0;
     scalar meanFluxRate = 0.0;
+    scalar maxKeff = 0.0;
 
     // Dielectric relaxation (tau = epsilon / sigma)
     if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
@@ -132,6 +148,19 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         newDeltaT = min(newDeltaT, courantLimit);
     }
 
+    if (limitChemistryCo_ || printChemistryCo_)
+    {
+        // Access the k_eff field from transport
+        const volScalarField& keff = transport.k_eff();
+        
+        maxKeff = gMax(mag(keff)().primitiveField());
+        
+        // dt <= maxChemistryCo / k_eff
+        scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
+
+        newDeltaT = min(newDeltaT, chemistryLimit);
+    }
+
     // Reduction and setting
     if (adjustTimeStep_)
     {
@@ -159,7 +188,12 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     {
         scalar currentCo = maxFluxRate * currentDeltaT;
         Info << "  Max Courant ("<< speciesName_ <<") = " << currentCo << endl;
-        Info << "  Mean Courant ("<< speciesName_<< ") = " << currentCo << endl;
+    }
+
+    if (limitChemistryCo_ || printChemistryCo_)
+    {
+        scalar currentChemCo = maxKeff * currentDeltaT;
+        Info << "  Max Chem Courant = " << currentChemCo << endl;
     }
 }
 
@@ -169,6 +203,7 @@ void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
 
     scalar newDeltaT = maxDeltaT_;
     const scalar currentDeltaT = runTime_.deltaTValue();
+    const scalar eps0 = constant::plasma::epsilon0.value();
 
     // Dielectric relaxation (tau = epsilon / sigma)
     if (limitDielectricRelaxationRatio_)
@@ -176,14 +211,40 @@ void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
         tmp<volScalarField> tSigma = transport.electricalConductivity();
         const volScalarField& sigma = tSigma();
 
-        const scalar eps0 = constant::plasma::epsilon0.value();
-
         scalar maxSigma = gMax(mag(sigma)().primitiveField());
         scalar dielectricLimit = 
             (maxDielectricRelaxationRatio_ * eps0) / (maxSigma + VSMALL);
 
         newDeltaT = min(newDeltaT, dielectricLimit);
         tSigma.clear();
+    }
+
+    // Species Courant Limit
+    if (limitSpeciesCo_)
+    {
+        label speciesLabel = transport.species().speciesID(speciesName_);
+        const surfaceScalarField& phi = transport.phi(speciesLabel);
+
+        scalarField sumPhi
+        (
+            fvc::surfaceSum(mag(phi))().primitiveField()
+        );
+
+        scalar maxFluxRate = 0.5 * gMax(sumPhi / mesh_.V().field());
+        scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
+
+        newDeltaT = min(newDeltaT, courantLimit);
+    }
+
+    // Chemistry Courant Limit
+    if (limitChemistryCo_)
+    {
+        const volScalarField& keff = transport.k_eff();
+        
+        scalar maxKeff = gMax(mag(keff)().primitiveField());
+        scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
+
+        newDeltaT = min(newDeltaT, chemistryLimit);
     }
 
     // Reduction and setting

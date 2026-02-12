@@ -106,6 +106,15 @@ private:
             //- Name of the species to track (default: "e")
             word speciesName_;
 
+            //- Switch to limit by Chemistry (Source term)
+            Switch limitChemistryCo_;
+
+            //- Switch to print Chemistry source restriction
+            Switch printChemistryCo_;
+
+            //- Maximum allowed relative change due to chemistry
+            scalar maxChemistryCo_;
+
         // Private Member Functions
 
             //- Read controls from dictionary
@@ -166,6 +175,18 @@ public:
         inline const word& speciesName() const
         {
             return speciesName_;
+        }
+
+        //- Is chemistry limiting enabled?
+        inline bool limitChemistryCo() const
+        {
+            return limitChemistryCo_;
+        }
+
+        //- Get the max allowed chemistry limit
+        inline scalar maxChemistryCo() const
+        {
+            return maxChemistryCo_;
         }
 };
 

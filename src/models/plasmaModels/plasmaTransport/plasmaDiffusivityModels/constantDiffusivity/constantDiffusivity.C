@@ -72,6 +72,8 @@ void constantDiffusivity::correct(volScalarField& D) const
         D.dimensions(),
         D0_
     );
+
+    D.correctBoundaryConditions();
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
