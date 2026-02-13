@@ -86,8 +86,22 @@ int main(int argc, char *argv[])
     #include "updateChargeDensity.H"
 
     // Compute the initial Electric field
-    #include "solveElectricPotential.H"
-    #include "calculateElectricField.H"
+    if (poissonSolver == "explicit")
+    {
+        #include "solveElectricPotential.H"
+        #include "calculateElectricField.H"
+    }
+    else if (poissonSolver == "semiImplicit")
+    {
+        fvScalarMatrix coldPoisson
+        (
+            fvm::laplacian(epsilon, ePotential)
+        );
+        coldPoisson.solve();
+        #include "calculateElectricField.H"
+
+        transport.correct(true, true);
+    }
 
     runTime.writeNow();
 
