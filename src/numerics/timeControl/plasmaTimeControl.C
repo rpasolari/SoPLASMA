@@ -125,7 +125,10 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         scalar dielectricLimit = 
             (maxDielectricRelaxationRatio_ * eps0) / (maxSigma + VSMALL);
 
-        newDeltaT = min(newDeltaT, dielectricLimit);
+        if (limitDielectricRelaxationRatio_)
+        {
+            newDeltaT = min(newDeltaT, dielectricLimit);
+        }
         tSigma.clear();
     }
 
@@ -145,7 +148,10 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
 
         scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
 
-        newDeltaT = min(newDeltaT, courantLimit);
+        if (limitSpeciesCo_)
+        {
+            newDeltaT = min(newDeltaT, courantLimit);
+        }
     }
 
     if (limitChemistryCo_ || printChemistryCo_)
@@ -158,7 +164,10 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         // dt <= maxChemistryCo / k_eff
         scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
 
-        newDeltaT = min(newDeltaT, chemistryLimit);
+        if (limitChemistryCo_)
+        {
+            newDeltaT = min(newDeltaT, chemistryLimit);
+        }
     }
 
     // Reduction and setting
@@ -171,28 +180,31 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         {
             newDeltaT = min(newDeltaT, currentDeltaT * 1.2);
         }
+
         runTime_.setDeltaT(newDeltaT);
     }
 
     // Report
+    scalar actualDeltaT = runTime_.deltaTValue();
+
     Info << "Time step monitoring:" << endl;
-    Info << "  current deltaT   = " << currentDeltaT << endl;
+    Info << "  current deltaT   = " << actualDeltaT << endl;
 
     if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
-        scalar currentRatio = (currentDeltaT * maxSigma) / eps0;
+        scalar currentRatio = (actualDeltaT * maxSigma) / eps0;
         Info << "  deltaT/RelaxTime = " << currentRatio << endl;
     }
 
     if (limitSpeciesCo_ || printSpeciesCo_)
     {
-        scalar currentCo = maxFluxRate * currentDeltaT;
+        scalar currentCo = maxFluxRate * actualDeltaT;
         Info << "  Max Courant ("<< speciesName_ <<") = " << currentCo << endl;
     }
 
     if (limitChemistryCo_ || printChemistryCo_)
     {
-        scalar currentChemCo = maxKeff * currentDeltaT;
+        scalar currentChemCo = maxKeff * actualDeltaT;
         Info << "  Max Chem Courant = " << currentChemCo << endl;
     }
 }

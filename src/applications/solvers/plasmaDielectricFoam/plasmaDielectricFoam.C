@@ -47,6 +47,7 @@ Author
 #include "fvSolution.H"
 #include "solutionControl.H"
 #include "mappedPatchBase.H"
+#include "pimpleControl.H"
 
 #include "solidSurfaceFluxFvPatchScalarField.H"
 #include "foamPlasmaToolkitConstants.H"
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
     #include "createMeshes.H"
     #include "createFields.H"
 
+    pimpleControl pimple(gasMesh());
     plasmaTimeControl timeControl(runTime, gasMesh());
     timeControl.setInitialDeltaT(transport);
     
@@ -95,7 +97,8 @@ int main(int argc, char *argv[])
     {
         fvScalarMatrix coldPoisson
         (
-            fvm::laplacian(epsilon, ePotential)
+            fvm::laplacian(epsilon, ePotential) ==
+                -chargeDensity
         );
         coldPoisson.solve();
         #include "calculateElectricField.H"
@@ -118,34 +121,43 @@ int main(int argc, char *argv[])
         
         if (poissonSolver == "semiImplicit")
         {
-            #include "solveElectricPotential.H"
-            #include "calculateElectricField.H"
-
-            for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+            while (pimple.loop())
             {
-                bool firstIter = (nonOrth == 0);
-                bool finalIter = (nonOrth == nNonOrthoCorr);
+                while (pimple.correct())
+                {
+                    #include "solveElectricPotential.H"
+                    #include "calculateElectricField.H"
+                    transport.correctModels();
+                }
+                for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+                {
+                    bool firstIter = (nonOrth == 0);
+                    bool finalIter = (nonOrth == nNonOrthoCorr);
 
-                transport.correct(firstIter, finalIter);
+                    transport.correct(firstIter, finalIter);
+                }
+
+                #include "updateChargeDensity.H"
+                #include "updateSurfCharge.H"
             }
-
-            #include "updateChargeDensity.H"
-            #include "updateSurfCharge.H"
         }
         else if (poissonSolver == "explicit")
         {
-            for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+            while (pimple.loop())
             {
-                bool firstIter = (nonOrth == 0);
-                bool finalIter = (nonOrth == nNonOrthoCorr);
-                transport.correct(firstIter, finalIter);
+                for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
+                {
+                    bool firstIter = (nonOrth == 0);
+                    bool finalIter = (nonOrth == nNonOrthoCorr);
+                    transport.correct(firstIter, finalIter);
+                }
+
+                #include "updateChargeDensity.H"
+                #include "updateSurfCharge.H"
+
+                #include "solveElectricPotential.H"
+                #include "calculateElectricField.H"
             }
-
-            #include "updateChargeDensity.H"
-            #include "updateSurfCharge.H"
-
-            #include "solveElectricPotential.H"
-            #include "calculateElectricField.H"
         }
 
         runTime.write();

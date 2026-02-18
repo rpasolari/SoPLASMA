@@ -257,6 +257,20 @@ volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
     // }
 }
 
+void plasmaTransport::correctModels()
+{
+    const label nSpecies = species_.nSpecies();
+
+
+    surfaceScalarField phiE = -fvc::snGrad(ePotential_) * mesh_.magSf();
+
+    // Update transport properties
+    for (label i = 0; i < nSpecies; ++i)
+    {
+        transportModels_[i].correct(phiE);
+    }
+}
+
 tmp<volScalarField> plasmaTransport::electricalConductivity() const
 {
     tmp<volScalarField> tSigma

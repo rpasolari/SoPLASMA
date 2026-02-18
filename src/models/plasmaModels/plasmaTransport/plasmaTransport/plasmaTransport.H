@@ -122,6 +122,7 @@ public:
 
         //- Correct all models
         void correct(const bool firstIter, const bool finalIter);
+        void correctModels();
         // void correct();
 
         //- Return total electrical conductivity [S/m]
