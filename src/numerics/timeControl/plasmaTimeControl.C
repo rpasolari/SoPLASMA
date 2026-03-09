@@ -13,6 +13,7 @@
 
 #include "plasmaTimeControl.H"
 #include "plasmaTransport.H"
+#include "plasmaProfiler.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -106,6 +107,9 @@ void plasmaTimeControl::read()
 
 void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
 {
+    // --- Start overall Time Control timer ---
+    plasmaProfiler::start("Time Management", "Adjust DeltaT Total");
+
     const scalar currentDeltaT = runTime_.deltaTValue();
     const scalar eps0 = constant::plasma::epsilon0.value();
     scalar newDeltaT = maxDeltaT_;
@@ -115,9 +119,11 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     scalar meanFluxRate = 0.0;
     scalar maxKeff = 0.0;
 
-    // Dielectric relaxation (tau = epsilon / sigma)
+    // 1. Dielectric relaxation (tau = epsilon / sigma)
     if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
+        plasmaProfiler::start("Time Management", "DeltaT: Dielectric Relax Limit");
+        
         tmp<volScalarField> tSigma = transport.electricalConductivity();
         const volScalarField& sigma = tSigma();
 
@@ -130,11 +136,15 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
             newDeltaT = min(newDeltaT, dielectricLimit);
         }
         tSigma.clear();
+
+        plasmaProfiler::stop("Time Management", "DeltaT: Dielectric Relax Limit");
     }
 
-    // Species Courant Limit
+    // 2. Species Courant Limit
     if (limitSpeciesCo_ || printSpeciesCo_)
     {
+        plasmaProfiler::start("Time Management", "DeltaT: Species Courant Limit");
+
         label speciesLabel = transport.species().speciesID(speciesName_);
         const surfaceScalarField& phi = transport.phi(speciesLabel);
 
@@ -152,28 +162,33 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         {
             newDeltaT = min(newDeltaT, courantLimit);
         }
+
+        plasmaProfiler::stop("Time Management", "DeltaT: Species Courant Limit");
     }
 
+    // 3. Chemistry Limit
     if (limitChemistryCo_ || printChemistryCo_)
     {
-        // Access the k_eff field from transport
+        plasmaProfiler::start("Time Management", "DeltaT: Chemistry Rate Limit");
+
         const volScalarField& keff = transport.k_eff();
-        
         maxKeff = gMax(mag(keff)().primitiveField());
         
-        // dt <= maxChemistryCo / k_eff
         scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
 
         if (limitChemistryCo_)
         {
             newDeltaT = min(newDeltaT, chemistryLimit);
         }
+
+        plasmaProfiler::stop("Time Management", "DeltaT: Chemistry Rate Limit");
     }
 
-    // Reduction and setting
+    // 4. Reduction and set
     if (adjustTimeStep_)
     {
-        // Global reduction for the actual time step decision
+        plasmaProfiler::start("Time Management", "DeltaT: Parallel Reduction");
+
         reduce(newDeltaT, minOp<scalar>());
 
         if (newDeltaT > currentDeltaT)
@@ -182,6 +197,8 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         }
 
         runTime_.setDeltaT(newDeltaT);
+
+        plasmaProfiler::stop("Time Management", "DeltaT: Parallel Reduction");
     }
 
     // Report
@@ -207,6 +224,7 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         scalar currentChemCo = maxKeff * actualDeltaT;
         Info << "  Max Chem Courant = " << currentChemCo << endl;
     }
+    plasmaProfiler::stop("Time Management", "Adjust DeltaT Total");
 }
 
 void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)

@@ -83,7 +83,12 @@ int main(int argc, char *argv[])
     // #include "readAMRConfiguration.H"
 
     #include "readElectricPotentialControls.H"
-
+    // Initialize sigma0 with the starting surface charge
+volScalarField sigma0
+(
+    IOobject("sigma0", runTime.timeName(), gasMesh(), IOobject::NO_READ, IOobject::NO_WRITE),
+    surfCharge
+);
     #include "reportSimulationSummary.H"
     #include "updateChargeDensity.H"
 
@@ -92,17 +97,132 @@ int main(int argc, char *argv[])
     {
         #include "solveElectricPotential.H"
         #include "calculateElectricField.H"
+        #include "solveElectricPotential.H"
+        #include "calculateElectricField.H"
+        #include "solveElectricPotential.H"
+        #include "calculateElectricField.H"
     }
     else if (poissonSolver == "semiImplicit")
     {
-        fvScalarMatrix coldPoisson
+        // fvScalarMatrix coldPoisson
+        // (
+        //     fvm::laplacian(epsilon, ePotential) ==
+        //         -chargeDensity
+        // );
+        // coldPoisson.solve();
+        // #include "calculateElectricField.H"
+        fvScalarMatrix PoissonEquation1
         (
-            fvm::laplacian(epsilon, ePotential) ==
-                -chargeDensity
+            fvm::laplacian(epsilon,ePotential)
+            ==
+            -chargeDensity
         );
-        coldPoisson.solve();
-        #include "calculateElectricField.H"
 
+        fvOptions.constrain(PoissonEquation1);
+
+        if (nonOrth < nonOrthoCorrCoupled)
+        {
+            PoissonEquation1.relax();
+        }
+
+        fvMatrixAssemblyPtr->addFvMatrix(PoissonEquation1);
+        volScalarField& ePotentialDielectric = ePotentialDielectricList[0];
+volVectorField& EDielectric = EDielectricList[0];
+volScalarField* surfChargeDielectric = surfChargeDielectricList.set(0)
+                                            ? &surfChargeDielectricList[0]
+                                            : nullptr;
+
+dimensionedScalar& epsilonDielectric = epsilonDielectricList[0];
+        fvScalarMatrix LaplaceEquation1
+        (
+            fvm::laplacian(epsilonDielectric,ePotentialDielectric)
+        );
+        fvMatrixAssemblyPtr->addFvMatrix(LaplaceEquation1);
+    fvMatrixAssemblyPtr->solve();
+
+    ePotential.correctBoundaryConditions();
+
+    forAll(dielectricRegions, i)
+    {
+        ePotentialDielectricList[i].correctBoundaryConditions();
+    }
+
+    if (nonOrth == nonOrthoCorrCoupled)
+    {
+        fvOptions.correct(ePotential);
+    }
+
+    fvMatrixAssemblyPtr->clear();
+        fvScalarMatrix PoissonEquation2
+        (
+            fvm::laplacian(epsilon,ePotential)
+            ==
+            -chargeDensity
+        );
+
+        fvOptions.constrain(PoissonEquation2);
+
+        if (nonOrth < nonOrthoCorrCoupled)
+        {
+            PoissonEquation2.relax();
+        }
+
+        fvMatrixAssemblyPtr->addFvMatrix(PoissonEquation2);
+        fvScalarMatrix LaplaceEquation2
+        (
+            fvm::laplacian(epsilonDielectric,ePotentialDielectric)
+        );
+        fvMatrixAssemblyPtr->addFvMatrix(LaplaceEquation2);
+    fvMatrixAssemblyPtr->solve();
+
+    ePotential.correctBoundaryConditions();
+
+    forAll(dielectricRegions, i)
+    {
+        ePotentialDielectricList[i].correctBoundaryConditions();
+    }
+
+    if (nonOrth == nonOrthoCorrCoupled)
+    {
+        fvOptions.correct(ePotential);
+    }
+
+    fvMatrixAssemblyPtr->clear();
+        fvScalarMatrix PoissonEquation3
+        (
+            fvm::laplacian(epsilon,ePotential)
+            ==
+            -chargeDensity
+        );
+
+        fvOptions.constrain(PoissonEquation3);
+
+        if (nonOrth < nonOrthoCorrCoupled)
+        {
+            PoissonEquation3.relax();
+        }
+
+        fvMatrixAssemblyPtr->addFvMatrix(PoissonEquation3);
+        fvScalarMatrix LaplaceEquation3
+        (
+            fvm::laplacian(epsilonDielectric,ePotentialDielectric)
+        );
+        fvMatrixAssemblyPtr->addFvMatrix(LaplaceEquation3);
+    fvMatrixAssemblyPtr->solve();
+
+    ePotential.correctBoundaryConditions();
+
+    forAll(dielectricRegions, i)
+    {
+        ePotentialDielectricList[i].correctBoundaryConditions();
+    }
+
+    if (nonOrth == nonOrthoCorrCoupled)
+    {
+        fvOptions.correct(ePotential);
+    }
+
+    fvMatrixAssemblyPtr->clear();
         transport.correct(true, true);
     }
 
@@ -117,7 +237,9 @@ int main(int argc, char *argv[])
         Info << "Time = " << runTime.timeName() << nl << endl;
         // #include "syncMultiRegionAMR.H"
 
+        plasmaProfiler::start("Adjust_Deltat");
         timeControl.adjustDeltaT(transport);
+        plasmaProfiler::stop("Adjust_Deltat");
         
         if (poissonSolver == "semiImplicit")
         {
@@ -143,26 +265,53 @@ int main(int argc, char *argv[])
         }
         else if (poissonSolver == "explicit")
         {
+            plasmaProfiler::start("Solver Sequence", "Explicit Poisson Full Loop");
+            int pIter = 0;
+
+            sigma0 == surfCharge;
             while (pimple.loop())
             {
+                pIter++;
+                std::string iterLabel = "PIMPLE Iter " + std::to_string(pIter);
+
+                plasmaProfiler::start("Iteration Control", iterLabel);
+                gasMesh().update();
+
+                plasmaProfiler::start("Physics", iterLabel + ": Transport");
                 for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
                 {
                     bool firstIter = (nonOrth == 0);
                     bool finalIter = (nonOrth == nNonOrthoCorr);
                     transport.correct(firstIter, finalIter);
                 }
+                plasmaProfiler::stop("Physics", iterLabel + ": Transport");
 
+                plasmaProfiler::start("Source Terms", iterLabel + ": Volumetric Charge");;
                 #include "updateChargeDensity.H"
-                #include "updateSurfCharge.H"
+                plasmaProfiler::stop("Source Terms", iterLabel + ": Volumetric Charge");
 
+                plasmaProfiler::start("Source Terms", iterLabel + ": Surface Charge");
+                #include "updateSurfCharge.H"
+                plasmaProfiler::stop("Source Terms", iterLabel + ": Surface Charge");
+
+                plasmaProfiler::start("Linear Algebra", iterLabel + ": Poisson Solver");
                 #include "solveElectricPotential.H"
+                plasmaProfiler::stop("Linear Algebra", iterLabel + ": Poisson Solver");
+
+                plasmaProfiler::start("Physics", iterLabel + ": E-Field Calc");
                 #include "calculateElectricField.H"
+                plasmaProfiler::stop("Physics", iterLabel + ": E-Field Calc");
+
+                plasmaProfiler::stop("Iteration Control", iterLabel);
             }
+            plasmaProfiler::stop("Solver Sequence", "Explicit Poisson Full Loop");
         }
 
         runTime.write();
         runTime.printExecutionTime(Info);
     }
+
+    plasmaProfiler::report();
 
     Info<< "End\n" << endl;
 

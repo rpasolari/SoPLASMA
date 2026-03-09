@@ -46,7 +46,7 @@ constantDiffusivity::constantDiffusivity
     {
         FatalIOErrorInFunction(dict_)
             << "Diffusivity model '" << modelName
-            << "' requires entry 'D' in mobilityCoeffs dictionary."
+            << "' requires entry 'D' in diffusivityCoeffs dictionary."
             << exit(FatalIOError);
     }
 

@@ -201,42 +201,49 @@ void plasmaTransport::correct(const bool firstIter, const bool finalIter)
 {
     const label nSpecies = species_.nSpecies();
 
-    //- Hard coded this part
     label eIdx = species_.speciesID("e");
     label iIdx = species_.speciesID("pIon");
-    volScalarField& ne = species_.numberDensity(eIdx);
-    //---------------------------------------
-
+    
+    // 1. Electric field flux calculation
     surfaceScalarField phiE = -fvc::snGrad(ePotential_) * mesh_.magSf();
 
-    // Update transport properties
+    // 2. Update transport properties (Mobility/Diffusivity)
     for (label i = 0; i < nSpecies; ++i)
     {
         transportModels_[i].correct(phiE);
     }
 
+    // 3. Calculate Electric field magnitude
     volScalarField Emag(mag(E_));
 
-dimensionedScalar E_const("E_const", Emag.dimensions(), 2.73e7);
-dimensionedScalar E_pow_const("E_pow_const", pow(Emag.dimensions(), 3), 4.3666e26);
-dimensionedScalar alpha_scale("alpha_scale", dimensionSet(0, -1, 0, 0, 0, 0, 0), 1.0);
+    // --- SAFETY BLOCK ---
+    // Use a field-aware max to protect internal cells AND processor patches.
+    // This prevents SIGFPE division by zero after mesh redistribution.
+    volScalarField safeEmag = max(Emag, dimensionedScalar("minE", Emag.dimensions(), 1.0));
 
-volScalarField alpha = 
-    (1.1944e6 + E_pow_const / pow(Emag, 3)) 
-    * exp(-E_const / Emag)
-    * alpha_scale;
+    // 4. Ionization coefficient (alpha) calculation
+    dimensionedScalar E_const("E_const", Emag.dimensions(), 2.73e7);
+    dimensionedScalar E_pow_const("E_pow_const", pow(Emag.dimensions(), 3), 4.3666e26);
+    dimensionedScalar alpha_scale("alpha_scale", dimensionSet(0, -1, 0, 0, 0, 0, 0), 1.0);
+
+    volScalarField alpha = 
+        (1.1944e6 + E_pow_const / pow(safeEmag, 3)) 
+        * exp(-E_const / safeEmag)
+        * alpha_scale;
     
     alpha.correctBoundaryConditions();
 
-dimensionedScalar eta("eta", alpha.dimensions(), 340.75);
-volScalarField alphaEff = alpha - eta;
-volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
+    // 5. Source term assembly
+    dimensionedScalar eta("eta", alpha.dimensions(), 340.75);
+    volScalarField alphaEff = alpha - eta;
+    volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
 
     k_eff_ = alphaEff * veMag;
     k_eff_.correctBoundaryConditions();
 
     volScalarField explicitSource = k_eff_ * species_.numberDensity(eIdx);
-    // --- 5. Solve Electron & Ion Continuity (Explicit Source) ---
+
+    // 6. Solve Continuity Equations
     tmp<fvScalarMatrix> tEqne = transportModels_[eIdx].nEqn();
     fvScalarMatrix& nEqne = tEqne.ref();
     nEqne -= explicitSource; 
@@ -248,13 +255,20 @@ volScalarField veMag = mag(transportModels_[eIdx].driftVelocity());
     nEqni.solve();
     nEqne.solve();
 
-    // if (finalIter)
-    // {
-    //     for (label i = 0; i < nSpecies; ++i)
-    //     {
-    //         transportModels_[i].updateParticleFlux(particleFlux_[i]);
-    //     }
-    // }
+volScalarField& ne = species_.numberDensity(eIdx);
+dimensionedScalar neMin("neMin", ne.dimensions(), 1e10);
+ne = max(ne, neMin);
+ne.correctBoundaryConditions();
+
+volScalarField& ni = species_.numberDensity(iIdx);
+dimensionedScalar niMin("niMin", ni.dimensions(), 1e10);
+ni = max(ni, niMin);
+ni.correctBoundaryConditions();
+
+    for (label i = 0; i < nSpecies; ++i)
+    {
+        transportModels_[i].updateParticleFlux(particleFlux_[i]);
+    }
 }
 
 void plasmaTransport::correctModels()

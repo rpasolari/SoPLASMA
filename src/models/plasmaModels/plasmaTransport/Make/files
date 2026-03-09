@@ -7,9 +7,13 @@ plasmaTransportModels/frozenTransportModel/frozenTransportModel.C
 plasmaMobilityModels/plasmaMobilityModel.C
 plasmaMobilityModels/constantMobility/constantMobility.C
 plasmaMobilityModels/analyticMobility/analyticMobility.C
+plasmaMobilityModels/tabulatedMobility1D/tabulatedMobility1D.C
+plasmaMobilityModels/tabulatedMobility2D/tabulatedMobility2D.C
 
 plasmaDiffusivityModels/plasmaDiffusivityModel.C
 plasmaDiffusivityModels/constantDiffusivity/constantDiffusivity.C
 plasmaDiffusivityModels/analyticDiffusivity/analyticDiffusivity.C
+plasmaDiffusivityModels/tabulatedDiffusivity1D/tabulatedDiffusivity1D.C
+plasmaDiffusivityModels/tabulatedDiffusivity2D/tabulatedDiffusivity2D.C
 
 LIB = $(FOAM_USER_LIBBIN)/libplasmaTransport

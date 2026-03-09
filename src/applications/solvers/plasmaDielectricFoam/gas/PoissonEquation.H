@@ -29,6 +29,7 @@ if (!coupled)
     {
         if (poissonSolver == "explicit")
         {
+            plasmaProfiler::start("Linear Algebra : Poisson Matrix Construction");
             fvScalarMatrix PoissonEquation
             (
                 fvm::laplacian(epsilon,ePotential)
@@ -42,8 +43,11 @@ if (!coupled)
             {
                 PoissonEquation.relax();
             }
+            plasmaProfiler::stop("Linear Algebra : Poisson Matrix Construction");
 
+            plasmaProfiler::start("Linear Algebra : Poisson Solve (Linear Solver)");
             auto sp = PoissonEquation.solve();
+            plasmaProfiler::stop("Linear Algebra : Poisson Solve (Linear Solver)");
 
             if (nonOrth == 0)
             {

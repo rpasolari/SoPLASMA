@@ -1,0 +1,3 @@
+adaptiveFvMesh/adaptiveFvMesh.C
+
+LIB = $(FOAM_USER_LIBBIN)/libamrDynamicFvMesh

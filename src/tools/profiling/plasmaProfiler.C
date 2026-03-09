@@ -69,8 +69,16 @@ namespace Foam
                 std::string label = key.first;
                 if (!key.second.empty()) label += " -> " + key.second;
 
-                if (label.length() > 30) label = label.substr(0, 27) + "...";
-                else label.append(30 - label.length(), ' ');
+                const int labelLimit = 50; // Increased from 30 to 50
+
+                if (label.length() > labelLimit) 
+                {
+                    label = label.substr(0, labelLimit - 3) + "...";
+                }
+                else 
+                {
+                    label.append(labelLimit - label.length(), ' ');
+                }
 
                 // Use an ostringstream to build the formatted line
                 std::ostringstream os;

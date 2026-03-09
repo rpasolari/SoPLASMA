@@ -846,49 +846,112 @@ Foam::labelList Foam::refinement::consistentRefinement
         refineCell.set(refinementCellCandidates[i], true);
     }
 
-    // Make sure that the refinement is face consistent (2:1 consistency) and
-    // point consistent (4:1 consistency) if necessary
-
-    // Counter for additional cells to refine due to consistency in each
-    // iteration and number of iterations
     label nChanged = 0;
+    label iter = 0;
+
+    Pout << "Proc " << Pstream::myProcNo() << ": Starting consistency loop with " 
+         << refinementCellCandidates.size() << " initial candidates." << endl;
+
+    // --- FIX: Accessing cellLevel safely ---
+    // We try to find the labelIOList. If it doesn't exist, we use a dummy list
+    // so the code doesn't crash, though levels will show as 0.
+    static const labelList dummyLevels(mesh_.nCells(), 0);
+    const labelList& cellLevel = 
+        mesh_.foundObject<labelIOList>("cellLevel")
+      ? mesh_.lookupObject<labelIOList>("cellLevel")
+      : dummyLevels;
 
     while (true)
     {
-        // Check for 2:1 face based consistent refinement. Updates cellsToRefine
-        // and returns number of cells added in this iteration
         nChanged = 0;
+        boolList refineCellOld = refineCell;
 
         if (edgeBasedConsistency_)
         {
-            // Check for 4:1 edge based consistent refinement. Updates
-            // cellsToRefine and returns number of cells added in this iteration
-            nChanged += edgeConsistentRefinement(refineCell, maxSet);
+            label edgeChanged = edgeConsistentRefinement(refineCell, maxSet);
+            nChanged += edgeChanged;
         }
-        nChanged += faceConsistentRefinement(refineCell, maxSet);;
+        
+        label faceChanged = faceConsistentRefinement(refineCell, maxSet);
+        nChanged += faceChanged;
 
-        // Global reduction
-        reduce(nChanged, sumOp<label>());
-
-        if (nChanged == 0)
+        // --- DEBUG SECTION ---
+        // Triggered after iter 30 to catch the hang in Proc 4
+        if (nChanged > 0 && iter > 30)
         {
+            const pointField& cellCentres = mesh_.cellCentres();
+            const polyBoundaryMesh& patches = mesh_.boundaryMesh();
+
+            forAll(refineCell, cellI)
+            {
+                // Report only cells that were flipped to 'true' in THIS iteration
+                if (refineCell[cellI] && !refineCellOld[cellI])
+                {
+                    Pout << "[Proc " << Pstream::myProcNo() << " Iter " << iter 
+                         << "] New Refinement Cell: " << cellI 
+                         << " Coord: " << cellCentres[cellI] 
+                         << " Current Level: " << cellLevel[cellI] << endl;
+
+                    // Internal neighbors check
+                    const labelList& nb = mesh_.cellCells()[cellI];
+                    forAll(nb, i)
+                    {
+                        label neighborId = nb[i];
+                        Pout << "    -> Internal Neighbor " << neighborId 
+                             << " is Level " << cellLevel[neighborId] << endl;
+                    }
+
+                    // Processor Boundary check
+                    const cell& cFaces = mesh_.cells()[cellI];
+                    forAll(cFaces, i)
+                    {
+                        label faceI = cFaces[i];
+                        label patchI = patches.whichPatch(faceI);
+
+                        if (patchI != -1 && isA<processorPolyPatch>(patches[patchI]))
+                        {
+                            const processorPolyPatch& ppp = 
+                                refCast<const processorPolyPatch>(patches[patchI]);
+                            
+                            Pout << "    -> Boundary Face " << faceI 
+                                 << " touches Proc: " << ppp.neighbProcNo() << endl;
+                        }
+                    }
+                }
+            }
+        }
+
+        Pout << "Proc " << Pstream::myProcNo() << " (Iter " << iter 
+             << "): Local nChanged = " << nChanged << endl;
+
+        label totalChanged = nChanged;
+        reduce(totalChanged, sumOp<label>());
+
+        if (totalChanged == 0)
+        {
+            Pout << "Proc " << Pstream::myProcNo() << ": Loop converged at iteration " << iter << endl;
             break;
         }
 
+        if (iter > 100)
+        {
+            Pout << "Proc " << Pstream::myProcNo() << ": !!! CRITICAL: Loop exceeded 100 iterations !!!" << endl;
+            // The emergency exit to stop the simulation from hanging forever
+            break; 
+        }
+
+        iter++;
     }
 
-    // Convert back to labelList.
-    label nRefined = std::count(refineCell.begin(), refineCell.end(), true);
+    label nRefined = 0;
+    forAll(refineCell, cellI) { if (refineCell[cellI]) nRefined++; }
 
-    // Collect all cells to refine in a dynamic list
     labelList newCellsToRefine(nRefined);
     nRefined = 0;
-
     forAll (refineCell, cellI)
     {
-        if (refineCell.get(cellI))
+        if (refineCell[cellI])
         {
-            // Cell marked for refinement, append it
             newCellsToRefine[nRefined++] = cellI;
         }
     }

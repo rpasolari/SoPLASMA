@@ -145,6 +145,11 @@ void solidSurfaceFluxFvPatchScalarField::updateCoeffs()
     if (updated()) return;
 
     const fvPatch& p = patch();
+    if (p.size() == 0)
+    {
+        mixedFvPatchScalarField::updateCoeffs();
+        return;
+    }
     const vectorField nf = p.nf();
     const scalarField& delta = p.deltaCoeffs();
 
@@ -179,7 +184,8 @@ void solidSurfaceFluxFvPatchScalarField::updateCoeffs()
     // Reset standard Mixed BC parameters
     this->refValue() = 0.0;
     this->refGrad() = 0.0;
-    this->valueFraction() = 0.0;
+    // this->valueFraction() = 0.0;
+    this->operator==(this->patchInternalField());
     scalarField& f = this->valueFraction();
 
     if (Dptr)

@@ -17,6 +17,8 @@ Description:
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
+Info << "Updating surface charge!" << endl;
+
 const fvBoundaryMesh& boundary = gasMesh().boundary();
 
 forAll(boundary, patchi)
@@ -82,7 +84,8 @@ forAll(boundary, patchi)
                 scalar q = species.speciesCharge(i).value();
 
                 // Add to surfCharge
-                sigmaPatch += (phi_p * q * dt) / magSf;
+                // sigmaPatch += (phi_p * q * dt) / magSf;
+                sigmaPatch = sigma0.boundaryField()[patchi] + (phi_p * q * dt) / magSf;
             }
         }
     }

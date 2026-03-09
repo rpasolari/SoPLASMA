@@ -1,0 +1,19 @@
+include $(GENERAL_RULES)/mpi-rules
+
+EXE_INC = $(DEBUG_FLAGS) \
+    $(PFLAGS) $(PINC) \
+    -DMPICH_SKIP_MPICXX \
+    -DOMPI_SKIP_MPICXX \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I../loadPolicies/lnInclude \
+    -fopenmp
+
+LIB_LIBS = \
+    $(PLIBS) \
+    -lmeshTools \
+    -lfiniteVolume \
+    -L$(USER_FOAM_LIBBIN) -lamrLoadPolicies \
+    -fopenmp
+
+EXE_CXXFLAGS += -DMPI_PROFILER_UNIT=Foam::TimeUnit::Milli

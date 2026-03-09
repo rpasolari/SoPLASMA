@@ -8,6 +8,7 @@ EXE_INC = \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/plasmaTransport \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/plasmaTransportModels \
+    -I$(FOAM_PLASMA_SRC)/tools/profiling/lnInclude \
 
 EXE_LIBS = \
     -lfiniteVolume \
@@ -15,4 +16,5 @@ EXE_LIBS = \
     -lmeshTools \
     -lfoamPlasmaToolkitConstants \
     -lplasmaSpecies \
-    -lplasmaTransport
+    -lplasmaTransport \
+    -lplasmaProfiler

@@ -165,16 +165,6 @@ public:
             return amrCore_.refiner();
         }
 
-        amrCore& amr()
-        {
-            return amrCore_;
-        }
-
-        const amrCore& amr() const
-        {
-            return amrCore_;
-        }
-
         //- Update the mesh for both mesh motion and topology change
         virtual bool update();
 
