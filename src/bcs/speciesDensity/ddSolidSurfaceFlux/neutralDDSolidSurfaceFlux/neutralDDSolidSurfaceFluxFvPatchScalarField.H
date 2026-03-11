@@ -21,10 +21,10 @@ License
     with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::neutralSolidSurfaceFluxFvPatchScalarField
+    Foam::neutralDDSolidSurfaceFluxFvPatchScalarField
 
 Description
-    Concrete implementation of solidSurfaceFluxFvPatchScalarField for 
+    Concrete implementation of ddSolidSurfaceFluxFvPatchScalarField for 
     neutral species.
 
     This boundary condition calculates the neutral flux to a solid surface 
@@ -35,7 +35,7 @@ Usage
     \verbatim
     <patchName>
     {
-        type            neutralSolidSurfaceFlux;
+        type            neutralDDSolidSurfaceFlux;
 
         // Electron temperature [K]
         T               Tn; 
@@ -46,24 +46,24 @@ Usage
     \endverbatim
     
 SourceFiles
-    neutralSolidSurfaceFluxFvPatchScalarField.C
+    neutralDDSolidSurfaceFluxFvPatchScalarField.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef neutralSolidSurfaceFluxFvPatchScalarField_H
-#define neutralSolidSurfaceFluxFvPatchScalarField_H
+#ifndef neutralDDSolidSurfaceFluxFvPatchScalarField_H
+#define neutralDDSolidSurfaceFluxFvPatchScalarField_H
 
-#include "solidSurfaceFluxFvPatchScalarField.H"
+#include "ddSolidSurfaceFluxFvPatchScalarField.H"
 
 namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-        Class neutralSolidSurfaceFluxFvPatchScalarField Declaration
+        Class neutralDDSolidSurfaceFluxFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
-class neutralSolidSurfaceFluxFvPatchScalarField
+class neutralDDSolidSurfaceFluxFvPatchScalarField
 :
-    public solidSurfaceFluxFvPatchScalarField
+    public ddSolidSurfaceFluxFvPatchScalarField
 {
 protected:
 
@@ -73,26 +73,27 @@ protected:
         virtual tmp<scalarField> calcWallVelocity
         (
             const dimensionedScalar& m,
-            const dimensionedScalar& T,
-            const scalarField& uDriftNormal
+            const scalarField& T,
+            const scalarField& uDriftNormal,
+            const scalar Z
         ) const override;
 
 public:
 
     //- Runtime type information
-    TypeName("neutralSolidSurfaceFlux");
+    TypeName("neutralDDSolidSurfaceFlux");
 
     // Constructors
 
         //- Construct from patch and internal field
-        neutralSolidSurfaceFluxFvPatchScalarField
+        neutralDDSolidSurfaceFluxFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&
         );
 
         //- Construct from patch, internal field and dictionary
-        neutralSolidSurfaceFluxFvPatchScalarField
+        neutralDDSolidSurfaceFluxFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
@@ -100,24 +101,24 @@ public:
         );
 
         //- Construct by mapping given BC onto a new patch
-        neutralSolidSurfaceFluxFvPatchScalarField
+        neutralDDSolidSurfaceFluxFvPatchScalarField
         (
-            const neutralSolidSurfaceFluxFvPatchScalarField&,
+            const neutralDDSolidSurfaceFluxFvPatchScalarField&,
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct as copy
-        neutralSolidSurfaceFluxFvPatchScalarField
+        neutralDDSolidSurfaceFluxFvPatchScalarField
         (
-            const neutralSolidSurfaceFluxFvPatchScalarField&
+            const neutralDDSolidSurfaceFluxFvPatchScalarField&
         );
 
         //- Construct as copy setting internal field reference
-        neutralSolidSurfaceFluxFvPatchScalarField
+        neutralDDSolidSurfaceFluxFvPatchScalarField
         (
-            const neutralSolidSurfaceFluxFvPatchScalarField&,
+            const neutralDDSolidSurfaceFluxFvPatchScalarField&,
             const DimensionedField<scalar, volMesh>&
         );
 
@@ -126,7 +127,7 @@ public:
         {
             return tmp<fvPatchField<scalar>>
             (
-                new neutralSolidSurfaceFluxFvPatchScalarField(*this)
+                new neutralDDSolidSurfaceFluxFvPatchScalarField(*this)
             );
         }
 
@@ -138,7 +139,7 @@ public:
         {
             return tmp<fvPatchField<scalar>>
             (
-                new neutralSolidSurfaceFluxFvPatchScalarField(*this, iF)
+                new neutralDDSolidSurfaceFluxFvPatchScalarField(*this, iF)
             );
         }
 

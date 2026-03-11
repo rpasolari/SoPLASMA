@@ -21,10 +21,10 @@ License
     with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::electronSolidSurfaceFluxFvPatchScalarField
+    Foam::electronDDSolidSurfaceFluxFvPatchScalarField
 
 Description
-    Concrete implementation of solidSurfaceFluxFvPatchScalarField for 
+    Concrete implementation of ddSolidSurfaceFluxFvPatchScalarField for 
     electron species.
 
     This boundary condition calculates the electron flux to a solid surface 
@@ -35,7 +35,7 @@ Usage
     \verbatim
     <patchName>
     {
-        type            electronSolidSurfaceFlux;
+        type            electronDDSolidSurfaceFlux;
 
         // Electron temperature [K]
         T               Te; 
@@ -46,31 +46,52 @@ Usage
     \endverbatim
     
 SourceFiles
-    electronSolidSurfaceFluxFvPatchScalarField.C
+    electronDDSolidSurfaceFluxFvPatchScalarField.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef electronSolidSurfaceFluxFvPatchScalarField_H
-#define electronSolidSurfaceFluxFvPatchScalarField_H
+#ifndef electronDDSolidSurfaceFluxFvPatchScalarField_H
+#define electronDDSolidSurfaceFluxFvPatchScalarField_H
 
-#include "solidSurfaceFluxFvPatchScalarField.H"
+#include "ddSolidSurfaceFluxFvPatchScalarField.H"
 
 namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-        Class electronSolidSurfaceFluxFvPatchScalarField Declaration
+        Class electronDDSolidSurfaceFluxFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
-class electronSolidSurfaceFluxFvPatchScalarField
+class electronDDSolidSurfaceFluxFvPatchScalarField
 :
-    public solidSurfaceFluxFvPatchScalarField
+    public ddSolidSurfaceFluxFvPatchScalarField
 {
 protected:
 
     // Protected data
 
+       //- Switch to enable surface charging
+        Switch enableSurfaceCharging_;
+
         //- Switch to include drift velocity in wall flux calculation
         Switch includeDriftFlux_;
+
+        //- Switch to enable secondary electron emission
+        Switch enableSEE_;
+
+        //- Default SEE coefficient
+        scalar defaultSEEC_;
+
+        //- Species-specific SEE coefficients
+        dictionary speciesSEEC_;
+
+        //- List to keep the SEE coefficients for each ion species
+        List<scalar> seec_;
+
+        //- Switch to use refValue for the SEE instead of refGrad
+        Switch setRefValue_;
+
+        //- Switch to read the SEE entries only once
+        Switch mapped_;
 
     // Protected Member Functions
 
@@ -78,26 +99,27 @@ protected:
         virtual tmp<scalarField> calcWallVelocity
         (
             const dimensionedScalar& m,
-            const dimensionedScalar& T,
-            const scalarField& uDriftNormal
+            const scalarField& T,
+            const scalarField& uDriftNormal,
+            const scalar Z
         ) const override;
 
 public:
 
     //- Runtime type information
-    TypeName("electronSolidSurfaceFlux");
+    TypeName("electronDDSolidSurfaceFlux");
 
     // Constructors
 
         //- Construct from patch and internal field
-        electronSolidSurfaceFluxFvPatchScalarField
+        electronDDSolidSurfaceFluxFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&
         );
 
         //- Construct from patch, internal field and dictionary
-        electronSolidSurfaceFluxFvPatchScalarField
+        electronDDSolidSurfaceFluxFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
@@ -105,24 +127,24 @@ public:
         );
 
         //- Construct by mapping given BC onto a new patch
-        electronSolidSurfaceFluxFvPatchScalarField
+        electronDDSolidSurfaceFluxFvPatchScalarField
         (
-            const electronSolidSurfaceFluxFvPatchScalarField&,
+            const electronDDSolidSurfaceFluxFvPatchScalarField&,
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct as copy
-        electronSolidSurfaceFluxFvPatchScalarField
+        electronDDSolidSurfaceFluxFvPatchScalarField
         (
-            const electronSolidSurfaceFluxFvPatchScalarField&
+            const electronDDSolidSurfaceFluxFvPatchScalarField&
         );
 
         //- Construct as copy setting internal field reference
-        electronSolidSurfaceFluxFvPatchScalarField
+        electronDDSolidSurfaceFluxFvPatchScalarField
         (
-            const electronSolidSurfaceFluxFvPatchScalarField&,
+            const electronDDSolidSurfaceFluxFvPatchScalarField&,
             const DimensionedField<scalar, volMesh>&
         );
 
@@ -131,7 +153,7 @@ public:
         {
             return tmp<fvPatchField<scalar>>
             (
-                new electronSolidSurfaceFluxFvPatchScalarField(*this)
+                new electronDDSolidSurfaceFluxFvPatchScalarField(*this)
             );
         }
 
@@ -143,11 +165,19 @@ public:
         {
             return tmp<fvPatchField<scalar>>
             (
-                new electronSolidSurfaceFluxFvPatchScalarField(*this, iF)
+                new electronDDSolidSurfaceFluxFvPatchScalarField(*this, iF)
             );
         }
 
         // Member Functions
+
+            virtual void updateCoeffs();
+
+            //- Return the surface charging switch value
+            inline bool enableSurfaceCharging() const
+            {
+                return enableSurfaceCharging_;
+            }
 
             //- Write dictionary entries
             virtual void write(Ostream& os) const;

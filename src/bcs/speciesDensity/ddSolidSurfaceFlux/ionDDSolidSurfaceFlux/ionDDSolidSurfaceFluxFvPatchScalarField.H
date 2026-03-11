@@ -21,89 +21,84 @@ License
     with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::solidSurfaceFluxFvPatchScalarField
+    Foam::ionDDSolidSurfaceFluxFvPatchScalarField
 
 Description
-    Abstract base class for scalar flux boundary conditions at solid surfaces,
-    derived from mixedFvPatchScalarField.
+    Concrete implementation of ddSolidSurfaceFluxFvPatchScalarField for 
+    ion species.
 
-    This class serves as a foundation for specific particle or charge flux 
-    conditions (e.g., ion or electron fluxes) where particles impact a wall.
-
-    This is an abstract class. It cannot be used directly in a case file
-    as the 'type'. Derived classes must implement the pure virtual function.
+    This boundary condition calculates the ion flux to a solid surface 
+    based on thermal motion.
 
 Usage
-    This class is not instantiated directly. Derived classes are instantiated.
+    Example boundary condition entry:
+    \verbatim
+    <patchName>
+    {
+        type            ionDDSolidSurfaceFlux;
+
+        // Ion temperature [K]
+        T               Tion; 
+
+        // Optional: Enable surface charge accumulation
+        enableSurfaceCharging_ false;
+    }
+    \endverbatim
     
 SourceFiles
-    solidSurfaceFluxFvPatchScalarField.C
+    ionDDSolidSurfaceFluxFvPatchScalarField.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_solidSurfaceFluxFvPatchScalarField_H
-#define Foam_solidSurfaceFluxFvPatchScalarField_H
+#ifndef ionDDSolidSurfaceFluxFvPatchScalarField_H
+#define ionDDSolidSurfaceFluxFvPatchScalarField_H
 
-#include "mixedFvPatchFields.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "ddSolidSurfaceFluxFvPatchScalarField.H"
 
 namespace Foam
 {
 
-// Forward declaration of plasmaTransport class
-class plasmaTransport;
-
 /*---------------------------------------------------------------------------*\
-         Class solidSurfaceFluxFvPatchScalarField Declaration
+        Class ionDDSolidSurfaceFluxFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
-class solidSurfaceFluxFvPatchScalarField
+class ionDDSolidSurfaceFluxFvPatchScalarField
 :
-    public mixedFvPatchScalarField
+    public ddSolidSurfaceFluxFvPatchScalarField
 {
 protected:
 
-    // Protected Data
-
-        //- Constant Temperature Value
-        dimensionedScalar T_;
+    // Protected data
 
         //- Switch to enable surface charging
         Switch enableSurfaceCharging_;
 
     // Protected Member Functions
 
-        //- Calculate thermal velocity
-        dimensionedScalar calcThermalVelocity
-        (
-            const dimensionedScalar& m,
-            const dimensionedScalar& T
-        ) const;
-
-        //- Calculate the effective wall absorption velocity
+        //- Calculate the ion-specific wall absorption velocity
         virtual tmp<scalarField> calcWallVelocity
         (
             const dimensionedScalar& m,
-            const dimensionedScalar& T,
-            const scalarField& uDriftNormal
-        ) const = 0;
+            const scalarField& T,
+            const scalarField& uDriftNormal,
+            const scalar Z
+        ) const override;
 
 public:
 
     //- Runtime type information
-    TypeName("solidSurfaceFlux");
+    TypeName("ionDDSolidSurfaceFlux");
 
     // Constructors
 
         //- Construct from patch and internal field
-        solidSurfaceFluxFvPatchScalarField
+        ionDDSolidSurfaceFluxFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&
         );
 
         //- Construct from patch, internal field and dictionary
-        solidSurfaceFluxFvPatchScalarField
+        ionDDSolidSurfaceFluxFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
@@ -111,44 +106,56 @@ public:
         );
 
         //- Construct by mapping given BC onto a new patch
-        solidSurfaceFluxFvPatchScalarField
+        ionDDSolidSurfaceFluxFvPatchScalarField
         (
-            const solidSurfaceFluxFvPatchScalarField&,
+            const ionDDSolidSurfaceFluxFvPatchScalarField&,
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct as copy
-        solidSurfaceFluxFvPatchScalarField
+        ionDDSolidSurfaceFluxFvPatchScalarField
         (
-            const solidSurfaceFluxFvPatchScalarField&
+            const ionDDSolidSurfaceFluxFvPatchScalarField&
         );
 
         //- Construct as copy setting internal field reference
-        solidSurfaceFluxFvPatchScalarField
+        ionDDSolidSurfaceFluxFvPatchScalarField
         (
-            const solidSurfaceFluxFvPatchScalarField&,
+            const ionDDSolidSurfaceFluxFvPatchScalarField&,
             const DimensionedField<scalar, volMesh>&
         );
 
         //- Return a clone
-        virtual tmp<fvPatchField<scalar>> clone() const = 0;
+        virtual tmp<fvPatchField<scalar>> clone() const
+        {
+            return tmp<fvPatchField<scalar>>
+            (
+                new ionDDSolidSurfaceFluxFvPatchScalarField(*this)
+            );
+        }
 
         //- Construct and return a clone
         virtual tmp<fvPatchField<scalar>> clone
         (
             const DimensionedField<scalar, volMesh>& iF
-        ) const = 0;
+        ) const
+        {
+            return tmp<fvPatchField<scalar>>
+            (
+                new ionDDSolidSurfaceFluxFvPatchScalarField(*this, iF)
+            );
+        }
 
         // Member Functions
 
-            //- Update the coefficients
-            virtual void updateCoeffs();
-
-            //- Get the switch enableSurfaceCharging
-            bool enableSurfaceCharging() const;
-
+            //- Return the surface charging switch value
+            inline bool enableSurfaceCharging() const
+            {
+                return enableSurfaceCharging_;
+            }
+            
             //- Write dictionary entries
             virtual void write(Ostream& os) const;
 };
@@ -156,7 +163,5 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif
