@@ -62,10 +62,10 @@ forAll(boundary, patchi)
             speciesField.boundaryField()[patchi];
 
         // Check if it is a solidSurfaceFlux (or its derived b.c.) type
-        if (isA<solidSurfaceFluxFvPatchScalarField>(pField))
+        if (isA<ddSolidSurfaceFluxFvPatchScalarField>(pField))
         {
             const auto& bc = 
-                refCast<const solidSurfaceFluxFvPatchScalarField>(pField);
+                refCast<const ddSolidSurfaceFluxFvPatchScalarField>(pField);
             
             // Check the switch for adding or not to surfCharge
             bool writeOn = bc.enableSurfaceCharging();

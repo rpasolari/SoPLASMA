@@ -49,7 +49,7 @@ Author
 #include "mappedPatchBase.H"
 #include "pimpleControl.H"
 
-#include "solidSurfaceFluxFvPatchScalarField.H"
+#include "ddSolidSurfaceFluxFvPatchScalarField.H"
 #include "foamPlasmaToolkitConstants.H"
 #include "plasmaSpecies.H"
 #include "plasmaTransport.H"
