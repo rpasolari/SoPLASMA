@@ -2,7 +2,7 @@ plasmaTransport/plasmaTransport.C
 
 plasmaTransportModels/plasmaTransportModel.C
 plasmaTransportModels/driftDiffusion/driftDiffusion.C
-plasmaTransportModels/frozenTransportModel/frozenTransportModel.C
+plasmaTransportModels/immobileTransportModel/immobileTransportModel.C
 
 plasmaMobilityModels/plasmaMobilityModel.C
 plasmaMobilityModels/constantMobility/constantMobility.C

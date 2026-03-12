@@ -11,8 +11,6 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-//TODO: ADD ne for return of electrons density, nn for neutrals etc
-
 #include "plasmaSpecies.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -45,18 +43,26 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
     speciesChargeNumber_(),
     speciesCharge_(),
     speciesMass_(),
-    numberDensity_()
+    numberDensity_(),
+    electronSpeciesID_(-1),
+    ionSpeciesIDs_(),
+    positiveIonSpeciesIDs_(),
+    negativeIonSpeciesIDs_(),
+    neutralSpeciesIDs_(),
+    chargedSpeciesIDs_(),
+    mobileSpeciesIDs_()
+
 {
-    if (!found("species"))
+    if (!found("activeSpecies"))
     {
         FatalIOErrorInFunction(*this)
-            << "Required entry 'species' is missing in dictionary "
+            << "Required entry 'activeSpecies' is missing in dictionary "
             << objectPath() << nl
             << exit(FatalIOError);
     }
 
     // Read species list
-    lookup("species") >> speciesNames_;
+    lookup("activeSpecies") >> speciesNames_;
     nSpecies_ = speciesNames_.size();
 
     speciesID_.clear();
@@ -124,6 +130,7 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
 
         speciesChargeNumber_[i] = readScalar(mergedDict.lookup("charge"));
         scalar massValue = readScalar(mergedDict.lookup("mass"));
+        scalar Z = readScalar(mergedDict.lookup("charge"));
 
         speciesCharge_.set
         (
@@ -163,6 +170,42 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
                 mesh_
             )
         );
+
+        // Classify in groups
+            if (Z == -1 && massValue < 1e-29)
+            {
+                electronSpeciesID_ = i;
+                chargedSpeciesIDs_.append(i);
+            }
+
+            // Ions (Charged, but not electrons)
+            else if (Z != 0)
+            {
+                chargedSpeciesIDs_.append(i);
+                ionSpeciesIDs_.append(i);
+                
+                if (Z > 0)
+                    positiveIonSpeciesIDs_.append(i);
+                else
+                    negativeIonSpeciesIDs_.append(i);
+            }
+            // Active neutrals
+            else
+            {
+                neutralSpeciesIDs_.append(i);
+            }
+            
+            // Mobile vs immobile species
+            word transport;
+            mergedDict.lookup("transportModel") >> transport;
+            if (transport == "immobile")
+            {
+                immobileSpeciesIDs_.append(i);
+            }
+            else
+            {
+                mobileSpeciesIDs_.append(i);
+            }
     }
 }  
 

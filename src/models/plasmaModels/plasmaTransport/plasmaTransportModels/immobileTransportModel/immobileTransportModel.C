@@ -1,10 +1,10 @@
 /*---------------------------------------------------------------------------*\
-  File: frozenTransportModel.C
+  File: immobileTransportModel.C
   Part of: foamPlasmaToolkit
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::frozenTransportModel.
+    Implementation of Foam::immobileTransportModel.
 
   Copyright (C) 2025 Rention Pasolari
   License: GNU General Public License v3 or later
@@ -14,7 +14,7 @@
 #include "fvc.H"
 #include "fvm.H"
 
-#include "frozenTransportModel.H"
+#include "immobileTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -23,17 +23,17 @@ namespace Foam
 
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
-defineTypeNameAndDebug(frozenTransportModel, 0);
+defineTypeNameAndDebug(immobileTransportModel, 0);
 addToRunTimeSelectionTable
 (
     plasmaTransportModel,
-    frozenTransportModel, 
+    immobileTransportModel, 
     dictionary
 );
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-frozenTransportModel::frozenTransportModel
+immobileTransportModel::immobileTransportModel
 (
     const word& modelName,
     const dictionary& dict,
@@ -56,34 +56,34 @@ frozenTransportModel::frozenTransportModel
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-void frozenTransportModel::correct(const surfaceScalarField& phiE)
+void immobileTransportModel::correct(const surfaceScalarField& phiE)
 {
     // Do nothing here    
 }
 
-tmp<fvScalarMatrix> frozenTransportModel::nEqn() const
+tmp<fvScalarMatrix> immobileTransportModel::nEqn() const
 {
     const volScalarField& n = species_.numberDensity(specieIndex_);
 
     return tmp<fvScalarMatrix>(fvm::ddt(n));
 }
 
-void frozenTransportModel::updateParticleFlux(surfaceScalarField& flux) const
+void immobileTransportModel::updateParticleFlux(surfaceScalarField& flux) const
 {
     // flux *= 0.0;
 }
 
-tmp<surfaceScalarField> frozenTransportModel::phi() const
+tmp<surfaceScalarField> immobileTransportModel::phi() const
 {
     return *zeroSurfaceFieldPtr_;
 }
 
-const volVectorField& frozenTransportModel::driftVelocity() const
+const volVectorField& immobileTransportModel::driftVelocity() const
 {
     return *zeroVectorFieldPtr_;
 }
 
-tmp<volScalarField> frozenTransportModel::electricalConductivity() const
+tmp<volScalarField> immobileTransportModel::electricalConductivity() const
 {
     return tmp<volScalarField>::New
     (
@@ -100,7 +100,7 @@ tmp<volScalarField> frozenTransportModel::electricalConductivity() const
     );
 }
 
-tmp<volScalarField> frozenTransportModel::diffusiveChargeSource() const
+tmp<volScalarField> immobileTransportModel::diffusiveChargeSource() const
 {
     return tmp<volScalarField>::New
     (

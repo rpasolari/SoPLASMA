@@ -87,13 +87,13 @@ protected:
         //- Mesh reference
         const fvMesh& mesh_;
 
-        //- Species names
+        //- Active species names
         wordList speciesNames_;
 
-        //- Species index-name mapping
+        //- Active species index-name mapping
         HashTable<label> speciesID_;
 
-        //- Number of species
+        //- Number of active species
         label nSpecies_;
 
         //- Charge number Z_i per species (dimensionless:: -1, +1, +2, etc)
@@ -105,7 +105,7 @@ protected:
         //- Mass per species
         PtrList<dimensionedScalar> speciesMass_;
 
-        //- Number density fiels n_i [1/m3] for each species
+        //- Number density fiels n_i [1/m3] for each active species
         PtrList<volScalarField> numberDensity_;
 
         //- Per-species property dictionaries
@@ -113,6 +113,39 @@ protected:
 
         //- Default species properties
         dictionary defaultDict_;
+
+        //- Label for electron specie
+        label electronSpeciesID_;
+
+        //- Label list for ions (positive + negative)
+        labelList ionSpeciesIDs_;
+
+        //- Label list for positive ions only
+        labelList positiveIonSpeciesIDs_;
+
+        //- Label list for negative ions only
+        labelList negativeIonSpeciesIDs_;
+
+        //- Label list for active neutral species (e.g., excited species)
+        labelList neutralSpeciesIDs_;
+
+        //- Label list for charged species (ions + electrons)
+        labelList chargedSpeciesIDs_;
+
+        //- Label list for mobile species (transport != immobile)
+        labelList mobileSpeciesIDs_;
+
+        //- Label list for immobile species (transport == immobile)
+        labelList immobileSpeciesIDs_;
+
+        //- Species that own a T field (Isothermal + Dynamic)
+        labelList hasTemperatureFieldIDs_;
+
+        //- Species that need a calculation in the Energy Manager
+        labelList dynamicEnergyIDs_;
+
+        //- Species solving a transport PDE for energy
+        labelList energyPDEIDs_;
 
 public:
 
@@ -135,6 +168,7 @@ public:
         inline const fvMesh& mesh() const;
         inline const wordList& speciesNames() const;
         inline label nSpecies() const;
+
         inline const List<scalar>& speciesChargeNumber() const;
         inline scalar speciesChargeNumber(label i) const;
         inline const PtrList<dimensionedScalar>& speciesCharge() const;
@@ -155,6 +189,17 @@ public:
         inline const dictionary& speciesDict(label i) const;
         inline const dictionary& speciesDict(const word& name) const; 
         inline const dictionary& defaultDict() const; 
+
+        // Group Access
+        inline label electronSpeciesID() const;
+        inline const labelList& ionSpeciesIDs() const;
+        inline const labelList& positiveIonSpeciesIDs() const;
+        inline const labelList& negativeIonSpeciesIDs() const;
+        inline const labelList& neutralSpeciesIDs() const;
+        inline const labelList& chargedSpeciesIDs() const;
+        inline const labelList& mobileSpeciesIDs() const;
+        inline const labelList& immobileSpeciesIDs() const;
+        // inline const labelList& nonIsothermalSpeciesIDs() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

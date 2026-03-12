@@ -31,10 +31,10 @@ Description
     It does not implement any transport physics itself. Instead, it serves
     as a controller that:
 
-        • Retrieves species-level transport configuration from plasmaSpecies
-        • Constructs the appropriate plasmaTransportModel for each species
-        • Stores all per-species transport models in a PtrList
-        • Delegates time-dependent updates to the individual models
+        - Retrieves species-level transport configuration from plasmaSpecies
+        - Constructs the appropriate plasmaTransportModel for each species
+        - Stores all per-species transport models in a PtrList
+        - Delegates time-dependent updates to the individual models
 
     The plasmaTransport object is typically created once in the solver and
     used during the solution loop to update the transport behaviour of all

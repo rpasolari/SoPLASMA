@@ -22,7 +22,7 @@ License
     with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::frozenTransportModel
+    Foam::immobileTransportModel
     
 Description
     Transport model for stationary species (e.g., heavy ions in fast 
@@ -33,17 +33,17 @@ Description
 
     The model is activated by specifying:
 
-        transportModel frozen;
+        transportModel immobile;
 
     in the corresponding species dictionary.
 
 SourceFiles
-    frozenTransportModel.C
+    immobileTransportModel.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_frozenTransportModel_H
-#define Foam_frozenTransportModel_H
+#ifndef Foam_immobileTransportModel_H
+#define Foam_immobileTransportModel_H
 
 #include "plasmaTransportModel.H"
 
@@ -53,10 +53,10 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class frozenTransportModel Declaration
+                    Class immobileTransportModel Declaration
 \*---------------------------------------------------------------------------*/
 
-class frozenTransportModel
+class immobileTransportModel
 :
     public plasmaTransportModel
 {
@@ -65,12 +65,12 @@ private:
 public:
 
     //- Runtime type information
-    TypeName("frozen");
+    TypeName("immobile");
 
     // Constructors
 
         //- Construct from components
-        frozenTransportModel
+        immobileTransportModel
         (
             const word& modelName,
             const dictionary& dict,

@@ -203,18 +203,18 @@ int main(int argc, char* argv[])
         )
     );
 
-    if (!speciesDict.found("species"))
+    if (!speciesDict.found("activeSpecies"))
     {
         FatalErrorInFunction
-            << "The plasmaSpecies dictionary has no 'species' entry!"
+            << "The plasmaSpecies dictionary has no 'activeSpecies' entry!"
             << exit(FatalError);
     }
 
-    wordList species(speciesDict.lookup("species"));
+    wordList species(speciesDict.lookup("activeSpecies"));
 
     if (Pstream::master())
     {
-        Info << "Found " << species.size() << " species." << nl;
+        Info << "Found " << species.size() << " active species." << nl;
     }
 
     for (const word& s : species)

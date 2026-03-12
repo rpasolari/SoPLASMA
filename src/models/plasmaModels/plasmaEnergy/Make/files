@@ -1,0 +1,7 @@
+plasmaEnergy/plasmaEnergy.C
+
+plasmaEnergyModels/plasmaEnergyModel.C
+
+plasmaEnergyModels/noneEnergyModel/noneEnergyModel.C
+
+LIB = $(FOAM_USER_LIBBIN)/libplasmaEnergy

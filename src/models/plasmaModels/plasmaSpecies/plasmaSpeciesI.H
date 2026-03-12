@@ -121,6 +121,61 @@ Foam::plasmaSpecies::defaultDict() const
 {
     return defaultDict_;
 }
+
+//- Group Access
+inline Foam::label
+Foam::plasmaSpecies::electronSpeciesID() const
+{
+    return electronSpeciesID_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::ionSpeciesIDs() const
+{
+    return ionSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::positiveIonSpeciesIDs() const
+{
+    return positiveIonSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::negativeIonSpeciesIDs() const
+{
+    return negativeIonSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::neutralSpeciesIDs() const
+{
+    return neutralSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::chargedSpeciesIDs() const
+{
+    return chargedSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::mobileSpeciesIDs() const
+{
+    return mobileSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::immobileSpeciesIDs() const
+{
+    return immobileSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::nonIsothermalSpeciesIDs() const
+{
+    return nonIsothermalSpeciesIDs_;
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif
