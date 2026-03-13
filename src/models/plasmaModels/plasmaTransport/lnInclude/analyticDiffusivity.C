@@ -1,1 +1,0 @@
-../plasmaDiffusivityModels/analyticDiffusivity/analyticDiffusivity.C

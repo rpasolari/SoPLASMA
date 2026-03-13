@@ -6,12 +6,13 @@
   Description:
     Implementation of Foam::plasmaMobilityModel.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
 #include "plasmaMobilityModel.H"
+#include "genericPlasmaPropertyTemplates.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -27,14 +28,14 @@ defineRunTimeSelectionTable(plasmaMobilityModel, dictionary);
 
 plasmaMobilityModel::plasmaMobilityModel
 (
-    const word& modelName,
+    const word& modelType,
     const dictionary& dict,
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex
 )
 :
-    modelName_(modelName),
+    modelType_(modelType),
     mesh_(mesh),
     species_(species),
     specieIndex_(specieIndex),
@@ -45,7 +46,7 @@ plasmaMobilityModel::plasmaMobilityModel
 
 autoPtr<plasmaMobilityModel> plasmaMobilityModel::New
 (
-    const word& modelName,
+    const word& modelType,
     const dictionary& dict,
     const fvMesh& mesh,
     const plasmaSpecies& species,
@@ -53,12 +54,15 @@ autoPtr<plasmaMobilityModel> plasmaMobilityModel::New
 )
 {
     // Lookup constructor using function-call operator
-    auto* ctorPtr = dictionaryConstructorTable(modelName);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
     if (!ctorPtr)
     {
+        const word& sName = species.speciesNames()[specieIndex];
+
         FatalIOErrorInFunction(dict)
-            << "Unknown plasmaMobilityModel type '" << modelName << "'\n"
+            << "Species '" << sName << "': "
+            << "Unknown plasmaMobilityModel type '" << modelType << "'\n"
             << "Valid models are: "
             << dictionaryConstructorTablePtr_->sortedToc() << nl
             << exit(FatalIOError);
@@ -67,9 +71,36 @@ autoPtr<plasmaMobilityModel> plasmaMobilityModel::New
     // Construct and return the model
     return autoPtr<plasmaMobilityModel>
     (
-        ctorPtr(modelName, dict, mesh, species, specieIndex)
+        ctorPtr(modelType, dict, mesh, species, specieIndex)
     );
 }
+
+// * * * * * * * * * * * * * * * Instantiations * * * * * * * * * * * * * * //
+
+// Constant
+typedef ConstantProperty<plasmaMobilityModel> constantMobility;
+static plasmaMobilityModel::adddictionaryConstructorToTable<constantMobility>
+    addConstantMobilityConstructorToTable_("constant");
+
+// Tabulated 1D
+typedef TabulatedProperty1D<plasmaMobilityModel> tabulatedMobility1D;
+static plasmaMobilityModel::adddictionaryConstructorToTable<tabulatedMobility1D>
+    addTabulatedMobility1DConstructorToTable_("tabulated1D");
+
+// Tabulated 2D
+typedef TabulatedProperty2D<plasmaMobilityModel> tabulatedMobility2D;
+static plasmaMobilityModel::adddictionaryConstructorToTable<tabulatedMobility2D>
+    addTabulatedMobility2DConstructorToTable_("tabulated2D");
+
+// Power Law
+typedef PowerLawProperty<plasmaMobilityModel> powerLawMobility;
+static plasmaMobilityModel::adddictionaryConstructorToTable<powerLawMobility>
+    addPowerLawMobilityConstructorToTable_("powerLaw");
+
+// Function1
+typedef Function1Property<plasmaMobilityModel> function1Mobility;
+static plasmaMobilityModel::adddictionaryConstructorToTable<function1Mobility>
+    addCodedMobilityConstructorToTable_("function1");
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

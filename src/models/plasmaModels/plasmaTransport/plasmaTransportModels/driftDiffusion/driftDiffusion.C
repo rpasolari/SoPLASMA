@@ -32,35 +32,33 @@ addToRunTimeSelectionTable(plasmaTransportModel, driftDiffusion, dictionary);
 
 void driftDiffusion::constructModels()
 {
+    const word& sName = species_.speciesNames()[specieIndex_];
+
     // Construct mobility model
-    if (!dict_.found("mobilityModel"))
+    if (!dict_.found("mobility"))
     {
         FatalIOErrorInFunction(dict_)
-            << "driftDiffusion requires a 'mobilityModel' entry\n"
-            << "Please specify mobilityModel <modelName>;\n"
+            << "Species '" << sName << "': missing 'mobility' dict." << nl
             << exit(FatalIOError);
     }
 
-    word mobilityModelName;
-    dict_.lookup("mobilityModel") >> mobilityModelName;
+    const dictionary& mobilityDict = dict_.subDict("mobility");
 
-    if (!dict_.found("mobilityCoeffs"))
+    if (!mobilityDict.found("type"))
     {
-        FatalIOErrorInFunction(dict_)
-            << "Missing sub-dictionary 'mobilityCoeffs' for mobilityModel '"
-            << mobilityModelName << "'\n"
-            << "driftDiffusion requires mobilityCoeffs { ... }\n"
+        FatalIOErrorInFunction(mobilityDict)
+            << "Species '" << sName << "': missing 'type' in mobility." << nl
             << exit(FatalIOError);
     }
 
-    const dictionary& mobilityCoeffs = dict_.subDict("mobilityCoeffs");
+    word mobilityType = mobilityDict.get<word>("type");
 
     mobilityModel_.reset
     (
         plasmaMobilityModel::New
         (
-            mobilityModelName,
-            mobilityCoeffs,
+            mobilityType,
+            mobilityDict,
             mesh_,
             species_,
             specieIndex_
@@ -68,39 +66,35 @@ void driftDiffusion::constructModels()
     );
 
     // Construct diffusivity model
-    if (!dict_.found("diffusivityModel"))
+    if (!dict_.found("diffusivity"))
     {
         FatalIOErrorInFunction(dict_)
-            << "driftDiffusion requires a 'diffusivityModel' entry\n"
-            << "Please specify diffusivityModel <modelName>;\n"
+            << "Species '" << sName << "': missing 'diffusivity' dict." << nl
             << exit(FatalIOError);
     }
 
-    word diffusivityModelName;
-    dict_.lookup("diffusivityModel") >> diffusivityModelName;
+    const dictionary& diffusivityDict = dict_.subDict("diffusivity");
 
-    if (!dict_.found("diffusivityCoeffs"))
+    if (!diffusivityDict.found("type"))
     {
-        FatalIOErrorInFunction(dict_)
-            << "Missing sub-dictionary 'diffusivityCoeffs' for "
-            << "diffusivityModel '" << diffusivityModelName << "'\n"
-            << "driftDiffusion requires diffusivityCoeffs { ... }\n"
+        FatalIOErrorInFunction(diffusivityDict)
+            << "Species '" << sName << "': missing 'type' in diffusivity." << nl
             << exit(FatalIOError);
     }
 
-    const dictionary& diffusivityCoeffs = dict_.subDict("diffusivityCoeffs");
-
+    word diffusivityType = diffusivityDict.get<word>("type");
     diffusivityModel_.reset
     (
         plasmaDiffusivityModel::New
         (
-            diffusivityModelName,
-            diffusivityCoeffs,
+            diffusivityType,
+            diffusivityDict,
             mesh_,
             species_,
             specieIndex_
         )
     );
+
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -166,7 +160,7 @@ driftDiffusion::driftDiffusion
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(-1, 0, 2, 0, 0, 1, 0), 0.0)

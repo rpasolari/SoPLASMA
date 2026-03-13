@@ -171,11 +171,11 @@ Foam::plasmaSpecies::immobileSpeciesIDs() const
     return immobileSpeciesIDs_;
 }
 
-inline const Foam::labelList&
-Foam::plasmaSpecies::nonIsothermalSpeciesIDs() const
-{
-    return nonIsothermalSpeciesIDs_;
-}
+// inline const Foam::labelList&
+// Foam::plasmaSpecies::nonIsothermalSpeciesIDs() const
+// {
+//     return nonIsothermalSpeciesIDs_;
+// }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

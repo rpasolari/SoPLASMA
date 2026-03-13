@@ -5,7 +5,7 @@ License
     The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025
+    Copyright (C) 2026
         Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
@@ -27,30 +27,91 @@ Class
 Description
     Abstract base class for plasma species diffusivity modelling.
 
-    This class defines the common interface for all diffusivity models used
-    by plasma transport implementations such as drift–diffusion.
+    This class defines the common interface for diffusivity evaluation across
+    different plasma transport solvers. It utilizes a generic templated 
+    architecture (defined in genericPlasmaPropertyTemplates.H) to separate 
+    physical property identity from mathematical evaluation logic.
 
-    Derived models provide the actual evaluation of the diffusivity D, which
-    may be constant, based on lookupTables, etc. Models are selected at runtime
-    via the standard OpenFOAM run-time selection mechanism using the 
-    'diffusivityModel' entry in the species dictionary.
+Usage
+    The model is selected via the 'type' entry in the diffusivity dictionary
+    within the species settings.
+
+    \verbatim
+    diffusivity
+    {
+        // 1. Constant Diffusivity
+        type            constant;
+        D               1.5e-4;      // Mandatory
+
+        // 2. Tabulated 1D Diffusivity
+        // D = f(x) interpolated from a data file.
+        type            tabulated1D;
+        
+        // Native OpenFOAM Format usage:
+        lookupVariable  E;           // Mandatory
+        file            "path";      // Mandatory
+        readerType      openFoam;    // Optional:  Default is openFoam
+        outOfBounds     clamp;       // Optional:  Default is warn
+
+        // CSV Format usage:
+        readerType      csv;         // Mandatory
+        hasHeaderLine   true;        // Mandatory: skip first line
+        refColumn       0;           // Mandatory: lookup column index
+        componentColumns (1);        // Mandatory: value column index list
+        separator       ",";         // Optional:  Default is ","
+        outOfBounds     clamp;       // Optional:  Default is warn
+
+        // 3. Tabulated 2D Diffusivity
+        // D = f(x, y) via bilinear interpolation from a user data file.
+        // File contains a nested list: ( X ( (Y1 D1) (Y2 D2) ) )
+        type            tabulated2D;
+        lookupVariables (E Te);      // Mandatory: List of two field names
+        file            "path";      // Mandatory: Data file path
+        outOfBounds     clamp;       // Optional: (clamp|error|warn)
+
+        // 4. Power Law Diffusivity (Analytic)
+        // D = amplitude * |lookupVariable|^exponent
+        type            powerLaw;
+        amplitude       1.5e-4;      // Mandatory: muCoeff
+        exponent        -0.5;        // Mandatory: fieldExp
+        lookupVariable  E;           // Optional:  Default is E
+
+        // 5. Universal Function1 Property
+        // Supports any Function1 type: coded, polynomial, sine, etc.
+        type            function1;
+        lookupVariable  E;           // Mandatory
+        function        coded;       // Function1 type (coded|polynomial|...)
+        
+        // Example for 'coded' type:
+        name            myCustomD;
+        code            #{ return 1.5e-4 * Foam::exp(-x/100.0); #};
+
+        // Example for 'polynomial' type:
+        // function     polynomial ((1 0) (2 1)); // D = 1 + 2*E
+    }
+    \endverbatim
+
+    Notes on Out-Of-Bounds handling:
+    - clamp:  Use value of the nearest endpoint (Recommended).
+    - error:  Stop the simulation with a Fatal Error.
+    - warn:   Clamp the value but print a warning to the log (Default).
+    - repeat: Treat the table as a periodic cycle (1D only).
 
 SourceFiles
-    plasmaDiffusivityModelI.H
     plasmaDiffusivityModel.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaDiffusivityModel_H
-#define Foam_plasmaDiffusivityModel_H
+
+#ifndef plasmaDiffusivityModel_H
+#define plasmaDiffusivityModel_H
 
 #include "fvMesh.H"
 #include "autoPtr.H"
-#include "dictionary.H"
 #include "runTimeSelectionTables.H"
-#include "addToRunTimeSelectionTable.H"
-
 #include "plasmaSpecies.H"
+#include "interpolationTable.H"
+#include "interpolation2DTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,15 +119,15 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class plasmaDiffusivityModel Declaration
+                  Class plasmaDiffusivityModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class plasmaDiffusivityModel
 {
 protected:
 
-    //- Model name (e.g. "constant", "lookupTable", etc.)
-    const word modelName_;
+    //- Model type (e.g. "constant", "tabulated1D", etc.)
+    const word modelType_;
 
     //- Mesh reference
     const fvMesh& mesh_;
@@ -80,6 +141,7 @@ protected:
     //- Diffusivity model dictionary
     const dictionary dict_;
 
+
 public:
 
     //- Runtime type information
@@ -92,21 +154,29 @@ public:
         plasmaDiffusivityModel,
         dictionary,
         (
-            const word& modelName,
+            const word& modelType,
             const dictionary& dict,
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex
         ),
-        (modelName, dict, mesh, species, specieIndex)
+        (modelType, dict, mesh, species, specieIndex)
     );
+
+    //- The keyword used in dictionaries for this property (D)
+    static word coeffKeyword() { return "D"; }
+
+    //- String description for error messages
+    static word propertyType() { return word("plasmaDiffusivityModel"); }
+
+    word modelType() const { return propertyType() + " " + modelType_; }
 
     // Constructors
 
         //- Construct base model
         plasmaDiffusivityModel
         (
-            const word& modelName,
+            const word& modelType,
             const dictionary& dict,
             const fvMesh& mesh,
             const plasmaSpecies& species,
@@ -116,7 +186,7 @@ public:
     //- Selector
     static autoPtr<plasmaDiffusivityModel> New
     (
-        const word& modelName,
+        const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
         const plasmaSpecies& species,
@@ -124,12 +194,27 @@ public:
     );
 
     //- Destructor
-    virtual ~plasmaDiffusivityModel() {}
+    virtual ~plasmaDiffusivityModel() = default;
 
     // Member Functions
 
         //- Correct diffusivity
         virtual void correct(volScalarField& D) const = 0;
+
+        //- Physical validation of scalar values
+        virtual void checkValue(const word& key, const scalar val) const
+        {
+            if (val < 0)
+            {
+                const word& sName = this->species_.speciesNames()
+                                                           [this->specieIndex_];
+
+                FatalErrorInFunction
+                    << "Species '" << sName << "': property '" << key 
+                    << "' must be non-negative. Found: " << val 
+                    << exit(FatalError);
+        }
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

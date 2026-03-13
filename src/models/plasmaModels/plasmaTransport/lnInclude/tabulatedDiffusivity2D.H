@@ -1,1 +1,0 @@
-../plasmaDiffusivityModels/tabulatedDiffusivity2D/tabulatedDiffusivity2D.H
