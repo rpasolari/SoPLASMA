@@ -12,8 +12,6 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-const wordList dielectricNames(rp["dielectric"]);
-
 PtrList<dynamicFvMesh> dielectricRegions(dielectricNames.size());
 
 forAll(dielectricNames, i)

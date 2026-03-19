@@ -12,29 +12,9 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-const wordList gasNames(rp["gas"]);
-
-if (gasNames.size() > 1)
-{
-    FatalErrorInFunction
-        << "Only one gas region is supported by this solver." << nl
-        << "Found " << gasNames.size() << " regions: " << gasNames << nl
-        << exit(FatalError);
-}
-else if (gasNames.empty())
-{
-    FatalErrorInFunction
-        << "No gas regions specified in constant/regionProperties." << nl
-        << "This solver requires exactly one gas region to function." << nl
-        << exit(FatalError);
-}
-
-const word gasRegionName = gasNames[0];
-
 autoPtr<dynamicFvMesh> gasMesh;
 
-Info
-    << "Create gas mesh for region " << gasRegionName
+Info<< "Create gas mesh for region " << gasRegionName
     << " for time = " << runTime.timeName() << nl << endl;
 
 gasMesh.reset
