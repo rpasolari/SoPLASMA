@@ -12,7 +12,6 @@
 \*---------------------------------------------------------------------------*/
 
 #include "plasmaMobilityModel.H"
-#include "genericPlasmaPropertyTemplates.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -22,7 +21,38 @@ namespace Foam
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
 defineTypeNameAndDebug(plasmaMobilityModel, 0);
-defineRunTimeSelectionTable(plasmaMobilityModel, dictionary);
+
+// * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * //
+
+void plasmaMobilityModel::update() const
+{
+    // Skip recalculation if the model is constant in time and already set
+    if (isConstant_ && upToDate_) return;
+
+    if (isUniform_)
+    {
+        // Update the single scalar value
+        muValue_ = evaluator_->evaluateScalar();
+    }
+    else
+    {
+        // Create or update the volScalarField
+        if (!muFieldPtr_.valid())
+        {
+            muFieldPtr_.reset
+            (
+                new volScalarField
+                (
+                    IOobject("mu", mesh_.time().timeName(), mesh_),
+                    mesh_, muValue_.dimensions()
+                )
+            );
+        }
+        evaluator_->correct(muFieldPtr_.ref());
+    }
+
+    upToDate_ = true;
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -39,8 +69,25 @@ plasmaMobilityModel::plasmaMobilityModel
     mesh_(mesh),
     species_(species),
     specieIndex_(specieIndex),
-    dict_(dict)
-{}
+    dict_(dict),
+    upToDate_(false),
+    muValue_("mu", dimensionSet(-1, 0, 2, 0, 0, 1, 0), 0.0)
+{
+
+    evaluator_ = plasmaPropertyEvaluator::New
+    (
+        modelType_,
+        dict_,
+        mesh_,
+        species_,
+        specieIndex_,
+        "Mobility",
+        dimensionSet(-1, 0, 2, 0, 0, 1, 0)
+    );
+
+    isUniform_ = evaluator_->isUniform();
+    isConstant_ = evaluator_->isConstant();
+}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
@@ -53,54 +100,39 @@ autoPtr<plasmaMobilityModel> plasmaMobilityModel::New
     const label specieIndex
 )
 {
-    // Lookup constructor using function-call operator
-    auto* ctorPtr = dictionaryConstructorTable(modelType);
-
-    if (!ctorPtr)
-    {
-        const word& sName = species.speciesNames()[specieIndex];
-
-        FatalIOErrorInFunction(dict)
-            << "Species '" << sName << "': "
-            << "Unknown plasmaMobilityModel type '" << modelType << "'\n"
-            << "Valid models are: "
-            << dictionaryConstructorTablePtr_->sortedToc() << nl
-            << exit(FatalIOError);
-    }
-
-    // Construct and return the model
     return autoPtr<plasmaMobilityModel>
     (
-        ctorPtr(modelType, dict, mesh, species, specieIndex)
+        new plasmaMobilityModel(modelType, dict, mesh, species, specieIndex)
     );
 }
 
-// * * * * * * * * * * * * * * * Instantiations * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-// Constant
-typedef ConstantProperty<plasmaMobilityModel> constantMobility;
-static plasmaMobilityModel::adddictionaryConstructorToTable<constantMobility>
-    addConstantMobilityConstructorToTable_("constant");
+tmp<volScalarField> plasmaMobilityModel::mu() const
+{
+    update();
 
-// Tabulated 1D
-typedef TabulatedProperty1D<plasmaMobilityModel> tabulatedMobility1D;
-static plasmaMobilityModel::adddictionaryConstructorToTable<tabulatedMobility1D>
-    addTabulatedMobility1DConstructorToTable_("tabulated1D");
+    if (isUniform_)
+    {
+        // Return a virtual field
+        return tmp<volScalarField>::New
+        (
+            IOobject("mu_tmp", mesh_.time().timeName(), mesh_),
+            mesh_, muValue_
+        );
+    }
 
-// Tabulated 2D
-typedef TabulatedProperty2D<plasmaMobilityModel> tabulatedMobility2D;
-static plasmaMobilityModel::adddictionaryConstructorToTable<tabulatedMobility2D>
-    addTabulatedMobility2DConstructorToTable_("tabulated2D");
+    // Return reference to the cached field
+    return *muFieldPtr_;
+}
 
-// Power Law
-typedef PowerLawProperty<plasmaMobilityModel> powerLawMobility;
-static plasmaMobilityModel::adddictionaryConstructorToTable<powerLawMobility>
-    addPowerLawMobilityConstructorToTable_("powerLaw");
+void plasmaMobilityModel::correct(volScalarField& mu) const
+{
+    update();
 
-// Function1
-typedef Function1Property<plasmaMobilityModel> function1Mobility;
-static plasmaMobilityModel::adddictionaryConstructorToTable<function1Mobility>
-    addCodedMobilityConstructorToTable_("function1");
+    if (isUniform_) mu = muValue_;
+    else mu = *muFieldPtr_;
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

@@ -17,6 +17,7 @@
 #include "plasmaSpecies.H"
 #include "ddSolidSurfaceFluxFvPatchScalarField.H"
 #include "foamPlasmaToolkitConstants.H"
+#include "driftDiffusion.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -178,10 +179,29 @@ void ddSolidSurfaceFluxFvPatchScalarField::updateCoeffs()
         speciesName.erase(0, 2);
     }
 
-    // Read the temperature either as a field or a constant
-    tmp<scalarField> tT = (TName_ != "none")
-        ? p.lookupPatchField<volScalarField, scalar>(TName_)
-        : tmp<scalarField>::New(p.size(), TValue_.value());
+    tmp<scalarField> tT;
+
+    if (TName_ == "none")
+    {
+        tT = tmp<scalarField>::New(p.size(), TValue_.value());
+    }
+    else if (db().foundObject<volScalarField>(TName_))
+    {
+        tT = p.lookupPatchField<volScalarField, scalar>(TName_);
+    }
+    else if (db().foundObject<dimensionedScalar>(TName_))
+    {
+        const auto& udf = db().lookupObject<UniformDimensionedField<scalar>>
+                                                                       (TName_);
+        tT = tmp<scalarField>::New(p.size(), udf.value());
+    }
+    else
+    {
+        FatalErrorInFunction
+            << "Temperature identifier '" << TName_ << "' was not found in the "
+            << "object registry as a volScalarField or a dimensionedScalar."
+            << exit(FatalError);
+    }
 
     const scalarField& T = tT();
 
@@ -204,7 +224,12 @@ void ddSolidSurfaceFluxFvPatchScalarField::updateCoeffs()
     const scalar& Z = speciesDB.speciesChargeNumber(speciesID);
 
     const plasmaTransportModel& model = transport.model(speciesID);
-    const word& scheme = model.fluxScheme();
+    word scheme = "standard";
+    if (isA<driftDiffusion>(model))
+    {
+        const driftDiffusion& ddModel = refCast<const driftDiffusion>(model);
+        scheme = ddModel.fluxScheme();
+    }
 
     // Calculate Normal Drift Velocity (mu * E_normal)
     // Note: Child classes handle the charge sign inside calcWallVelocity
@@ -226,28 +251,27 @@ void ddSolidSurfaceFluxFvPatchScalarField::updateCoeffs()
     if (scheme == "ScharfetterGummel")
     {
         // Bernoulli Function Definition: B(x) = x / exp(x) - 1
-        auto Be = [](scalar x) -> scalar
+        auto Bern = [](scalar x) -> scalar
         {
-            if (mag(x) < 1e-4) 
+            const scalar ax = mag(x);
+            if (ax < 1e-4)
             {
-                return 1.0 - x/2.0 + sqr(x)/12.0 - pow4(x)/720.0;
+                return 1.0 - 0.5*x + (x*x)/12.0 - pow4(x)/720.0;;
             }
-            if (x > 200)    return 0.0;
-            if (x < -200)   return -x;
-            
-            return x / (exp(x) - 1.0); 
+            if (x > 200.0)  return 0.0;
+            if (x < -200.0) return -x;
+            return x / (Foam::exp(x) - 1.0);
         };
 
         forAll(p, faceI)
         {
             scalar Pe = uDrift_n[faceI] / (D_delta[faceI] + VSMALL);
 
-            scalar num = D_delta[faceI] * Be(-Pe);
-            scalar den = D_delta[faceI] * Be(Pe) + uWall[faceI];
+            // Use of the identity Be(Pe) - Be(-Pe) = -Pe
+            scalar num = uWall[faceI] - D_delta[faceI] * Pe;
+            scalar den = D_delta[faceI] * Bern(Pe) + uWall[faceI];
 
-            scalar K = num / (den + VSMALL);
-
-            f[faceI] = 1.0 - K;
+            f[faceI] = num / (den + VSMALL);
         }
     }
     else    //standard schemes

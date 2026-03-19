@@ -1,0 +1,3 @@
+plasmaPropertyEvaluator.C
+
+LIB = $(FOAM_USER_LIBBIN)/libplasmaPropertyEvaluator

@@ -80,6 +80,9 @@ private:
     //- Reference to the electric field
     const volVectorField& E_;
 
+    //- Reference to the electric field flux
+    surfaceScalarField phiE_;
+
     //- Reference to the electric potential field
     const volScalarField& ePotential_;
 
@@ -122,8 +125,6 @@ public:
 
         //- Correct all models
         void correct(const bool firstIter, const bool finalIter);
-        void correctModels();
-        // void correct();
 
         //- Return total electrical conductivity [S/m]
         tmp<volScalarField> electricalConductivity() const;
@@ -148,9 +149,6 @@ public:
         inline surfaceScalarField& particleFlux(label i);
         inline const PtrList<surfaceScalarField>& particleFlux() const;
         inline PtrList<surfaceScalarField>& particleFlux();
-
-        //- Return the total volumetrix flux (m3/s) for a species on the fly
-        inline tmp<surfaceScalarField> phi(const label i) const;
 
         //- Return the effective reaction rate field [1/s]
         inline const volScalarField& k_eff() const;

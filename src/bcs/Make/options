@@ -4,6 +4,7 @@ EXE_INC = \
     -I$(LIB_SRC)/OpenFOAM/lnInclude \
     -I$(FOAM_PLASMA_SRC)/constants/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/genericPlasmaProperties/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude
 
 LIB_LIBS = \
@@ -13,4 +14,5 @@ LIB_LIBS = \
     -lOpenFOAM \
     -lfoamPlasmaToolkitConstants \
     -lplasmaTransport \
+    -lplasmaPropertyEvaluator \
     -lplasmaSpecies

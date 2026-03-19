@@ -9,13 +9,14 @@ EXE_INC = \
     -I$(FOAM_PLASMA_SRC)/numerics/lnInclude \
     -I$(FOAM_PLASMA_SRC)/tools/profiling/lnInclude
 
-
 EXE_LIBS = \
     -lfiniteVolume \
     -lOpenFOAM \
     -lmeshTools \
     -lfoamPlasmaToolkitConstants \
+    -lplasmaPropertyEvaluator \
     -lplasmaSpecies \
     -lplasmaTransport \
     -lplasmaNumerics \
     -lplasmaProfiler
+    

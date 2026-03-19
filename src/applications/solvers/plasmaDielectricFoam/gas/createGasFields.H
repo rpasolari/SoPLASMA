@@ -125,6 +125,10 @@ Info<< "Constructing plasma species\n" << endl;
 
 plasmaSpecies species(gasMesh());
 
+Info<< "Constructing plasma energy\n" << endl;
+
+plasmaEnergy energy(species, gasMesh(), E);
+
 Info << "Constructing plasmaTransport\n" << endl;
 
 plasmaTransport transport(species, gasMesh(), E, ePotential);

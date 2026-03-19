@@ -1,7 +1,8 @@
 plasmaEnergy/plasmaEnergy.C
 
 plasmaEnergyModels/plasmaEnergyModel.C
-
-plasmaEnergyModels/noneEnergyModel/noneEnergyModel.C
+plasmaEnergyModels/isothermalEnergyModel/isothermalEnergyModel.C
+plasmaEnergyModels/gasTemperatureEnergyModel/gasTemperatureEnergyModel.C
+plasmaEnergyModels/localFieldEnergyModel/localFieldEnergyModel.C
 
 LIB = $(FOAM_USER_LIBBIN)/libplasmaEnergy

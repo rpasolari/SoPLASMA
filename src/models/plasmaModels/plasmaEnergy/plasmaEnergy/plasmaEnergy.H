@@ -69,6 +69,17 @@ class plasmaEnergy
     public regIOobject
 {
 private:
+    //- Flag to solve background gas energy equation
+    Switch solveGasEnergy_;
+
+    //- Flag to track if gas temperature is a field (solved or fixed)
+    Switch isGasTempField_;
+
+    //- The scalar value if isGasTempField_ == false
+    dimensionedScalar TgasValue_;
+
+    //- The volScalarField if isGasTempField_ == true
+    autoPtr<volScalarField> TgasFieldPtr_;
 
     //- Reference to mesh
     const fvMesh& mesh_;
@@ -122,18 +133,37 @@ public:
     // Access
 
         //- Mesh and species metadata access
-        inline const fvMesh& mesh() const;
-        inline const plasmaSpecies& species() const;
+        inline const fvMesh& mesh() const { return mesh_; }
+        inline const plasmaSpecies& species() const { return species_; }
 
         //- Model access
-        inline plasmaEnergyModel& model(const label i);
-        inline const plasmaEnergyModel& model(const label i) const;
+inline plasmaEnergyModel& model(const label i)
+        {
+            return energyModels_[i];
+        }
+
+        inline const plasmaEnergyModel& model(const label i) const
+        {
+            return energyModels_[i];
+        }
 
         //- Temperature field access for species i
-        inline const volScalarField& T(const label i) const;
+inline tmp<volScalarField> T(const label i) const
+        {
+            return energyModels_[i].T();
+        }
 
-        //- Specifically for electrons (for convenience)
-        inline const volScalarField& Te() const;
+        //- Return the background gas temperature as a tmp field
+        tmp<volScalarField> Tgas() const;
+
+        //- Return the background gas temperature as a dimensionedScalar
+        const dimensionedScalar& TgasValue() const;
+
+//- Return true if gas temperature is a single uniform value (not a field)
+inline bool isGasUniform() const { return !isGasTempField_; }
+
+//- Return true if gas temperature is NOT being solved (remains constant in time)
+inline bool isGasConstant() const { return !solveGasEnergy_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

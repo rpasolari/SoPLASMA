@@ -145,16 +145,23 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     {
         plasmaProfiler::start("Time Management", "DeltaT: Species Courant Limit");
 
-        label speciesLabel = transport.species().speciesID(speciesName_);
-        const surfaceScalarField& phi = transport.phi(speciesLabel);
+        label sIdx = transport.species().speciesID(speciesName_);
+        const volScalarField& n = transport.species().numberDensity(sIdx);
+        const surfaceScalarField& flux = transport.particleFlux(sIdx);
 
         scalarField sumPhi
         (
-            fvc::surfaceSum(mag(phi))().primitiveField()
+            fvc::surfaceSum(mag(flux))().primitiveField()
         );
 
-        maxFluxRate = 0.5 * gMax(sumPhi / mesh_.V().field());
-        meanFluxRate = 0.5 * (gSum(sumPhi) / gSum(mesh_.V().field()));
+        scalarField fluxRate
+        (
+            0.5 * sumPhi 
+          / (n.primitiveField() * mesh_.V().field() + VSMALL)
+        );
+
+        maxFluxRate = gMax(fluxRate);
+        meanFluxRate = (gSum(sumPhi)*0.5) / (gSum(n.primitiveField()*mesh_.V().field()) + VSMALL);
 
         scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
 
@@ -252,15 +259,23 @@ void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
     // Species Courant Limit
     if (limitSpeciesCo_)
     {
-        label speciesLabel = transport.species().speciesID(speciesName_);
-        const surfaceScalarField& phi = transport.phi(speciesLabel);
+        label sIdx = transport.species().speciesID(speciesName_);
+        const volScalarField& n = transport.species().numberDensity(sIdx);
+        const surfaceScalarField& flux = transport.particleFlux(sIdx);
 
         scalarField sumPhi
         (
-            fvc::surfaceSum(mag(phi))().primitiveField()
+            fvc::surfaceSum(mag(flux))().primitiveField()
+        );
+        
+        scalarField fluxRate
+        (
+            0.5 * sumPhi 
+          / (n.primitiveField() * mesh_.V().field() + VSMALL)
         );
 
-        scalar maxFluxRate = 0.5 * gMax(sumPhi / mesh_.V().field());
+        scalar maxFluxRate = gMax(fluxRate);
+
         scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
 
         newDeltaT = min(newDeltaT, courantLimit);

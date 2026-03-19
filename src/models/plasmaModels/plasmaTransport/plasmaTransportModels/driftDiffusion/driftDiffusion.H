@@ -64,29 +64,23 @@ class driftDiffusion
     public plasmaTransportModel
 {
 private:
-
-    //- Drift velocity
-    volVectorField driftVelocity_;
-
-    //- Drift flux
-    surfaceScalarField phi_;
-
-    //- Mobility field μ_i(x)
-    volScalarField mobility_;
-
-    //- Diffusivity field D_i(x)
-    volScalarField diffusivity_;
-
     //- Mobility/Diffusivity submodels
     autoPtr<plasmaMobilityModel> mobilityModel_;
     autoPtr<plasmaDiffusivityModel> diffusivityModel_;
     
-    //- Advection mode
-    word advectionMode_;
-    Switch isExplicit_;
+    //- Configuration settings
+    word advection_;
+    word fluxScheme_;
+    bool isExplicit_;
 
     //- Construct mobility and diffusivity models
     void constructModels();
+
+    //- Disallow default bitwise copy construct
+    driftDiffusion(const driftDiffusion&) = delete;
+
+    //- Disallow default bitwise assignment
+    void operator=(const driftDiffusion&) = delete;
 
 public:
 
@@ -103,35 +97,38 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const surfaceScalarField& phiE
         );
+
+    //- Destructor
+
+    virtual ~driftDiffusion() = default;
 
     // Member Functions
         
-        //- Correct model
-        virtual void correct(const surfaceScalarField& phiE) override;
-
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const override;
 
         //- Update the particle flux in place (1/s)
-        virtual void updateParticleFlux(surfaceScalarField& flux) const override;
+        virtual void updateParticleFlux
+        (
+            surfaceScalarField& flux
+        ) const override;
 
-        //- Return drift flux (m3/s)
-        virtual tmp<surfaceScalarField> phi() const override;
-
-        //- Return drift velocity
-        virtual const volVectorField& driftVelocity() const override;
-
-        //- Return diffusivity
-        virtual const volScalarField* diffusivity() const override;
-
-         //- Return electric conduction coefficient
+        //- Return electric conduction coefficient
         virtual tmp<volScalarField> electricalConductivity() const override;
 
         //- Return electric diffusion charge
         virtual tmp<volScalarField> diffusiveChargeSource() const override;
 
+        //- Return the flux scheme
+        const word& fluxScheme() const { return fluxScheme_; }
+
+        const plasmaMobilityModel& mobility() const
+        {
+            return *mobilityModel_;
+        }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

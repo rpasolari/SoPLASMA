@@ -1,1 +1,0 @@
-../plasmaEnergyModels/noneEnergyModel/noneEnergyModel.H

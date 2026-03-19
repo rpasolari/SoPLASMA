@@ -23,8 +23,6 @@ namespace Foam
 defineTypeNameAndDebug(plasmaEnergyModel, 0);
 defineRunTimeSelectionTable(plasmaEnergyModel, dictionary);
 
-// * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * *  //
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 plasmaEnergyModel::plasmaEnergyModel
@@ -63,7 +61,10 @@ autoPtr<plasmaEnergyModel> plasmaEnergyModel::New
 
     if (!ctorPtr)
     {
+        const word& sName = species.speciesNames()[specieIndex];
+        
         FatalIOErrorInFunction(dict)
+            << "Species '" << sName << "': "
             << "Unknown plasmaEnergyModel type '" << modelName << "'\n"
             << "Valid models are: "
             << dictionaryConstructorTablePtr_->sortedToc() << nl
@@ -77,6 +78,25 @@ autoPtr<plasmaEnergyModel> plasmaEnergyModel::New
     );
 }
 
+// * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
+
+const dimensionedScalar& plasmaEnergyModel::Tvalue() const
+{
+    const word& sName = species_.speciesNames()[specieIndex_];
+
+    // Default behavior: If a derived class is field-based and doesn't 
+    // override this, this function throws an error.
+    FatalErrorInFunction
+        << "Requested Tvalue() for species '" << sName 
+        << "' from a non-isothermal energy model type (" << modelName_ << ")."
+        << nl << "This species uses a spatial temperature field. "
+        << "Please update the solver logic to use the .T() accessor instead."
+        << abort(FatalError);
+
+    // Never reached
+    static const dimensionedScalar T_dummy("T_dummy", dimTemperature, 0.0);
+    return T_dummy;
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

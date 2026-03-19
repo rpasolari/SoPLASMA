@@ -41,7 +41,7 @@ Usage
     {
         // 1. Constant Diffusivity
         type            constant;
-        D               1.5e-4;      // Mandatory
+        value           1.5e-4;      // Mandatory
 
         // 2. Tabulated 1D Diffusivity
         // D = f(x) interpolated from a data file.
@@ -109,9 +109,9 @@ SourceFiles
 #include "fvMesh.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
+
 #include "plasmaSpecies.H"
-#include "interpolationTable.H"
-#include "interpolation2DTable.H"
+#include "plasmaPropertyEvaluator.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -125,6 +125,9 @@ namespace Foam
 class plasmaDiffusivityModel
 {
 protected:
+
+    //- The specific math evaluator (e.g., tabulated1D, powerLaw, etc.)
+    autoPtr<plasmaPropertyEvaluator> evaluator_;
 
     //- Model type (e.g. "constant", "tabulated1D", etc.)
     const word modelType_;
@@ -140,36 +143,28 @@ protected:
 
     //- Diffusivity model dictionary
     const dictionary dict_;
+    //- Flag for uniform or non-uniform field property
+    bool isUniform_;
 
+    //- Flag for constant or dynamic field property
+    bool isConstant_;
+
+    //- Mutable flag to check if a constant field has already been calculated
+    mutable bool upToDate_;
+
+    //- Storage for the uniform value
+    mutable dimensionedScalar DValue_;
+
+    //- Storage for the volScalarField
+    mutable autoPtr<volScalarField> DFieldPtr_;
+
+    //- Private update logic
+    void update() const;
 
 public:
 
     //- Runtime type information
     TypeName("plasmaDiffusivityModel");
-
-    //- Runtime selection table declaration
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        plasmaDiffusivityModel,
-        dictionary,
-        (
-            const word& modelType,
-            const dictionary& dict,
-            const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex
-        ),
-        (modelType, dict, mesh, species, specieIndex)
-    );
-
-    //- The keyword used in dictionaries for this property (D)
-    static word coeffKeyword() { return "D"; }
-
-    //- String description for error messages
-    static word propertyType() { return word("plasmaDiffusivityModel"); }
-
-    word modelType() const { return propertyType() + " " + modelType_; }
 
     // Constructors
 
@@ -198,23 +193,17 @@ public:
 
     // Member Functions
 
+        //- Returns true if the diffusivity is spatially uniform
+        bool isUniform() const { return isUniform_; }
+
+        //- Returns the actual scalar value (if spatially uniform)
+        const dimensionedScalar& DValue() const { return DValue_; }
+
+        //- Return diffusivity as a temporary field
+        tmp<volScalarField> D() const;
+
         //- Correct diffusivity
-        virtual void correct(volScalarField& D) const = 0;
-
-        //- Physical validation of scalar values
-        virtual void checkValue(const word& key, const scalar val) const
-        {
-            if (val < 0)
-            {
-                const word& sName = this->species_.speciesNames()
-                                                           [this->specieIndex_];
-
-                FatalErrorInFunction
-                    << "Species '" << sName << "': property '" << key 
-                    << "' must be non-negative. Found: " << val 
-                    << exit(FatalError);
-        }
-    }
+        void correct(volScalarField& D) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

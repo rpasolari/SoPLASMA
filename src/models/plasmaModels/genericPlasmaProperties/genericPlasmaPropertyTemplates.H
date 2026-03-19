@@ -49,6 +49,10 @@ Description:
 #include "volFields.H"
 #include "dimensionedScalar.H"
 #include "Function1.H"
+#include "interpolationTable.H"
+#include "interpolation2DTable.H"
+
+#include "plasmaEnergy.H"
 
 namespace Foam
 {
@@ -71,33 +75,55 @@ public:
         const dictionary& dict,
         const fvMesh& mesh,
         const plasmaSpecies& species,
-        const label specieIndex
+        const label specieIndex,
+        const word& propertyName,
+        const dimensionSet& dims
     )
     :
-        BaseModel(modelType, dict, mesh, species, specieIndex),
+        BaseModel
+        (
+            modelType, dict, mesh, species, specieIndex, propertyName, dims
+        ),
         val_(0.0)
     {
-        const word coeffKey = BaseModel::coeffKeyword();
+        const word coeffKey = this->coeffKeyword();
         const word& sName = this->species_.speciesNames()[this->specieIndex_];
 
         if (!dict.found(coeffKey))
         {
             FatalIOErrorInFunction(dict)
                 << "Species '" << sName << "': " 
-                << BaseModel::modelType() << " model '" << modelType
+                << this->propertyName() << " model '" << modelType
                 << "' requires entry '" << coeffKey << "'." << nl
                 << exit(FatalIOError);
         }
 
         dict.readEntry(coeffKey, val_);
+    }
 
-        this->checkValue(coeffKey, val_);
+    virtual bool isUniform() const override { return true; }
+    virtual bool isConstant() const override { return true; }
+
+    virtual tmp<volScalarField> evaluate() const override
+    {
+        return tmp<volScalarField>::New
+        (
+            IOobject(this->propertyName(), this->mesh_.time().timeName(),
+                     this->mesh_),
+            this->mesh_,
+            dimensionedScalar(this->propertyName(), dimless, val_)
+        );
+    }
+
+    virtual dimensionedScalar evaluateScalar() const override
+    {
+        return dimensionedScalar(this->propertyName(), this->dims_, val_);
     }
 
     virtual void correct(volScalarField& field) const override
     {
         field = dimensionedScalar
-                    (BaseModel::coeffKeyword(), field.dimensions(), val_);
+                    (this->propertyName(), field.dimensions(), val_);
         field.correctBoundaryConditions();
     }
 };
@@ -126,10 +152,15 @@ public:
         const dictionary& dict,
         const fvMesh& mesh,
         const plasmaSpecies& species,
-        const label specieIndex
+        const label specieIndex,
+        const word& propertyName,
+        const dimensionSet& dims
     )
     :
-        BaseModel(modelType, dict, mesh, species, specieIndex),
+        BaseModel
+        (
+            modelType, dict, mesh, species, specieIndex, propertyName, dims
+        ),
         table_(dict),
         lookupVariable_(dict.get<word>("lookupVariable"))
     {
@@ -139,7 +170,7 @@ public:
         {
             FatalIOErrorInFunction(dict)
                 << "Species '" << sName << "': missing 'file' entry for "
-                << BaseModel::modelType() << " model '" << modelType << "'."
+                << this->propertyName() << " model '" << modelType << "'."
                 << exit(FatalIOError);
         }
 
@@ -149,7 +180,7 @@ public:
         {
             FatalIOErrorInFunction(dict)
                 << "Species '" << sName << "': table file \"" << tableFile
-                << "\" not found for " << BaseModel::modelType() << "."
+                << "\" not found for " << this->propertyName() << "."
                 << exit(FatalIOError);
         }
     }
@@ -157,8 +188,72 @@ public:
     //- Destructor
     virtual ~TabulatedProperty1D() = default;
 
-
     //- Member Functions
+
+    virtual bool isUniform() const override
+    {
+        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
+                                                               ("plasmaEnergy");
+        if (lookupVariable_ == "T_gas") return energy.isGasUniform();
+        if (lookupVariable_.startsWith("T_")) return energy.model
+                                               (this->specieIndex_).isUniform();
+        
+        return false; 
+    }
+
+    virtual bool isConstant() const override
+    {
+        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
+                                                               ("plasmaEnergy");
+        if (lookupVariable_ == "T_gas") return energy.isGasConstant();
+        if (lookupVariable_.startsWith("T_")) return energy.model
+                                              (this->specieIndex_).isConstant();
+
+        return false;
+    }
+
+    virtual tmp<volScalarField> evaluate() const override
+    {
+        auto tField = tmp<volScalarField>::New
+        (
+            IOobject
+            (
+                this->propertyName(),
+                this->mesh_.time().timeName(),
+                this->mesh_
+            ),
+            this->mesh_,
+            dimensionedScalar(this->propertyName(), this->dims_, 0.0)
+        );
+
+        this->correct(tField.ref());
+
+        return tField;
+    }
+
+    virtual dimensionedScalar evaluateScalar() const override
+    {
+        const auto& energy = this->mesh_.template 
+            lookupObject<plasmaEnergy>("plasmaEnergy");
+
+        scalar x = 0.0;
+
+        if (lookupVariable_ == "T_gas")
+        {
+            x = energy.TgasValue().value();
+        }
+        else if (lookupVariable_.startsWith("T_"))
+        {
+            x = energy.model(this->specieIndex_).Tvalue().value();
+        }
+
+        return dimensionedScalar
+        (
+            this->propertyName(),
+            this->dims_,
+            table_.interpolateValue(x)
+        );
+    }
 
     virtual void correct(volScalarField& field) const override
     {
@@ -233,10 +328,15 @@ public:
         const dictionary& dict,
         const fvMesh& mesh,
         const plasmaSpecies& species,
-        const label specieIndex
+        const label specieIndex,
+        const word& propertyName,
+        const dimensionSet& dims
     )
     :
-        BaseModel(modelType, dict, mesh, species, specieIndex),
+        BaseModel
+        (
+            modelType, dict, mesh, species, specieIndex, propertyName, dims
+        ),
         table_(dict),
         lookupVariables_(dict.get<wordList>("lookupVariables"))
     {
@@ -246,7 +346,7 @@ public:
         {
             FatalIOErrorInFunction(dict)
                 << "Species '" << sName << "': missing 'file' for "
-                << BaseModel::modelType() << " model '" << modelType << "'."
+                << this->propertyName() << " model '" << modelType << "'."
                 << exit(FatalIOError);
         }
 
@@ -256,14 +356,14 @@ public:
         {
             FatalIOErrorInFunction(dict)
                 << "Species '" << sName << "': file \"" << tableFile
-                << "\" not found for " << BaseModel::modelType() << "."
+                << "\" not found for " << this->propertyName() << "."
                 << exit(FatalIOError);
         }
 
         if (lookupVariables_.size() != 2)
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << BaseModel::modelType()
+                << "Species '" << sName << "': " << this->propertyName()
                 << " tabulated2D requires exactly 2 lookupVariables. "
                 << "Found: " << lookupVariables_.size() << exit(FatalIOError);
         }
@@ -274,6 +374,43 @@ public:
 
 
     //- Member Functions
+
+    //- Return always false
+    virtual bool isUniform() const override { return false; }
+
+    //- Return always false
+    virtual bool isConstant() const override { return false; }
+
+    virtual tmp<volScalarField> evaluate() const override
+    {
+        auto tField = tmp<volScalarField>::New
+        (
+            IOobject
+            (
+                this->propertyName(),
+                this->mesh_.time().timeName(),
+                this->mesh_
+            ),
+            this->mesh_,
+            dimensionedScalar(this->propertyName(), this->dims_, 0.0)
+        );
+
+        // Since isUniform() is false, this always performs 
+        // a full 2D field interpolation.
+        this->correct(tField.ref());
+
+        return tField;
+    }
+
+    virtual dimensionedScalar evaluateScalar() const override
+    {
+        FatalErrorInFunction
+            << "evaluateScalar() called for 2D tabulated property '"
+            << this->propertyName() << "', but model is forced non-uniform."
+            << abort(FatalError);
+
+        return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
+    }
 
     virtual void correct(volScalarField& field) const override
     {
@@ -354,10 +491,15 @@ public:
         const dictionary& dict,
         const fvMesh& mesh,
         const plasmaSpecies& species,
-        const label specieIndex
+        const label specieIndex,
+        const word& propertyName,
+        const dimensionSet& dims
     )
     :
-        BaseModel(modelType, dict, mesh, species, specieIndex),
+        BaseModel
+        (
+            modelType, dict, mesh, species, specieIndex, propertyName, dims
+        ),
         amplitude_(0.0),
         exponent_(0.0),
         lookupVariable_("none")
@@ -370,7 +512,7 @@ public:
         if (!dict.found(lookupK))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << BaseModel::modelType()
+                << "Species '" << sName << "': " << this->propertyName()
                 << " requires entry '" << lookupK << "'." << exit(FatalIOError);
         }
         dict.readEntry(lookupK, lookupVariable_);
@@ -378,7 +520,7 @@ public:
         if (!dict.found(ampK))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << BaseModel::modelType()
+                << "Species '" << sName << "': " << this->propertyName()
                 << " requires entry '" << ampK << "'." << exit(FatalIOError);
         }
         dict.readEntry(ampK, amplitude_);
@@ -386,13 +528,66 @@ public:
         if (!dict.found(expK))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << BaseModel::modelType()
+                << "Species '" << sName << "': " << this->propertyName()
                 << " requires entry '" << expK << "'." << exit(FatalIOError);
         }
         dict.readEntry(expK, exponent_);
     }
 
     //- Member Functions
+
+    virtual bool isUniform() const override
+    {
+        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
+                                                               ("plasmaEnergy");
+        if (lookupVariable_ == "T_gas") return energy.isGasUniform();
+        if (lookupVariable_.startsWith("T_")) return energy.model
+                                               (this->specieIndex_).isUniform();
+        
+        return false; 
+    }
+
+    virtual bool isConstant() const override
+    {
+        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
+                                                               ("plasmaEnergy");
+        if (lookupVariable_ == "T_gas") return energy.isGasConstant();
+        if (lookupVariable_.startsWith("T_")) return energy.model
+                                              (this->specieIndex_).isConstant();
+
+        return false;
+    }
+
+    virtual tmp<volScalarField> evaluate() const override
+    {
+        auto tField = tmp<volScalarField>::New
+        (
+            IOobject(this->propertyName(), this->mesh_.time().timeName(), 
+                this->mesh_),
+            this->mesh_,
+            dimensionedScalar(this->propertyName(), this->dims_, 0.0)
+        );
+
+        this->correct(tField.ref());
+        return tField;
+    }
+
+    virtual dimensionedScalar evaluateScalar() const override
+    {
+        const auto& energy = this->mesh_.template 
+            lookupObject<plasmaEnergy>("plasmaEnergy");
+
+        scalar x = (lookupVariable_ == "T_gas")
+            ? energy.TgasValue().value()
+            : energy.model(this->specieIndex_).Tvalue().value();
+
+        return dimensionedScalar
+        (
+            this->propertyName(),
+            this->dims_,
+            amplitude_ * pow(max(x, SMALL), exponent_)
+        );
+    }
 
     virtual void correct(volScalarField& field) const override
     {
@@ -458,10 +653,15 @@ public:
         const dictionary& dict,
         const fvMesh& mesh,
         const plasmaSpecies& species,
-        const label specieIndex
+        const label specieIndex,
+        const word& propertyName,
+        const dimensionSet& dims
     )
     :
-        BaseModel(modelType, dict, mesh, species, specieIndex),
+        BaseModel
+        (
+            modelType, dict, mesh, species, specieIndex, propertyName, dims
+        ),
         functionPtr_(nullptr),
         lookupVariable_("none")
     {
@@ -471,7 +671,7 @@ public:
         if (!dict.found("lookupVariable"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << BaseModel::modelType()
+                << "Species '" << sName << "': " << this->propertyName()
                 << " requires entry 'lookupVariable'." << exit(FatalIOError);
         }
         dict.readEntry("lookupVariable", lookupVariable_);
@@ -479,7 +679,7 @@ public:
         if (!dict.found(fK))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << BaseModel::modelType()
+                << "Species '" << sName << "': " << this->propertyName()
                 << " requires entry '" << fK << "'." << exit(FatalIOError);
         }
 
@@ -487,6 +687,63 @@ public:
     }
 
     //- Member Functions
+
+    virtual bool isUniform() const override
+    {
+        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
+                                                               ("plasmaEnergy");
+        if (lookupVariable_ == "T_gas") return energy.isGasUniform();
+        if (lookupVariable_.startsWith("T_")) return energy.model
+                                               (this->specieIndex_).isUniform();
+        
+        return false; 
+    }
+
+    virtual bool isConstant() const override
+    {
+        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
+                                                               ("plasmaEnergy");
+        if (lookupVariable_ == "T_gas") return energy.isGasConstant();
+        if (lookupVariable_.startsWith("T_")) return energy.model
+                                              (this->specieIndex_).isConstant();
+
+        return false;
+    }
+
+    virtual dimensionedScalar evaluateScalar() const override
+    {
+        const auto& energy = this->mesh_.template 
+            lookupObject<plasmaEnergy>("plasmaEnergy");
+
+        scalar x = (lookupVariable_ == "T_gas")
+            ? energy.TgasValue().value()
+            : energy.model(this->specieIndex_).Tvalue().value();
+
+        return dimensionedScalar
+        (
+            this->propertyName(),
+            this->dims_,
+            functionPtr_->value(x)
+        );
+    }
+
+    virtual tmp<volScalarField> evaluate() const override
+    {
+        auto tField = tmp<volScalarField>::New
+        (
+            IOobject
+            (
+                this->propertyName(), 
+                this->mesh_.time().timeName(), 
+                this->mesh_
+            ),
+            this->mesh_,
+            dimensionedScalar(this->propertyName(), this->dims_, 0.0)
+        );
+
+        this->correct(tField.ref());
+        return tField;
+    }
 
     virtual void correct(volScalarField& field) const override
     {
@@ -527,6 +784,7 @@ public:
         field.correctBoundaryConditions();
     }
 };
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

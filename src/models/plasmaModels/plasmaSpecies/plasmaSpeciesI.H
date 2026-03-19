@@ -102,6 +102,12 @@ Foam::plasmaSpecies::numberDensity()
     return numberDensity_;
 }
 
+//- Background gas dictionary dict
+inline const Foam::dictionary&
+Foam::plasmaSpecies::backgroundGasDict() const
+{
+    return backgroundGasDict_;
+}
 
 //- Species dictionaries access
 inline const Foam::dictionary&
@@ -171,11 +177,29 @@ Foam::plasmaSpecies::immobileSpeciesIDs() const
     return immobileSpeciesIDs_;
 }
 
-// inline const Foam::labelList&
-// Foam::plasmaSpecies::nonIsothermalSpeciesIDs() const
-// {
-//     return nonIsothermalSpeciesIDs_;
-// }
+inline const Foam::labelList&
+Foam::plasmaSpecies::constantTemperatureSpeciesIDs() const
+{
+    return constantTemperatureSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::dynamicTemperatureSpeciesIDs() const
+{
+    return dynamicTemperatureSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::solveEnergyEquationSpeciesIDs() const
+{
+    return solveEnergyEquationSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::fieldTemperatureSpeciesIDs() const
+{
+    return fieldTemperatureSpeciesIDs_;
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

@@ -79,14 +79,14 @@ protected:
     //- Reference to species database
     const plasmaSpecies& species_;
 
-    //- Reference to the electric field
-    const volVectorField& E_;
-
     //- Dictionary for this species
     const dictionary& dict_;
 
     //- Index of the species this model applies to
     const label specieIndex_;
+
+    //- Reference to the electric field
+    const volVectorField& E_;
 
 public:
 
@@ -142,7 +142,24 @@ public:
         //- Correct model
         virtual void correct() = 0;
 
+        //- Return the energy equation (Matrix)
+        virtual tmp<fvScalarMatrix> eEqn() const = 0;
+
     // Access
+    
+        //- Returns true if the temperature is uniform (constant in space)
+        virtual bool isUniform() const = 0;
+
+        //- Returns true if the temperature is constant in time
+        virtual bool isConstant() const = 0;
+
+        //- Return a tmp T field
+        //- It can be a reference to a real field or a created uniform field
+        virtual tmp<volScalarField> T() const = 0;
+
+        //- Return the scalar value for isothermal models.
+        virtual const dimensionedScalar& Tvalue() const;
+
 
         inline const word& modelName() const;
 };

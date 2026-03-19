@@ -12,7 +12,6 @@
 \*---------------------------------------------------------------------------*/
 
 #include "plasmaDiffusivityModel.H"
-#include "genericPlasmaPropertyTemplates.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -22,7 +21,38 @@ namespace Foam
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
 defineTypeNameAndDebug(plasmaDiffusivityModel, 0);
-defineRunTimeSelectionTable(plasmaDiffusivityModel, dictionary);
+
+// * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * //
+
+void plasmaDiffusivityModel::update() const
+{
+    // Skip recalculation if the model is constant in time and already set
+    if (isConstant_ && upToDate_) return;
+
+    if (isUniform_)
+    {
+        // Update the single scalar value
+        DValue_ = evaluator_->evaluateScalar();
+    }
+    else
+    {
+        // Create or update the volScalarField
+        if (!DFieldPtr_.valid())
+        {
+            DFieldPtr_.reset
+            (
+                new volScalarField
+                (
+                    IOobject("D", mesh_.time().timeName(), mesh_),
+                    mesh_, DValue_.dimensions()
+                )
+            );
+        }
+        evaluator_->correct(DFieldPtr_.ref());
+    }
+
+    upToDate_ = true;
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -39,8 +69,24 @@ plasmaDiffusivityModel::plasmaDiffusivityModel
     mesh_(mesh),
     species_(species),
     specieIndex_(specieIndex),
-    dict_(dict)
-{}
+    dict_(dict),
+    upToDate_(false),
+    DValue_("D", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
+{
+    evaluator_ = plasmaPropertyEvaluator::New
+    (
+        modelType_,
+        dict_,
+        mesh_,
+        species_,
+        specieIndex_,
+        "Diffusivity",
+        dimensionSet(0, 2, -1, 0, 0, 0, 0)
+    );
+
+    isUniform_ = evaluator_->isUniform();
+    isConstant_ = evaluator_->isConstant();
+}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
@@ -53,64 +99,39 @@ autoPtr<plasmaDiffusivityModel> plasmaDiffusivityModel::New
     const label specieIndex
 )
 {
-    // Lookup constructor using function-call operator
-    auto* ctorPtr = dictionaryConstructorTable(modelType);
-
-    if (!ctorPtr)
-    {
-        const word& sName = species.speciesNames()[specieIndex];
-
-        FatalIOErrorInFunction(dict)
-            << "Species '" << sName << "': "
-            << "Unknown plasmaDiffusivityModel type '" << modelType << "'\n"
-            << "Valid models are: "
-            << dictionaryConstructorTablePtr_->sortedToc() << nl
-            << exit(FatalIOError);
-    }
-
-    // Construct and return the model
     return autoPtr<plasmaDiffusivityModel>
     (
-        ctorPtr(modelType, dict, mesh, species, specieIndex)
+        new plasmaDiffusivityModel(modelType, dict, mesh, species, specieIndex)
     );
 }
 
-// * * * * * * * * * * * * * * * Instantiations * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-// 1. Constant
-typedef ConstantProperty<plasmaDiffusivityModel> 
-    constantDiffusivity;
-static plasmaDiffusivityModel::
-    adddictionaryConstructorToTable<constantDiffusivity>
-    addConstantDiffusivityConstructorToTable_("constant");
+tmp<volScalarField> plasmaDiffusivityModel::D() const
+{
+    update();
 
-// 2. Tabulated 1D
-typedef TabulatedProperty1D<plasmaDiffusivityModel> 
-    tabulatedDiffusivity1D;
-static plasmaDiffusivityModel::
-    adddictionaryConstructorToTable<tabulatedDiffusivity1D>
-    addTabulatedDiffusivity1DConstructorToTable_("tabulated1D");
+    if (isUniform_)
+    {
+        // Return a virtual field
+        return tmp<volScalarField>::New
+        (
+            IOobject("D_tmp", mesh_.time().timeName(), mesh_),
+            mesh_, DValue_
+        );
+    }
 
-// 3. Tabulated 2D
-typedef TabulatedProperty2D<plasmaDiffusivityModel> 
-    tabulatedDiffusivity2D;
-static plasmaDiffusivityModel::
-    adddictionaryConstructorToTable<tabulatedDiffusivity2D>
-    addTabulatedDiffusivity2DConstructorToTable_("tabulated2D");
+    // Return reference to the cached field (Case 2 & 4)
+    return *DFieldPtr_;
+}
 
-// 4. Power Law
-typedef PowerLawProperty<plasmaDiffusivityModel> 
-    powerLawDiffusivity;
-static plasmaDiffusivityModel::
-    adddictionaryConstructorToTable<powerLawDiffusivity>
-    addPowerLawDiffusivityConstructorToTable_("powerLaw");
+void plasmaDiffusivityModel::correct(volScalarField& D) const
+{
+    update();
 
-// 5. Function1
-typedef Function1Property<plasmaDiffusivityModel> 
-    function1Diffusivity;
-static plasmaDiffusivityModel::
-    adddictionaryConstructorToTable<function1Diffusivity>
-    addFunction1DiffusivityConstructorToTable_("function1");
+    if (isUniform_) D = DValue_;
+    else D = *DFieldPtr_;
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

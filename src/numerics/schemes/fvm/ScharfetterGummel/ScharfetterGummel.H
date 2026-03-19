@@ -106,10 +106,10 @@ namespace fvm
             const scalar ax = mag(x);
             if (ax < 1e-4)
             {
-                return 1.0 - 0.5*x + (x*x)/12.0;
+                return 1.0 - 0.5*x + (x*x)/12.0 - pow4(x)/720.0;;
             }
-            if (x > 50.0)  return x * Foam::exp(-x);
-            if (x < -50.0) return -x;
+            if (x > 200.0)  return 0.0;
+            if (x < -200.0) return -x;
             return x / (Foam::exp(x) - 1.0);
         };
 

@@ -68,13 +68,6 @@ Foam::plasmaTransport::particleFlux()
     return particleFlux_;
 }
 
-//- Return the total volumetrix flux (m3/s) for a species on the fly
-inline Foam::tmp<Foam::surfaceScalarField> 
-Foam::plasmaTransport::phi(const label i) const
-{
-    return transportModels_[i].phi(); 
-}
-
 inline const Foam::volScalarField&
 Foam::plasmaTransport::k_eff() const
 {

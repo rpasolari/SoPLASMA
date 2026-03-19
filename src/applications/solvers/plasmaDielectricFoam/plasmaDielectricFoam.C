@@ -52,6 +52,7 @@ Author
 #include "ddSolidSurfaceFluxFvPatchScalarField.H"
 #include "foamPlasmaToolkitConstants.H"
 #include "plasmaSpecies.H"
+#include "plasmaEnergy.H"
 #include "plasmaTransport.H"
 #include "plasmaTimeControl.H"
 #include "plasmaProfiler.H"
@@ -249,7 +250,6 @@ dimensionedScalar& epsilonDielectric = epsilonDielectricList[0];
                 {
                     #include "solveElectricPotential.H"
                     #include "calculateElectricField.H"
-                    transport.correctModels();
                 }
                 for (nonOrth = 0; nonOrth <= nNonOrthoCorr; ++nonOrth)
                 {

@@ -23,47 +23,6 @@ namespace Foam
 defineTypeNameAndDebug(plasmaTransportModel, 0);
 defineRunTimeSelectionTable(plasmaTransportModel, dictionary);
 
-autoPtr<volVectorField> plasmaTransportModel::zeroVectorFieldPtr_(nullptr);
-autoPtr<surfaceScalarField> plasmaTransportModel::zeroSurfaceFieldPtr_(nullptr);
-
-// * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * *  //
-
-void plasmaTransportModel::checkSharedFields(const fvMesh& mesh)
-{
-    if (!zeroSurfaceFieldPtr_.valid())
-    {
-        zeroSurfaceFieldPtr_.reset
-        (
-            new surfaceScalarField
-            (
-                IOobject("phi0", mesh.time().constant(), mesh),
-                mesh,
-                dimensionedScalar
-                (
-                    "0", 
-                    dimensionSet(0, 3, -1, 0, 0, 0, 0), 
-                    0.0
-                )
-            )
-        );
-        
-        zeroVectorFieldPtr_.reset
-        (
-            new volVectorField
-            (
-                IOobject("v0", mesh.time().constant(), mesh),
-                mesh,
-                dimensionedVector
-                (
-                    "0", 
-                    dimensionSet(0, 1, -1, 0, 0, 0, 0), 
-                    vector::zero
-                )
-            )
-        );
-    }
-}
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 plasmaTransportModel::plasmaTransportModel
@@ -73,7 +32,8 @@ plasmaTransportModel::plasmaTransportModel
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E
+    const volVectorField& E,
+    const surfaceScalarField& phiE
 )
 :
     modelName_(modelName),
@@ -82,7 +42,7 @@ plasmaTransportModel::plasmaTransportModel
     dict_(dict),
     specieIndex_(specieIndex),
     E_(E),
-    fluxScheme_("standard")
+    phiE_(phiE)
 {}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -94,17 +54,19 @@ autoPtr<plasmaTransportModel> plasmaTransportModel::New
     const fvMesh& mesh,
     const plasmaSpecies& species,
     const label specieIndex,
-    const volVectorField& E
+    const volVectorField& E,
+    const surfaceScalarField& phiE
 )
 {
-    checkSharedFields(mesh);
-
     // Lookup constructor using function-call operator
     auto* ctorPtr = dictionaryConstructorTable(modelName);
 
     if (!ctorPtr)
     {
+        const word& sName = species.speciesNames()[specieIndex];
+
         FatalIOErrorInFunction(dict)
+            << "Species '" << sName << "': "
             << "Unknown plasmaTransportModel type '" << modelName << "'\n"
             << "Valid models are: "
             << dictionaryConstructorTablePtr_->sortedToc() << nl
@@ -114,7 +76,7 @@ autoPtr<plasmaTransportModel> plasmaTransportModel::New
     // Construct and return the model
     return autoPtr<plasmaTransportModel>
     (
-        ctorPtr(modelName, dict, mesh, species, specieIndex, E)
+        ctorPtr(modelName, dict, mesh, species, specieIndex, E, phiE)
     );
 }
 

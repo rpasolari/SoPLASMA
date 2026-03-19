@@ -83,28 +83,17 @@ protected:
     //- Reference to species database
     const plasmaSpecies& species_;
 
-    //- Reference to the electric field
-    const volVectorField& E_;
-
     //- Dictionary for this species
     const dictionary& dict_;
 
-    //- Index of the species this model applies to
+    //- Index of the species
     const label specieIndex_;
 
-    //- Flux scheme (e.g. standard, ScharfetterGummel)
-    word fluxScheme_;
+    //- Reference to the electric field
+    const volVectorField& E_;
 
-    //- Global shared zero vector field for stationary species
-    static autoPtr<volVectorField> zeroVectorFieldPtr_;
-
-    //- Global shared zero surface scalar field for stationary species
-    static autoPtr<surfaceScalarField> zeroSurfaceFieldPtr_;
-
-private:
-
-    //- Initialize zeros once per simulation
-    static void checkSharedFields(const fvMesh& mesh);
+    //- Reference to the electric field flux
+    const surfaceScalarField& phiE_;
     
 public:
 
@@ -123,9 +112,10 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const surfaceScalarField& phiE
         ),
-        (modelName, dict, mesh, species, specieIndex, E)
+        (modelName, dict, mesh, species, specieIndex, E, phiE)
     );
 
     // Constructors
@@ -138,7 +128,8 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const surfaceScalarField& phiE
         );
 
     //- Selector
@@ -149,7 +140,8 @@ public:
         const fvMesh& mesh,
         const plasmaSpecies& species,
         const label specieIndex,
-        const volVectorField& E
+        const volVectorField& E,
+        const surfaceScalarField& phiE
     );
 
     //- Destructor
@@ -157,23 +149,11 @@ public:
 
     // Member Functions
 
-        //- Correct model / Update drift velocity (and diffusivity if present)
-        virtual void correct(const surfaceScalarField& phiE) = 0;
-
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const = 0;
 
         //- Update the particle flux in place (1/s)
         virtual void updateParticleFlux(surfaceScalarField& flux) const = 0;
-
-        //- Return volumetric flux (m3/s) (phiDrift + phiGas)
-        virtual tmp<surfaceScalarField> phi() const = 0;
-
-        //- Getter for drift velocity
-        virtual const volVectorField& driftVelocity() const = 0;
-
-        //- Getter for the diffusivity
-        virtual const volScalarField* diffusivity() const { return nullptr; }
 
         //- Getter for electric conduction coefficient
         virtual tmp<volScalarField> electricalConductivity() const = 0;
@@ -184,9 +164,6 @@ public:
     // Access
 
         inline const word& modelName() const;
-
-        //- Flux scheme
-        inline const word& fluxScheme() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

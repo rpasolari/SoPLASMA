@@ -114,6 +114,9 @@ protected:
         //- Default species properties
         dictionary defaultDict_;
 
+        //- Background gas dict
+        dictionary backgroundGasDict_;
+
         //- Label for electron specie
         label electronSpeciesID_;
 
@@ -132,20 +135,23 @@ protected:
         //- Label list for charged species (ions + electrons)
         labelList chargedSpeciesIDs_;
 
-        //- Label list for mobile species (transport != immobile)
+        //- Label list for mobile species
         labelList mobileSpeciesIDs_;
 
-        //- Label list for immobile species (transport == immobile)
+        //- Label list for immobile species
         labelList immobileSpeciesIDs_;
 
-        //- Species that own a T field (Isothermal + Dynamic)
-        labelList hasTemperatureFieldIDs_;
+        //- Species with a constant temperature field
+        labelList constantTemperatureSpeciesIDs_;
 
-        //- Species that need a calculation in the Energy Manager
-        labelList dynamicEnergyIDs_;
+        //- Species with a dynamic temperature field
+        labelList dynamicTemperatureSpeciesIDs_;
 
-        //- Species solving a transport PDE for energy
-        labelList energyPDEIDs_;
+        //- Species solving the energy equation
+        labelList solveEnergyEquationSpeciesIDs_;
+
+        //- Species with a field temperature (not just a dimensionedScalar)
+        labelList fieldTemperatureSpeciesIDs_;
 
 public:
 
@@ -185,12 +191,15 @@ public:
         inline const PtrList<volScalarField>& numberDensity() const;
         inline PtrList<volScalarField>& numberDensity();
 
+        //- Background gas dictionary access
+        inline const dictionary& backgroundGasDict() const;
+
         //- Species dictionaries access
         inline const dictionary& speciesDict(label i) const;
         inline const dictionary& speciesDict(const word& name) const; 
         inline const dictionary& defaultDict() const; 
 
-        // Group Access
+        //- Group Access
         inline label electronSpeciesID() const;
         inline const labelList& ionSpeciesIDs() const;
         inline const labelList& positiveIonSpeciesIDs() const;
@@ -199,7 +208,10 @@ public:
         inline const labelList& chargedSpeciesIDs() const;
         inline const labelList& mobileSpeciesIDs() const;
         inline const labelList& immobileSpeciesIDs() const;
-        // inline const labelList& nonIsothermalSpeciesIDs() const;
+        inline const labelList& constantTemperatureSpeciesIDs() const;
+        inline const labelList& dynamicTemperatureSpeciesIDs() const;
+        inline const labelList& solveEnergyEquationSpeciesIDs() const;
+        inline const labelList& fieldTemperatureSpeciesIDs() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

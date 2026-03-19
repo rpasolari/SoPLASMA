@@ -50,9 +50,44 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
     negativeIonSpeciesIDs_(),
     neutralSpeciesIDs_(),
     chargedSpeciesIDs_(),
-    mobileSpeciesIDs_()
-
+    mobileSpeciesIDs_(),
+    constantTemperatureSpeciesIDs_(),
+    solveEnergyEquationSpeciesIDs_()
 {
+    if (!found("backgroundGas"))
+    {
+        FatalIOErrorInFunction(*this)
+            << "Missing required dictionary 'backgroundGas' in "
+            << objectPath() << nl << exit(FatalIOError);
+    }
+    
+    backgroundGasDict_ = subDict("backgroundGas");
+
+    const dictionary& bgEnergyDict = backgroundGasDict_.subDict("energy");
+    bool solveBg = bgEnergyDict.get<bool>("solve");
+    bool bgIsField = false;
+
+    if (solveBg)
+    {
+        bgIsField = true;
+    }
+    else
+    {
+        if (bgEnergyDict.found("T"))
+        {
+            bgIsField = false;
+        }
+        else
+        {
+            bgIsField = true;
+        }
+    }
+
+    constantTemperatureSpeciesIDs_.clear();
+    dynamicTemperatureSpeciesIDs_.clear();
+    solveEnergyEquationSpeciesIDs_.clear();
+    fieldTemperatureSpeciesIDs_.clear();
+
     if (!found("activeSpecies"))
     {
         FatalIOErrorInFunction(*this)
@@ -109,7 +144,7 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
         if (!propsDict.found(sName))
         {
             FatalIOErrorInFunction(*this)
-                << "Species '" << sName << "' is listed in 'species' but "
+                << "Species '" << sName << "' is listed in 'activeSpecies' but "
                 << "has no sub-dictionary in " << objectPath() << nl
                 << exit(FatalIOError);
         }
@@ -206,6 +241,33 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
             {
                 mobileSpeciesIDs_.append(i);
             }
+
+        // Classify in energy groups
+            word energy;
+            mergedDict.lookup("energyModel") >> energy;
+
+            // Constant vs Dynamic Temperature
+            if (energy == "isothermal" || 
+                                      (energy == "backgroundGas" && !bgIsField))
+            {
+                constantTemperatureSpeciesIDs_.append(i);
+            }
+            else
+            {
+                dynamicTemperatureSpeciesIDs_.append(i);
+            }
+
+            if (energy != "isothermal" && 
+                                     !(energy == "backgroundGas" && !bgIsField))
+            {
+                fieldTemperatureSpeciesIDs_.append(i);
+            }
+
+            if (energy == "localEnergy")
+            {
+                solveEnergyEquationSpeciesIDs_.append(i);
+            }
+
     }
 }  
 

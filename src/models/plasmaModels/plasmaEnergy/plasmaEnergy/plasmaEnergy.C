@@ -29,6 +29,61 @@ defineTypeNameAndDebug(plasmaEnergy, 0);
 
 void plasmaEnergy::constructModels()
 {
+    // Read the backgroundGas properties
+    const dictionary& bgGasDict = species_.backgroundGasDict();
+    const dictionary& bgGasEnergyDict = bgGasDict.subDict("energy");
+
+    solveGasEnergy_ = bgGasEnergyDict.get<bool>("solve");
+    if (solveGasEnergy_)
+    {
+        isGasTempField_ = true;
+        TgasFieldPtr_.reset
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "T_gas", 
+                    mesh_.time().timeName(), 
+                    mesh_, 
+                    IOobject::MUST_READ, 
+                    IOobject::AUTO_WRITE
+                ),
+                mesh_
+            )
+        );
+        TgasValue_.value() = 300.0;
+    }
+    else
+    {
+        if (bgGasEnergyDict.found("T"))
+        {
+            isGasTempField_ = false;
+            TgasValue_.value() = bgGasEnergyDict.get<scalar>("T");
+            TgasFieldPtr_.reset(nullptr);
+        }
+        else 
+        {
+            isGasTempField_ = true;
+            TgasFieldPtr_.reset
+            (
+                new volScalarField
+                (
+                    IOobject
+                    (
+                        "T_gas", 
+                        mesh_.time().timeName(), 
+                        mesh_, 
+                        IOobject::MUST_READ, 
+                        IOobject::AUTO_WRITE
+                    ),
+                    mesh_
+                )
+            );
+            TgasValue_ = dimensionedScalar("Tgas_dummy", dimTemperature, 300.0);
+        }
+    }
+
     // Loop over species and create an energy model for each one
     for (label i = 0; i < species_.nSpecies(); ++i)
     {
@@ -47,6 +102,9 @@ void plasmaEnergy::constructModels()
         word modelName;
         sDict.lookup("energyModel") >> modelName;
 
+        // Look for each species' energyModelCoeffs
+        const dictionary& modelDict = sDict.subDict("energyModelCoeffs");
+
         // Construct the model using the runtime selection system
         energyModels_.set
         (
@@ -54,7 +112,7 @@ void plasmaEnergy::constructModels()
             plasmaEnergyModel::New
             (
                 modelName,
-                sDict, 
+                modelDict, 
                 mesh_, 
                 species_, 
                 i, 
@@ -84,6 +142,9 @@ plasmaEnergy::plasmaEnergy
             IOobject::NO_WRITE
         )
     ),
+    solveGasEnergy_(false),
+    isGasTempField_(false),
+    TgasValue_("Tgas", dimTemperature, 300.0),
     mesh_(mesh),
     species_(species),
     E_(E),
@@ -100,6 +161,41 @@ void plasmaEnergy::correct()
     // {
     //     energyModels_[i].correct();
     // }
+}
+
+tmp<volScalarField> plasmaEnergy::Tgas() const
+{
+    if (isGasTempField_)
+    {
+        return *TgasFieldPtr_;
+    }
+    else
+    {
+        return tmp<volScalarField>::New
+        (
+            IOobject
+            (
+                "Tgas_tmp", 
+                mesh_.time().timeName(), 
+                mesh_
+            ),
+            mesh_,
+            TgasValue_
+        );
+    }
+}
+
+const dimensionedScalar& plasmaEnergy::TgasValue() const
+{
+    if (isGasTempField_)
+    {
+        FatalErrorInFunction
+            << "Requested TgasValue() scalar accessor, but background "
+            << "temperature is a spatial field." << nl
+            << "Use Tgas() instead." << abort(FatalError);
+    }
+
+    return TgasValue_;
 }
 
 bool plasmaEnergy::writeData(Ostream& os) const

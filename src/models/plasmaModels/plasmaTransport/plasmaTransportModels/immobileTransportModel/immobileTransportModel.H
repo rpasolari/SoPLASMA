@@ -60,8 +60,6 @@ class immobileTransportModel
 :
     public plasmaTransportModel
 {
-private:
-
 public:
 
     //- Runtime type information
@@ -77,31 +75,23 @@ public:
             const fvMesh& mesh,
             const plasmaSpecies& species,
             const label specieIndex,
-            const volVectorField& E
+            const volVectorField& E,
+            const surfaceScalarField& phiE
         );
 
     // Member Functions
         
-        //- Correct model
-        virtual void correct(const surfaceScalarField& phiE) override;
-
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const override;
 
-        //- Update the particle flux in place (1/s)
+        //- Update particle flux
         virtual void updateParticleFlux(surfaceScalarField& flux) const override;
 
-        virtual tmp<surfaceScalarField> phi() const override;
-
-        //- Return drift velocity
-        virtual const volVectorField& driftVelocity() const override;
-        
         //- Return electric conduction coefficient
         virtual tmp<volScalarField> electricalConductivity() const override;
 
         //- Return electric diffusion charge
         virtual tmp<volScalarField> diffusiveChargeSource() const override;
-
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
