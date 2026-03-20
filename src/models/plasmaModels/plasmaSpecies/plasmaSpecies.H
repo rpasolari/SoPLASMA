@@ -58,6 +58,8 @@ SourceFiles
 #include "fvMesh.H"
 #include "volFields.H"
 #include "HashTable.H"
+#include "surfaceFields.H"
+#include "fvc.H"
 
 #include "foamPlasmaToolkitConstants.H"
 
@@ -86,6 +88,24 @@ protected:
 
         //- Mesh reference
         const fvMesh& mesh_;
+
+        //- Reference to the electric potential (V)
+        const volScalarField& ePotential_;
+
+        //- Reference to the electric field (V/m)
+        const volVectorField& E_;
+
+        //- Magnitude of the electric field [V/m]
+        volScalarField Emag_;
+
+        //- Reduced electric field (V * m2)
+        volScalarField EN_;
+
+        //- Reference to the electric field flux
+        surfaceScalarField phiE_;
+
+        //- Background gas density (1/m3)
+        dimensionedScalar nBackground_;
 
         //- Active species names
         wordList speciesNames_;
@@ -163,11 +183,17 @@ public:
         //- Construct from mesh
         plasmaSpecies
         (
-            const fvMesh& mesh
+            const fvMesh& mesh,
+            const volScalarField& ePotential,
+            const volVectorField& E
         );
 
     //- Destructor
     virtual ~plasmaSpecies() {}
+
+    // Member function
+
+        void updateFields();
 
     // Access
 
@@ -212,6 +238,14 @@ public:
         inline const labelList& dynamicTemperatureSpeciesIDs() const;
         inline const labelList& solveEnergyEquationSpeciesIDs() const;
         inline const labelList& fieldTemperatureSpeciesIDs() const;
+
+        //- Field Access
+        inline const volScalarField& ePotential() const;
+        inline const volVectorField& E() const;
+        inline const volScalarField& Emag() const;
+        inline const volScalarField& EN() const;
+        inline const surfaceScalarField& phiE() const;
+        inline dimensionedScalar nBackground() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

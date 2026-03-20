@@ -81,11 +81,13 @@ plasmaDiffusivityModel::plasmaDiffusivityModel
         species_,
         specieIndex_,
         "Diffusivity",
-        dimensionSet(0, 2, -1, 0, 0, 0, 0)
+        DValue_.dimensions()
     );
 
     isUniform_ = evaluator_->isUniform();
     isConstant_ = evaluator_->isConstant();
+
+    update();
 }
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -123,6 +125,22 @@ tmp<volScalarField> plasmaDiffusivityModel::D() const
 
     // Return reference to the cached field (Case 2 & 4)
     return *DFieldPtr_;
+}
+
+void plasmaDiffusivityModel::DPatch
+(
+    fvPatchScalarField& pField, 
+    const label patchi
+) const
+{
+    if (isUniform_)
+    {
+        pField = DValue_.value();
+    }
+    else
+    {
+        evaluator_->evaluate(pField, patchi);
+    }
 }
 
 void plasmaDiffusivityModel::correct(volScalarField& D) const

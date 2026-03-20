@@ -77,15 +77,6 @@ private:
     //- Reference to species database
     plasmaSpecies& species_;
 
-    //- Reference to the electric field
-    const volVectorField& E_;
-
-    //- Reference to the electric field flux
-    surfaceScalarField phiE_;
-
-    //- Reference to the electric potential field
-    const volScalarField& ePotential_;
-
     //- Total particle surface Flux [1/s]
     PtrList<surfaceScalarField> particleFlux_;
 
@@ -113,9 +104,7 @@ public:
         plasmaTransport
         (
             plasmaSpecies& species,
-            const fvMesh& mesh,
-            const volVectorField& E,
-            const volScalarField& ePotential
+            const fvMesh& mesh
         );
 
     //- Destructor

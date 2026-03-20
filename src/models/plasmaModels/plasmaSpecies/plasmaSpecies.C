@@ -24,7 +24,12 @@ defineTypeNameAndDebug(plasmaSpecies, 0);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
+plasmaSpecies::plasmaSpecies
+(
+    const fvMesh& mesh,
+    const volScalarField& ePotential,
+    const volVectorField& E
+)
 :
     IOdictionary
     (
@@ -38,6 +43,43 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
         )
     ),
     mesh_(mesh),
+    ePotential_(ePotential),
+    E_(E),
+    Emag_
+    (
+        IOobject
+        (
+            "Emag", 
+            mesh.time().timeName(), 
+            mesh, 
+            IOobject::NO_READ, 
+            IOobject::NO_WRITE
+        ),
+        mag(E_)
+    ),
+    EN_
+    (
+        IOobject
+        (
+            "EN", 
+            mesh.time().timeName(), 
+            mesh, 
+            IOobject::NO_READ, 
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(1, 4, -3, 0, 0, -1, 0), 0.0)
+    ),
+    phiE_
+    (
+        IOobject
+        ("phiE", 
+            mesh.time().timeName(), 
+            mesh
+        ),
+        -fvc::snGrad(ePotential) * mesh.magSf()
+    ),
+    nBackground_("nBackground", dimensionSet(0, -3, 0, 0, 0, 0, 0), 0.0),
     speciesNames_(),
     nSpecies_(0),
     speciesChargeNumber_(),
@@ -62,6 +104,13 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
     }
     
     backgroundGasDict_ = subDict("backgroundGas");
+
+    nBackground_ = dimensionedScalar
+    (
+        "N", 
+        dimensionSet(0, -3, 0, 0, 0, 0, 0), 
+        backgroundGasDict_.get<scalar>("N")
+    );
 
     const dictionary& bgEnergyDict = backgroundGasDict_.subDict("energy");
     bool solveBg = bgEnergyDict.get<bool>("solve");
@@ -270,6 +319,18 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
 
     }
 }  
+
+// * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
+
+void plasmaSpecies::updateFields()
+{
+    Emag_ = mag(E_);
+    
+    const dimensionedScalar nSmall("s", nBackground_.dimensions(), SMALL);
+    EN_ = Emag_ / (nBackground_ + nSmall);
+
+    phiE_ =  -fvc::snGrad(ePotential_) * mesh_.magSf();
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

@@ -202,6 +202,9 @@ public:
         //- Return diffusivity as a temporary field
         tmp<volScalarField> D() const;
 
+        //- Return the diffusivity on a patch
+        void DPatch(fvPatchScalarField& pField, const label patchi) const;
+
         //- Correct diffusivity
         void correct(volScalarField& D) const;
 };

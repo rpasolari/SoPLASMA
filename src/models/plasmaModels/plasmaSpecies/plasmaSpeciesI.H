@@ -200,6 +200,43 @@ Foam::plasmaSpecies::fieldTemperatureSpeciesIDs() const
 {
     return fieldTemperatureSpeciesIDs_;
 }
+
+//- Field Access
+inline const Foam::volScalarField&
+Foam::plasmaSpecies::ePotential() const
+{
+    return ePotential_;
+}
+
+inline const Foam::volVectorField&
+Foam::plasmaSpecies::E() const
+{
+    return E_;
+}
+
+inline const Foam::volScalarField&
+Foam::plasmaSpecies::Emag() const
+{
+    return Emag_;
+}
+
+inline const Foam::volScalarField&
+Foam::plasmaSpecies::EN() const
+{
+    return EN_;
+}
+
+inline const Foam::surfaceScalarField&
+Foam::plasmaSpecies::phiE() const
+{
+    return phiE_;
+}
+
+inline Foam::dimensionedScalar
+Foam::plasmaSpecies::nBackground() const
+{
+    return nBackground_;
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

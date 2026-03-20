@@ -73,7 +73,7 @@ protected:
         const word propertyName_;
 
         //- The dimensionSet of the evaluated field
-        const dimensionSet& dims_;
+        const dimensionSet dims_;
 
 public:
 
@@ -137,6 +137,13 @@ public:
 
         //- Update an existing field
         virtual void correct(volScalarField& field) const = 0;
+
+        //- Evaluate for a patch field
+        virtual void evaluate
+        (
+            fvPatchScalarField& pField, 
+            const label patchi
+        ) const = 0;
 
         //- Returns true if the property is spatially uniform
         virtual bool isUniform() const = 0;

@@ -17,8 +17,6 @@ Description:
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-Info << "Updating surface charge!" << endl;
-
 const fvBoundaryMesh& boundary = gasMesh().boundary();
 
 forAll(boundary, patchi)
@@ -54,6 +52,10 @@ forAll(boundary, patchi)
 
     scalarField& sigmaPatch = surfCharge.boundaryFieldRef()[patchi];
 
+    // Initialize it with the value from the end of the previous time step
+    // This keeps the surface charge safe from multiple pimple iterations
+    sigmaPatch = surfCharge.oldTime().boundaryField()[patchi];
+
     // Iterate over all species to check their boundary conditions
     for (label i = 0; i < species.nSpecies(); ++i)
     {
@@ -61,7 +63,7 @@ forAll(boundary, patchi)
         const fvPatchField<scalar>& pField =
             speciesField.boundaryField()[patchi];
 
-        // Check if it is a solidSurfaceFlux (or its derived b.c.) type
+        // Check if it is a ddSolidSurfaceFlux (or its derived b.c.) type
         if (isA<ddSolidSurfaceFluxFvPatchScalarField>(pField))
         {
             const auto& bc = 
@@ -85,7 +87,7 @@ forAll(boundary, patchi)
 
                 // Add to surfCharge
                 // sigmaPatch += (phi_p * q * dt) / magSf;
-                sigmaPatch = sigma0.boundaryField()[patchi] + (phi_p * q * dt) / magSf;
+                sigmaPatch += (phi_p * q * dt) / magSf;
             }
         }
     }

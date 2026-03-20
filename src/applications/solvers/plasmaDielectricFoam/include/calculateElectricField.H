@@ -12,16 +12,9 @@ Description:
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-plasmaProfiler::start("Physics : E-Field Grad (Gas)");
 E = -fvc::grad(ePotential);
-plasmaProfiler::stop("Physics : E-Field Grad (Gas)");
 
-// --- 2. Gas Phase Boundary Correction ---
-plasmaProfiler::start("Physics : E-Field BC Correct (Gas)");
 E.correctBoundaryConditions();
-plasmaProfiler::stop("Physics : E-Field BC Correct (Gas)");
-
-plasmaProfiler::start("Physics : All Dielectrics (Grad + BC)");
 
 forAll(dielectricRegions, i)
 {
@@ -32,4 +25,6 @@ forAll(dielectricRegions, i)
     EDielectric.correctBoundaryConditions();
 }
 
-plasmaProfiler::stop("Physics : All Dielectrics (Grad + BC)");
+species.updateFields();
+
+

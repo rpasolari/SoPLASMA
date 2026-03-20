@@ -82,11 +82,13 @@ plasmaMobilityModel::plasmaMobilityModel
         species_,
         specieIndex_,
         "Mobility",
-        dimensionSet(-1, 0, 2, 0, 0, 1, 0)
+        muValue_.dimensions()
     );
 
     isUniform_ = evaluator_->isUniform();
     isConstant_ = evaluator_->isConstant();
+
+    update();
 }
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -124,6 +126,22 @@ tmp<volScalarField> plasmaMobilityModel::mu() const
 
     // Return reference to the cached field
     return *muFieldPtr_;
+}
+
+void plasmaMobilityModel::muPatch
+(
+    fvPatchScalarField& pField, 
+    const label patchi
+) const
+{
+    if (isUniform_)
+    {
+        pField = muValue_.value();
+    }
+    else
+    {
+        evaluator_->evaluate(pField, patchi);
+    }
 }
 
 void plasmaMobilityModel::correct(volScalarField& mu) const

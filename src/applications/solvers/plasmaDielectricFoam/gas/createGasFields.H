@@ -44,7 +44,6 @@ volVectorField E
     dimensionedVector("zero", dimensionSet(1, 1, -3, 0, 0, -1, 0), vector::zero)
 );
 
-
 Info << "   Adding to surfCharge\n" << endl;
 volScalarField surfCharge
 (
@@ -59,6 +58,8 @@ volScalarField surfCharge
     gasMesh(),
     dimensionedScalar("zero", dimensionSet(0, -2, 1, 0, 0, 1, 0), 0.0)
 );
+
+surfCharge.oldTime();
 
 IOdictionary electricPropertiesDict
 (
@@ -123,7 +124,7 @@ word poissonSolver(solverDict.lookup("poissonSolver"));
 
 Info<< "Constructing plasma species\n" << endl;
 
-plasmaSpecies species(gasMesh());
+plasmaSpecies species(gasMesh(), ePotential, E);
 
 Info<< "Constructing plasma energy\n" << endl;
 
@@ -131,5 +132,5 @@ plasmaEnergy energy(species, gasMesh(), E);
 
 Info << "Constructing plasmaTransport\n" << endl;
 
-plasmaTransport transport(species, gasMesh(), E, ePotential);
+plasmaTransport transport(species, gasMesh());
 

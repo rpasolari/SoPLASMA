@@ -198,6 +198,9 @@ public:
         //- Return mobility as a temporary field
         tmp<volScalarField> mu() const;
 
+        //- Return the mobility on a patch
+        void muPatch(fvPatchScalarField& pField, const label patchi) const;
+
         //- Correct mobility
         void correct(volScalarField& mu) const;
 };

@@ -129,6 +129,11 @@ public:
         {
             return *mobilityModel_;
         }
+
+        const plasmaDiffusivityModel& diffusivity() const
+        {
+            return *diffusivityModel_;
+        }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

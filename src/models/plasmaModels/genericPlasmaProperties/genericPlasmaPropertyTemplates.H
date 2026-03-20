@@ -106,13 +106,17 @@ public:
 
     virtual tmp<volScalarField> evaluate() const override
     {
-        return tmp<volScalarField>::New
+        auto tField = tmp<volScalarField>::New
         (
             IOobject(this->propertyName(), this->mesh_.time().timeName(),
                      this->mesh_),
             this->mesh_,
-            dimensionedScalar(this->propertyName(), dimless, val_)
+            dimensionedScalar(this->propertyName(), this->dims_, 0.0)
         );
+
+        this->correct(tField.ref());
+
+        return tField;
     }
 
     virtual dimensionedScalar evaluateScalar() const override
@@ -120,10 +124,29 @@ public:
         return dimensionedScalar(this->propertyName(), this->dims_, val_);
     }
 
+    virtual void evaluate
+    (
+        fvPatchScalarField& pField, 
+        const label patchi
+    ) const override
+    {
+
+        pField = val_;
+    }
+
     virtual void correct(volScalarField& field) const override
     {
-        field = dimensionedScalar
-                    (this->propertyName(), field.dimensions(), val_);
+        field.primitiveFieldRef() = val_;
+        field.boundaryFieldRef() = val_;
+
+        forAll(field.boundaryField(), patchi)
+        {
+        if (!field.boundaryField()[patchi].coupled())
+        {
+            field.boundaryFieldRef()[patchi] = val_;
+        }
+        }
+        
         field.correctBoundaryConditions();
     }
 };
@@ -255,6 +278,48 @@ public:
         );
     }
 
+    virtual void evaluate
+    (
+        fvPatchScalarField& pField, 
+        const label patchi
+    ) const override
+    {
+        const objectRegistry& db = this->mesh_;
+        tmp<volScalarField> tScalarLookup;
+
+        if (db.template foundObject<volScalarField>(lookupVariable_))
+        {
+            tScalarLookup = db.template lookupObject<volScalarField>
+                (lookupVariable_);
+        }
+        else if (db.template foundObject<volVectorField>(lookupVariable_))
+        {
+            tScalarLookup = mag
+            (
+                db.template lookupObject<volVectorField>(lookupVariable_)
+            );
+        }
+        else
+        {
+            const word& sName = 
+                this->species_.speciesNames()[this->specieIndex_];
+
+            FatalErrorInFunction
+                << "Species '" << sName << "': lookupVariable '"
+                << lookupVariable_ << "' not found in mesh database!" << nl
+                << "Available fields: " << db.names() << exit(FatalError);
+        }
+
+        const volScalarField& var = tScalarLookup();
+
+        const fvPatchScalarField& pVar = var.boundaryField()[patchi];
+
+        forAll(pField, i)
+        {
+            pField[i] = table_.interpolateValue(pVar[i]);
+        }
+    }
+
     virtual void correct(volScalarField& field) const override
     {
         const objectRegistry& db = this->mesh_;
@@ -285,10 +350,11 @@ public:
 
         const volScalarField& var = tScalarLookup();
 
-        // 1. Update Internal Field
+        // Update Internal Field
         field.primitiveFieldRef() = table_.interpolateValues
                                                          (var.primitiveField());
 
+        // Update Boundary Fields
         forAll(field.boundaryField(), patchi)
         {
             const fvPatchScalarField& pVar = var.boundaryField()[patchi];
@@ -372,7 +438,6 @@ public:
     //- Destructor
     virtual ~TabulatedProperty2D() = default;
 
-
     //- Member Functions
 
     //- Return always false
@@ -410,6 +475,47 @@ public:
             << abort(FatalError);
 
         return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
+    }
+
+    virtual void evaluate
+    (
+        fvPatchScalarField& pField, 
+        const label patchi
+    ) const override
+    {
+        const objectRegistry& db = this->mesh_;
+
+        auto getScalarField = [&](const word& name) -> tmp<volScalarField>
+        {
+            if (db.template foundObject<volScalarField>(name))
+            {
+                return db.template lookupObject<volScalarField>(name);
+            }
+            else if (db.template foundObject<volVectorField>(name))
+            {
+                return mag(db.template lookupObject<volVectorField>(name));
+            }
+            const word& sName = this->species_.speciesNames()
+                                                        [this->specieIndex_];
+            
+            FatalErrorInFunction
+                << "Species '" << sName << "': lookupVariable '" << name
+                << "' not found in mesh database!" << nl
+                << "Available fields: " << db.names() << exit(FatalError); 
+
+            return tmp<volScalarField>(nullptr);
+        };
+
+        tmp<volScalarField> tX = getScalarField(lookupVariables_[0]);
+        tmp<volScalarField> tY = getScalarField(lookupVariables_[1]);
+
+        const fvPatchScalarField& pX = tX().boundaryField()[patchi];
+        const fvPatchScalarField& pY = tY().boundaryField()[patchi];
+
+        forAll(pField, i)
+        {
+            pField[i] = table_(pX[i], pY[i]);
+        }
     }
 
     virtual void correct(volScalarField& field) const override
@@ -589,6 +695,46 @@ public:
         );
     }
 
+    virtual void evaluate
+    (
+        fvPatchScalarField& pField, 
+        const label patchi
+    ) const override
+    {
+        const objectRegistry& db = this->mesh_;
+
+        tmp<volScalarField> tScalarLookup;
+
+        if (db.template foundObject<volScalarField>(lookupVariable_))
+        {
+            tScalarLookup = db.template lookupObject<volScalarField>
+                                                              (lookupVariable_);
+        }
+        else if (db.template foundObject<volVectorField>(lookupVariable_))
+        {
+            tScalarLookup = mag
+            (
+                db.template lookupObject<volVectorField>(lookupVariable_)
+            );
+        }
+        else
+        {
+            const word& sName = 
+                this->species_.speciesNames()[this->specieIndex_];
+
+            FatalErrorInFunction
+                << "Species '" << sName << "': lookupVariable '"
+                << lookupVariable_ << "' not found in mesh database!" << nl
+                << "Available fields: " << db.names() << exit(FatalError);
+        }
+
+
+        const volScalarField& var = tScalarLookup();
+        const fvPatchScalarField& pVar = var.boundaryField()[patchi];
+
+        pField = amplitude_ * pow(max(pVar, SMALL), exponent_);
+    }
+    
     virtual void correct(volScalarField& field) const override
     {
         const objectRegistry& db = this->mesh_;
@@ -621,11 +767,18 @@ public:
 
         const volScalarField& var = tScalarLookup();
 
-        volScalarField dimensionlessVar = 
-            var / dimensionedScalar("unit", var.dimensions(), 1.0);
+        field.primitiveFieldRef() = amplitude_ * 
+                               pow(max(var.primitiveField(), SMALL), exponent_);
 
-        field = dimensionedScalar("A", field.dimensions(), amplitude_)
-              * pow(max(dimensionlessVar, SMALL), exponent_);
+        forAll(field.boundaryField(), patchi)
+        {
+            if (!field.boundaryField()[patchi].coupled())
+            {
+                const fvPatchScalarField& pVar = var.boundaryField()[patchi];
+                field.boundaryFieldRef()[patchi] = amplitude_ 
+                                             * pow(max(pVar, SMALL), exponent_);
+            }
+        }
 
         field.correctBoundaryConditions();
     }
@@ -743,6 +896,42 @@ public:
 
         this->correct(tField.ref());
         return tField;
+    }
+
+    virtual void evaluate
+    (
+        fvPatchScalarField& pField, 
+        const label patchi
+    ) const override
+    {
+        const objectRegistry& db = this->mesh_;
+        tmp<volScalarField> tScalarLookup;
+
+        if (db.template foundObject<volScalarField>(lookupVariable_))
+        {
+            tScalarLookup = db.template lookupObject<volScalarField>
+                                                              (lookupVariable_);
+        }
+        else if (db.template foundObject<volVectorField>(lookupVariable_))
+        {
+            tScalarLookup = mag(db.template lookupObject<volVectorField>
+                                                             (lookupVariable_));
+        }
+        else
+        {
+            const word& sName = this->species_.speciesNames()
+                                                           [this->specieIndex_];
+
+            FatalErrorInFunction
+                << "Species '" << sName << "': lookupVariable '"
+                << lookupVariable_ << "' not found in mesh database!" << nl
+                << "Available fields: " << db.names() << exit(FatalError);
+        }
+
+        const volScalarField& var = tScalarLookup();
+        const fvPatchScalarField& pVar = var.boundaryField()[patchi];
+
+        pField = functionPtr_->value(pVar);
     }
 
     virtual void correct(volScalarField& field) const override
