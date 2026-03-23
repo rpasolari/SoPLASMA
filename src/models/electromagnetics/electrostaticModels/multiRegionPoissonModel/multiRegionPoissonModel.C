@@ -1,14 +1,34 @@
-#include "multiRegionPoissonModel.H"
-#include "addToRunTimeSelectionTable.H"
-#include "fvmLaplacian.H"
-#include "fvcGrad.H"
+/*---------------------------------------------------------------------------*\
+  File: singleRegionPoissonModel.C
+  Part of: foamPlasmaToolkit
+  Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
+
+  Description:
+    Implementation of Foam::singleRegionPoissonModel.
+
+  Copyright (C) 2026 Rention Pasolari
+  License: GNU General Public License v3 or later
+      See: <http://www.gnu.org/licenses/>.
+\*---------------------------------------------------------------------------*/
+
+#include "singleRegionPoissonModel.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(multiRegionPoissonModel, 0);
-addToRunTimeSelectionTable(electromagneticsModel, multiRegionPoissonModel, dictionary);
+// * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
+defineTypeNameAndDebug(singleRegionPoissonModel, 0);
+addToRunTimeSelectionTable
+(
+    electromagneticsModel,
+    singleRegionPoissonModel,
+    dictionary
+);
+
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 // CONSTRUCTOR - No "..." here!
 multiRegionPoissonModel::multiRegionPoissonModel
 (
@@ -142,4 +162,11 @@ void multiRegionPoissonModel::solve()
     }
 }
 
+// * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
 } // End namespace Foam
+
+// ************************************************************************* //

@@ -5,7 +5,7 @@ License
     The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025
+    Copyright (C) 2026
         Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
@@ -39,8 +39,6 @@ Description
     modules operate on these fields but do not create their own copies.
 
     Only a single plasmaSpecies object should exist on a given mesh.
-    It is responsible for creating the species fields; additional modules
-    simply reference these fields to ensure consistency across the solver.
 
     This class forms the foundation upon which transport models, reaction
     models, and electrostatic models build their physics algorithms.
@@ -57,9 +55,9 @@ SourceFiles
 #include "IOdictionary.H"
 #include "fvMesh.H"
 #include "volFields.H"
-#include "HashTable.H"
-#include "surfaceFields.H"
-#include "fvc.H"
+#include "PtrList.H"
+#include "labelList.H"
+#include "wordList.H"
 
 #include "foamPlasmaToolkitConstants.H"
 
@@ -69,7 +67,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class basicPlasmaSpecies Declaration
+                    Class plasmaSpecies Declaration
 \*---------------------------------------------------------------------------*/
 
 class plasmaSpecies
@@ -89,89 +87,99 @@ protected:
         //- Mesh reference
         const fvMesh& mesh_;
 
-        //- Reference to the electric potential (V)
-        const volScalarField& ePotential_;
+        //- Active spcecies
 
-        //- Reference to the electric field (V/m)
-        const volVectorField& E_;
+            //- Number of active species
+            label nSpecies_;
 
-        //- Magnitude of the electric field [V/m]
-        volScalarField Emag_;
+            //- Active species names
+            wordList speciesNames_;
 
-        //- Reduced electric field (V * m2)
-        volScalarField EN_;
+            //- Active species index-name mapping
+            HashTable<label> speciesIDs_;
 
-        //- Reference to the electric field flux
-        surfaceScalarField phiE_;
+            //- Mass per active species [kg]
+            PtrList<dimensionedScalar> speciesMasses_;
 
-        //- Background gas density (1/m3)
-        dimensionedScalar nBackground_;
+            //- Charge per active species [C]
+            PtrList<dimensionedScalar> speciesCharges_;
 
-        //- Active species names
-        wordList speciesNames_;
+            //- Charge number Z_i per active species (-1, +1, etc)
+            List<scalar> speciesChargeNumbers_;
 
-        //- Active species index-name mapping
-        HashTable<label> speciesID_;
+            //- Number density per active species [1/m3]
+            PtrList<volScalarField> numberDensities_;
 
-        //- Number of active species
-        label nSpecies_;
+            //- Total charge density [C/m3]
+            volScalarField chargeDensity_;
 
-        //- Charge number Z_i per species (dimensionless:: -1, +1, +2, etc)
-        List<scalar> speciesChargeNumber_;
+            //- Property dictionaries per active species
+            HashTable<dictionary> speciesDicts_;
 
-        //- Charge per species
-        PtrList<dimensionedScalar> speciesCharge_;
+            //- Default active species properties
+            dictionary defaultSpeciesDict_;
 
-        //- Mass per species
-        PtrList<dimensionedScalar> speciesMass_;
+        //- Background gas
 
-        //- Number density fiels n_i [1/m3] for each active species
-        PtrList<volScalarField> numberDensity_;
+            //- Background gas name
+            word backgroundName_;
 
-        //- Per-species property dictionaries
-        HashTable<dictionary> speciesDicts_;
+            //- Background gas number density N [1/m3]
+            dimensionedScalar backgroundDensity_;
 
-        //- Default species properties
-        dictionary defaultDict_;
+            //- Total neutral number density field [1/m3] 
+            //- Sum of nBackground_ + all active neutrals
+            volScalarField totalNeutralDensity_;
 
-        //- Background gas dict
-        dictionary backgroundGasDict_;
+            //- Background gas dictionary
+            dictionary backgroundDict_;
 
-        //- Label for electron specie
-        label electronSpeciesID_;
+        //- Groups
 
-        //- Label list for ions (positive + negative)
-        labelList ionSpeciesIDs_;
+            //- Index for the electron species
+            label electronSpeciesID_;
 
-        //- Label list for positive ions only
-        labelList positiveIonSpeciesIDs_;
+            //- Indices for all ions (positive + negative)
+            labelList ionSpeciesIDs_;
 
-        //- Label list for negative ions only
-        labelList negativeIonSpeciesIDs_;
+            //- Indices for positive ions
+            labelList positiveIonSpeciesIDs_;
 
-        //- Label list for active neutral species (e.g., excited species)
-        labelList neutralSpeciesIDs_;
+            //- Indices for negative ions
+            labelList negativeIonSpeciesIDs_;
 
-        //- Label list for charged species (ions + electrons)
-        labelList chargedSpeciesIDs_;
+            //- Indices for active neutrals
+            labelList neutralSpeciesIDs_;
 
-        //- Label list for mobile species
-        labelList mobileSpeciesIDs_;
+            //- Indices for all charged species (ions + electrons)
+            labelList chargedSpeciesIDs_;
 
-        //- Label list for immobile species
-        labelList immobileSpeciesIDs_;
+            //- Indices for mobile species
+            labelList mobileSpeciesIDs_;
 
-        //- Species with a constant temperature field
-        labelList constantTemperatureSpeciesIDs_;
+            //- Indices for immobile species
+            labelList immobileSpeciesIDs_;
 
-        //- Species with a dynamic temperature field
-        labelList dynamicTemperatureSpeciesIDs_;
+            //- Species with a constant (fixed) temperature value
+            labelList constantTemperatureSpeciesIDs_;
 
-        //- Species solving the energy equation
-        labelList solveEnergyEquationSpeciesIDs_;
+            //- Species with a dynamic (non-fixed) temperature
+            labelList dynamicTemperatureSpeciesIDs_;
 
-        //- Species with a field temperature (not just a dimensionedScalar)
-        labelList fieldTemperatureSpeciesIDs_;
+            //- Species that follow the background gas temperature
+            labelList followBackgroundTempSpeciesIDs_;
+
+            //- Species for which we solve a dedicated energy equation
+            labelList solveEnergySpeciesIDs_;
+
+            //- Species that have a volScalarField for temperature
+            labelList fieldTemperatureSpeciesIDs_;
+
+            //- Species that participate in reactions
+            labelList reactingSpeciesIDs_;
+
+            //- Species that are inert (transport only, no chemical reactions)
+            labelList nonReactingSpeciesIDs_;
 
 public:
 
@@ -181,71 +189,68 @@ public:
     // Constructors
 
         //- Construct from mesh
-        plasmaSpecies
-        (
-            const fvMesh& mesh,
-            const volScalarField& ePotential,
-            const volVectorField& E
-        );
+        explicit plasmaSpecies(const fvMesh& mesh);
 
     //- Destructor
     virtual ~plasmaSpecies() {}
 
-    // Member function
-
-        void updateFields();
+    // Member functions
+        
+        void update();
 
     // Access
 
+        //- Metadata access
         inline const fvMesh& mesh() const;
-        inline const wordList& speciesNames() const;
         inline label nSpecies() const;
-
-        inline const List<scalar>& speciesChargeNumber() const;
-        inline scalar speciesChargeNumber(label i) const;
-        inline const PtrList<dimensionedScalar>& speciesCharge() const;
-        inline const dimensionedScalar& speciesCharge(label i) const;
-        inline const PtrList<dimensionedScalar>& speciesMass() const;
-        inline const dimensionedScalar& speciesMass(label i) const;
+        inline const wordList& speciesNames() const;
+        inline const word& speciesName(label i) const;
 
         //- Get species index from name
         inline label speciesID(const word& name) const;
 
-        //- Number density access (single specie and whole list)
+        //- Physical properties access
+        inline const List<scalar>& speciesChargeNumbers() const;
+        inline scalar speciesChargeNumber(label i) const;
+        inline const PtrList<dimensionedScalar>& speciesCharges() const;
+        inline const dimensionedScalar& speciesCharge(label i) const;
+        inline const PtrList<dimensionedScalar>& speciesMasses() const;
+        inline const dimensionedScalar& speciesMass(label i) const;
+        inline const PtrList<volScalarField>& numberDensities() const;
+        inline PtrList<volScalarField>& numberDensities();
         inline const volScalarField& numberDensity(label i) const;
         inline volScalarField& numberDensity(label i);
-        inline const PtrList<volScalarField>& numberDensity() const;
-        inline PtrList<volScalarField>& numberDensity();
+        inline const volScalarField& chargeDensity() const;
 
-        //- Background gas dictionary access
-        inline const dictionary& backgroundGasDict() const;
-
-        //- Species dictionaries access
+        //- Dictionary access
         inline const dictionary& speciesDict(label i) const;
         inline const dictionary& speciesDict(const word& name) const; 
-        inline const dictionary& defaultDict() const; 
+        inline const HashTable<dictionary>& speciesDicts() const;
+        inline const dictionary& defaultSpeciesDict() const;
 
-        //- Group Access
+        //- Background gas access
+        inline const word& backgroundName() const;
+        inline const dimensionedScalar& backgroundDensity() const;
+        inline const volScalarField& totalNeutralDensity() const;
+        inline const dictionary& backgroundDict() const;
+
+        //- Group access
         inline label electronSpeciesID() const;
         inline const labelList& ionSpeciesIDs() const;
         inline const labelList& positiveIonSpeciesIDs() const;
         inline const labelList& negativeIonSpeciesIDs() const;
         inline const labelList& neutralSpeciesIDs() const;
         inline const labelList& chargedSpeciesIDs() const;
+
         inline const labelList& mobileSpeciesIDs() const;
         inline const labelList& immobileSpeciesIDs() const;
         inline const labelList& constantTemperatureSpeciesIDs() const;
         inline const labelList& dynamicTemperatureSpeciesIDs() const;
-        inline const labelList& solveEnergyEquationSpeciesIDs() const;
+        inline const labelList& followBackgroundTempSpeciesIDs() const;
+        inline const labelList& solveEnergySpeciesIDs() const;
         inline const labelList& fieldTemperatureSpeciesIDs() const;
-
-        //- Field Access
-        inline const volScalarField& ePotential() const;
-        inline const volVectorField& E() const;
-        inline const volScalarField& Emag() const;
-        inline const volScalarField& EN() const;
-        inline const surfaceScalarField& phiE() const;
-        inline dimensionedScalar nBackground() const;
+        inline const labelList& reactingSpeciesIDs() const;
+        inline const labelList& nonReactingSpeciesIDs() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -6,7 +6,7 @@
   Description:
     Implementation of Foam::plasmaSpecies.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -24,18 +24,13 @@ defineTypeNameAndDebug(plasmaSpecies, 0);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-plasmaSpecies::plasmaSpecies
-(
-    const fvMesh& mesh,
-    const volScalarField& ePotential,
-    const volVectorField& E
-)
+plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
 :
     IOdictionary
     (
         IOobject
         (
-            "plasmaSpecies",
+            "plasmaSpeciesProperties",
             mesh.time().constant(),
             mesh,
             IOobject::MUST_READ,
@@ -43,49 +38,54 @@ plasmaSpecies::plasmaSpecies
         )
     ),
     mesh_(mesh),
-    ePotential_(ePotential),
-    E_(E),
-    Emag_
+    nSpecies_(0),
+    speciesNames_(),
+    speciesIDs_(),
+    speciesMasses_(),
+    speciesCharges_(),
+    speciesChargeNumbers_(),
+    numberDensities_(),
+    chargeDensity_
     (
         IOobject
         (
-            "Emag", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::NO_WRITE
+            "chargeDensity",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
         ),
-        mag(E_)
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, -3, 1, 0, 0, 1, 0), 0.0)
     ),
-    EN_
+    speciesDicts_(),
+    defaultSpeciesDict_(),
+    backgroundName_("none"),
+    backgroundDensity_
+    (
+        "N", 
+        dimensionSet(0, -3, 0, 0, 0, 0, 0),
+        0.0
+    ),
+    totalNeutralDensity_
     (
         IOobject
         (
-            "EN", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
+            "totalNeutralDensity",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
             IOobject::NO_WRITE
         ),
         mesh,
-        dimensionedScalar("zero", dimensionSet(1, 4, -3, 0, 0, -1, 0), 0.0)
+        dimensionedScalar
+        (
+            "zero", 
+            dimensionSet(0, -3, 0, 0, 0, 0, 0), 
+            0.0
+        )
     ),
-    phiE_
-    (
-        IOobject
-        ("phiE", 
-            mesh.time().timeName(), 
-            mesh
-        ),
-        -fvc::snGrad(ePotential) * mesh.magSf()
-    ),
-    nBackground_("nBackground", dimensionSet(0, -3, 0, 0, 0, 0, 0), 0.0),
-    speciesNames_(),
-    nSpecies_(0),
-    speciesChargeNumber_(),
-    speciesCharge_(),
-    speciesMass_(),
-    numberDensity_(),
+    backgroundDict_(),
     electronSpeciesID_(-1),
     ionSpeciesIDs_(),
     positiveIonSpeciesIDs_(),
@@ -93,8 +93,14 @@ plasmaSpecies::plasmaSpecies
     neutralSpeciesIDs_(),
     chargedSpeciesIDs_(),
     mobileSpeciesIDs_(),
+    immobileSpeciesIDs_(),
     constantTemperatureSpeciesIDs_(),
-    solveEnergyEquationSpeciesIDs_()
+    dynamicTemperatureSpeciesIDs_(),
+    followBackgroundTempSpeciesIDs_(),
+    solveEnergySpeciesIDs_(),
+    fieldTemperatureSpeciesIDs_(),
+    reactingSpeciesIDs_(),
+    nonReactingSpeciesIDs_()
 {
     if (!found("backgroundGas"))
     {
@@ -103,62 +109,37 @@ plasmaSpecies::plasmaSpecies
             << objectPath() << nl << exit(FatalIOError);
     }
     
-    backgroundGasDict_ = subDict("backgroundGas");
+    backgroundDict_ = subDict("backgroundGas");
+    backgroundName_ = backgroundDict_.getOrDefault<word>("name", "gas");
+    backgroundDensity_.value() = backgroundDict_.getOrDefault<scalar>("N", 0.0);
 
-    nBackground_ = dimensionedScalar
-    (
-        "N", 
-        dimensionSet(0, -3, 0, 0, 0, 0, 0), 
-        backgroundGasDict_.get<scalar>("N")
-    );
+    totalNeutralDensity_ == backgroundDensity_;
 
-    const dictionary& bgEnergyDict = backgroundGasDict_.subDict("energy");
-    bool solveBg = bgEnergyDict.get<bool>("solve");
-    bool bgIsField = false;
-
-    if (solveBg)
-    {
-        bgIsField = true;
-    }
-    else
-    {
-        if (bgEnergyDict.found("T"))
-        {
-            bgIsField = false;
-        }
-        else
-        {
-            bgIsField = true;
-        }
-    }
+    const dictionary bgEnergyDict = backgroundDict_.subOrEmptyDict("energy");
+    bool solveBg = bgEnergyDict.getOrDefault<bool>("solve", false);
+    bool bgIsField = solveBg || !bgEnergyDict.found("T");
 
     constantTemperatureSpeciesIDs_.clear();
     dynamicTemperatureSpeciesIDs_.clear();
-    solveEnergyEquationSpeciesIDs_.clear();
+    solveEnergySpeciesIDs_.clear();
     fieldTemperatureSpeciesIDs_.clear();
 
     if (!found("activeSpecies"))
     {
         FatalIOErrorInFunction(*this)
             << "Required entry 'activeSpecies' is missing in dictionary "
-            << objectPath() << nl
-            << exit(FatalIOError);
+            << objectPath() << nl << exit(FatalIOError);
     }
 
     // Read species list
     lookup("activeSpecies") >> speciesNames_;
     nSpecies_ = speciesNames_.size();
 
-    speciesID_.clear();
-    for (label i = 0; i < nSpecies_; ++i)
-    {
-        speciesID_.insert(speciesNames_[i], i);
-    }
-
-    speciesChargeNumber_.setSize(nSpecies_);
-    speciesCharge_.setSize(nSpecies_);
-    speciesMass_.setSize(nSpecies_);
-    numberDensity_.setSize(nSpecies_);
+    speciesChargeNumbers_.setSize(nSpecies_);
+    speciesCharges_.setSize(nSpecies_);
+    speciesMasses_.setSize(nSpecies_);
+    numberDensities_.setSize(nSpecies_);
+    speciesDicts_.resize(nSpecies_);
 
     // Read species properties dictionary
     if (!found("speciesProperties"))
@@ -171,23 +152,13 @@ plasmaSpecies::plasmaSpecies
     const dictionary& propsDict = subDict("speciesProperties");
 
     // Read defaultProperties if present
-    if (propsDict.found("defaultProperties"))
-    {
-        defaultDict_ = propsDict.subDict("defaultProperties");
-    }
-    else
-    {
-        defaultDict_.clear();
-    }
-
-    // Prepare storage for merged per-species dicts
-    speciesDicts_.clear();
-    speciesDicts_.resize(nSpecies_);
+    defaultSpeciesDict_ = propsDict.subOrEmptyDict("defaultProperties");
 
     // Loop over all species
     for (label i = 0; i < nSpecies_; ++i)
     {
         const word& sName = speciesNames_[i];
+        speciesIDs_.insert(sName, i);
 
         // Each species must have a dictionary under speciesProperties
         if (!propsDict.found(sName))
@@ -199,7 +170,7 @@ plasmaSpecies::plasmaSpecies
         }
 
         // Build merged properties (defaults + overrides)
-        dictionary mergedDict(defaultDict_);
+        dictionary mergedDict(defaultSpeciesDict_);
         mergedDict.merge(propsDict.subDict(sName));
         speciesDicts_.insert(sName, mergedDict);
 
@@ -212,40 +183,47 @@ plasmaSpecies::plasmaSpecies
                 << exit(FatalIOError);
         }
 
-        speciesChargeNumber_[i] = readScalar(mergedDict.lookup("charge"));
-        scalar massValue = readScalar(mergedDict.lookup("mass"));
-        scalar Z = readScalar(mergedDict.lookup("charge"));
+        if (!mergedDict.found("mass"))
+        {
+            FatalIOErrorInFunction(*this)
+                << "Species '" << sName << "' is missing required entry "
+                << "'mass' in " << objectPath() << nl
+                << exit(FatalIOError);
+        }
 
-        speciesCharge_.set
+        speciesChargeNumbers_[i] = readScalar(mergedDict.lookup("charge"));
+        scalar massValue = readScalar(mergedDict.lookup("mass"));
+
+        speciesCharges_.set
         (
             i,
             new dimensionedScalar
             (
-                "q_" + speciesNames_[i],
+                "q_" + sName,
                 constant::plasma::eCharge.dimensions(),
-                speciesChargeNumber_[i] * constant::plasma::eCharge.value()
+                speciesChargeNumbers_[i] * constant::plasma::eCharge.value()
             )
         );
 
-        speciesMass_.set
+        speciesMasses_.set
         (
             i,
             new dimensionedScalar
             (
-                "m_" + speciesNames_[i],
+                "m_" + sName,
                 constant::plasma::eMass.dimensions(),
                 massValue
             )
         );
 
-        numberDensity_.set
+        numberDensities_.set
         (
             i,
             new volScalarField
             (
                 IOobject
                 (
-                    "n_" + speciesNames_[i],
+                    "n_" + sName,
                     mesh_.time().timeName(),
                     mesh_,
                     IOobject::MUST_READ,
@@ -255,81 +233,106 @@ plasmaSpecies::plasmaSpecies
             )
         );
 
-        // Classify in groups
-            if (Z == -1 && massValue < 1e-29)
-            {
-                electronSpeciesID_ = i;
-                chargedSpeciesIDs_.append(i);
-            }
+        // Groups
+        scalar Z = speciesChargeNumbers_[i];
+        if (Z == -1 && massValue < 1e-29)
+        {
+            electronSpeciesID_ = i;
+            chargedSpeciesIDs_.append(i);
+        }
 
-            // Ions (Charged, but not electrons)
-            else if (Z != 0)
-            {
-                chargedSpeciesIDs_.append(i);
-                ionSpeciesIDs_.append(i);
-                
-                if (Z > 0)
-                    positiveIonSpeciesIDs_.append(i);
-                else
-                    negativeIonSpeciesIDs_.append(i);
-            }
-            // Active neutrals
+        // Ions (Charged, but not electrons)
+        else if (Z != 0)
+        {
+            chargedSpeciesIDs_.append(i);
+            ionSpeciesIDs_.append(i); 
+            if (Z > 0)
+                positiveIonSpeciesIDs_.append(i);
             else
-            {
-                neutralSpeciesIDs_.append(i);
-            }
+                negativeIonSpeciesIDs_.append(i);
+        }
+        // Active neutrals
+        else
+        {
+            neutralSpeciesIDs_.append(i);
+        }
             
-            // Mobile vs immobile species
-            word transport;
-            mergedDict.lookup("transportModel") >> transport;
-            if (transport == "immobile")
+        // Mobile vs immobile species
+        if (!mergedDict.found("transportModel"))
+        {
+            FatalIOErrorInFunction(*this)
+                << "Species '" << sName << "' is missing required entry "
+                << "'transportModel' in " << objectPath() << nl
+                << exit(FatalIOError);
+        }
+        word transport;
+        mergedDict.lookup("transportModel") >> transport;
+        if (transport == "immobile")
+        {
+            immobileSpeciesIDs_.append(i);
+        }
+        else
+        {
+            mobileSpeciesIDs_.append(i);
+        }
+
+        // Energy groups
+        if (!mergedDict.found("energyModel"))
+        {
+            FatalIOErrorInFunction(*this)
+                << "Species '" << sName << "' is missing required entry "
+                << "'energyModel' in " << objectPath() << nl
+                << exit(FatalIOError);
+        }
+        word energy;
+        mergedDict.lookup("energyModel") >> energy;
+
+        // Constant vs Dynamic Temperature
+        if (energy == "isothermal")
+        {
+            constantTemperatureSpeciesIDs_.append(i);
+        }
+        else if (energy == "backgroundGas")
+        {
+            followBackgroundTempSpeciesIDs_.append(i);
+            if (bgIsField)
             {
-                immobileSpeciesIDs_.append(i);
+                fieldTemperatureSpeciesIDs_.append(i);
+                dynamicTemperatureSpeciesIDs_.append(i);
             }
             else
-            {
-                mobileSpeciesIDs_.append(i);
-            }
-
-        // Classify in energy groups
-            word energy;
-            mergedDict.lookup("energyModel") >> energy;
-
-            // Constant vs Dynamic Temperature
-            if (energy == "isothermal" || 
-                                      (energy == "backgroundGas" && !bgIsField))
             {
                 constantTemperatureSpeciesIDs_.append(i);
             }
-            else
-            {
-                dynamicTemperatureSpeciesIDs_.append(i);
-            }
-
-            if (energy != "isothermal" && 
-                                     !(energy == "backgroundGas" && !bgIsField))
-            {
-                fieldTemperatureSpeciesIDs_.append(i);
-            }
-
-            if (energy == "localEnergy")
-            {
-                solveEnergyEquationSpeciesIDs_.append(i);
-            }
-
+        }
+        else if (energy == "localField")
+        {
+            fieldTemperatureSpeciesIDs_.append(i);
+            dynamicTemperatureSpeciesIDs_.append(i);
+        }
+        else if (energy == "solveEnergy")
+        {
+            solveEnergySpeciesIDs_.append(i);
+            fieldTemperatureSpeciesIDs_.append(i);
+            dynamicTemperatureSpeciesIDs_.append(i);
+        }
     }
+
+    update();
 }  
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-void plasmaSpecies::updateFields()
+void plasmaSpecies::update()
 {
-    Emag_ = mag(E_);
-    
-    const dimensionedScalar nSmall("s", nBackground_.dimensions(), SMALL);
-    EN_ = Emag_ / (nBackground_ + nSmall);
+    chargeDensity_ == dimensionedScalar(chargeDensity_.dimensions(), 0.0);
 
-    phiE_ =  -fvc::snGrad(ePotential_) * mesh_.magSf();
+    forAll(chargedSpeciesIDs_, i)
+    {
+        const label id = chargedSpeciesIDs_[i];
+        
+        chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

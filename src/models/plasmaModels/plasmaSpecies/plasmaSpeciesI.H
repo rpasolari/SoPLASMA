@@ -6,7 +6,7 @@
   Description:
       Inline member function definitions for the plasmaSpecies class.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -16,17 +16,11 @@
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-//- Mesh and species metadata access
+//- Metadata access
 inline const Foam::fvMesh&
 Foam::plasmaSpecies::mesh() const
 {
     return mesh_;
-}
-
-inline const Foam::wordList&
-Foam::plasmaSpecies::speciesNames() const
-{
-    return speciesNames_;
 }
 
 inline Foam::label
@@ -35,81 +29,92 @@ Foam::plasmaSpecies::nSpecies() const
     return nSpecies_;
 }
 
-inline const Foam::List<Foam::scalar>&
-Foam::plasmaSpecies::speciesChargeNumber() const
+inline const Foam::wordList&
+Foam::plasmaSpecies::speciesNames() const
 {
-    return speciesChargeNumber_;
+    return speciesNames_;
 }
 
-inline Foam::scalar
-Foam::plasmaSpecies::speciesChargeNumber(Foam::label i) const
+inline const Foam::word&
+Foam::plasmaSpecies::speciesName(Foam::label i) const
 {
-    return speciesChargeNumber_[i];
-}
-
-inline const Foam::PtrList<Foam::dimensionedScalar>&
-Foam::plasmaSpecies::speciesCharge() const
-{
-    return speciesCharge_;
-}
-
-inline const Foam::dimensionedScalar&
-Foam::plasmaSpecies::speciesCharge(Foam::label i) const
-{
-    return speciesCharge_[i];
-}
-
-inline const Foam::PtrList<Foam::dimensionedScalar>&
-Foam::plasmaSpecies::speciesMass() const
-{
-    return speciesMass_;
-}
-
-inline const Foam::dimensionedScalar&
-Foam::plasmaSpecies::speciesMass(Foam::label i) const
-{
-    return speciesMass_[i];
+    return speciesNames_[i];
 }
 
 inline Foam::label
 Foam::plasmaSpecies::speciesID(const Foam::word& name) const
 {
-    return speciesID_[name];
+    return speciesIDs_[name];
 }
 
-//- Number density access
+//- Physical properties access
+inline const Foam::List<Foam::scalar>&
+Foam::plasmaSpecies::speciesChargeNumbers() const
+{
+    return speciesChargeNumbers_;
+}
+
+inline Foam::scalar
+Foam::plasmaSpecies::speciesChargeNumber(Foam::label i) const
+{
+    return speciesChargeNumbers_[i];
+}
+
+inline const Foam::PtrList<Foam::dimensionedScalar>&
+Foam::plasmaSpecies::speciesCharges() const
+{
+    return speciesCharges_;
+}
+
+inline const Foam::dimensionedScalar&
+Foam::plasmaSpecies::speciesCharge(Foam::label i) const
+{
+    return speciesCharges_[i];
+}
+
+inline const Foam::PtrList<Foam::dimensionedScalar>&
+Foam::plasmaSpecies::speciesMasses() const
+{
+    return speciesMasses_;
+}
+
+inline const Foam::dimensionedScalar&
+Foam::plasmaSpecies::speciesMass(Foam::label i) const
+{
+    return speciesMasses_[i];
+}
+
+inline const Foam::PtrList<Foam::volScalarField>&
+Foam::plasmaSpecies::numberDensities() const
+{
+    return numberDensities_;
+}
+
+inline Foam::PtrList<Foam::volScalarField>&
+Foam::plasmaSpecies::numberDensities()
+{
+    return numberDensities_;
+}
+
 inline const Foam::volScalarField&
 Foam::plasmaSpecies::numberDensity(Foam::label i) const
 {
-    return numberDensity_[i];
+    return numberDensities_[i];
 }
 
 inline Foam::volScalarField&
 Foam::plasmaSpecies::numberDensity(Foam::label i)
 {
-    return numberDensity_[i];
+    return numberDensities_[i];
 }
 
-inline const Foam::PtrList<Foam::volScalarField>&
-Foam::plasmaSpecies::numberDensity() const
+inline const Foam::volScalarField&
+Foam::plasmaSpecies::chargeDensity() const
 {
-    return numberDensity_;
+    return chargeDensity_;
 }
 
-inline Foam::PtrList<Foam::volScalarField>&
-Foam::plasmaSpecies::numberDensity()
-{
-    return numberDensity_;
-}
-
-//- Background gas dictionary dict
-inline const Foam::dictionary&
-Foam::plasmaSpecies::backgroundGasDict() const
-{
-    return backgroundGasDict_;
-}
-
-//- Species dictionaries access
+//- Dictionary Access
 inline const Foam::dictionary&
 Foam::plasmaSpecies::speciesDict(Foam::label i) const
 {
@@ -122,13 +127,44 @@ Foam::plasmaSpecies::speciesDict(const Foam::word& name) const
     return speciesDicts_[name];
 }
 
-inline const Foam::dictionary&
-Foam::plasmaSpecies::defaultDict() const
+inline const Foam::HashTable<Foam::dictionary>&
+Foam::plasmaSpecies::speciesDicts() const
 {
-    return defaultDict_;
+    return speciesDicts_;
 }
 
-//- Group Access
+inline const Foam::dictionary&
+Foam::plasmaSpecies::defaultSpeciesDict() const
+{
+    return defaultSpeciesDict_;
+}
+
+//- Background gas access
+inline const Foam::word&
+Foam::plasmaSpecies::backgroundName() const
+{
+    return backgroundName_;
+}
+
+inline const Foam::dimensionedScalar&
+Foam::plasmaSpecies::backgroundDensity() const
+{
+    return backgroundDensity_;
+}
+
+inline const Foam::volScalarField&
+Foam::plasmaSpecies::totalNeutralDensity() const
+{
+    return totalNeutralDensity_;
+}
+
+inline const Foam::dictionary&
+Foam::plasmaSpecies::backgroundDict() const
+{
+    return backgroundDict_;
+}
+
+//- Group access
 inline Foam::label
 Foam::plasmaSpecies::electronSpeciesID() const
 {
@@ -165,6 +201,7 @@ Foam::plasmaSpecies::chargedSpeciesIDs() const
     return chargedSpeciesIDs_;
 }
 
+//- Group Access (Physics/Transport)
 inline const Foam::labelList&
 Foam::plasmaSpecies::mobileSpeciesIDs() const
 {
@@ -190,9 +227,15 @@ Foam::plasmaSpecies::dynamicTemperatureSpeciesIDs() const
 }
 
 inline const Foam::labelList&
-Foam::plasmaSpecies::solveEnergyEquationSpeciesIDs() const
+Foam::plasmaSpecies::followBackgroundTempSpeciesIDs() const
 {
-    return solveEnergyEquationSpeciesIDs_;
+    return followBackgroundTempSpeciesIDs_;
+}
+
+inline const Foam::labelList&
+Foam::plasmaSpecies::solveEnergySpeciesIDs() const
+{
+    return solveEnergySpeciesIDs_;
 }
 
 inline const Foam::labelList&
@@ -201,41 +244,16 @@ Foam::plasmaSpecies::fieldTemperatureSpeciesIDs() const
     return fieldTemperatureSpeciesIDs_;
 }
 
-//- Field Access
-inline const Foam::volScalarField&
-Foam::plasmaSpecies::ePotential() const
+inline const Foam::labelList&
+Foam::plasmaSpecies::reactingSpeciesIDs() const
 {
-    return ePotential_;
+    return reactingSpeciesIDs_;
 }
 
-inline const Foam::volVectorField&
-Foam::plasmaSpecies::E() const
+inline const Foam::labelList&
+Foam::plasmaSpecies::nonReactingSpeciesIDs() const
 {
-    return E_;
-}
-
-inline const Foam::volScalarField&
-Foam::plasmaSpecies::Emag() const
-{
-    return Emag_;
-}
-
-inline const Foam::volScalarField&
-Foam::plasmaSpecies::EN() const
-{
-    return EN_;
-}
-
-inline const Foam::surfaceScalarField&
-Foam::plasmaSpecies::phiE() const
-{
-    return phiE_;
-}
-
-inline Foam::dimensionedScalar
-Foam::plasmaSpecies::nBackground() const
-{
-    return nBackground_;
+    return nonReactingSpeciesIDs_;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
