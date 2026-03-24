@@ -25,14 +25,22 @@ Class
     Foam::multiRegionPoissonModel
     
 Description
-    A Poisson equation solver for electrostatic potential in a single 
-    mesh region.
+    A multi-region Poisson equation solver for electrostatic potential in 
+    multiple domains (gas and dielectric regions).
 
-    Solves the Poisson equation for the electric potential:
-
+    In the gas/plasma region, it solves the Poisson equation:
         ∇·(ε∇φ) = -ρ_e
+    In the dielectric regions, it solves the Laplace equation:
+        ∇·(ε∇φ) = 0
 
     where ε is the permittivity and ρ_e is the charge density.
+
+    The model supports two coupling architectures:
+        - Monolithic (coupled): Solves all regions simultaneously in a single 
+          global matrix. Requires 'useImplicit true' on mapped patches.
+        - Segregated (non-coupled): Solves regions iteratively, using 
+          residual-based convergence control to synchronize potentials at 
+          interfaces.
 
     The model also supports a semi-implicit numerical scheme. By coupling with 
     a plasmaTransportModel, it includes the electrical conductivity (sigma) in 
@@ -47,7 +55,7 @@ Description
 
     This model can be initialized with or without a plasmaSpecies object. 
     If no plasmaSpecies is provided, the model defaults to solving the 
-    pure electrostatic Laplace equation (∇²φ = 0) within the region.
+    pure electrostatic Laplace equation (∇²φ = 0) within the gas region.
 
 SourceFiles
     multiRegionPoissonModel.C

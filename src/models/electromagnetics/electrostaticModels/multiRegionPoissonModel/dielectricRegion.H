@@ -116,7 +116,7 @@ public:
             dimensionSet(-1, -3, 4, 0, 0, 2, 0), 
             0.0
         ),
-        epsilonR_(regionDict_.getScalarOrDefault("dielectricConstant", 1.0))
+        epsilonR_(regionDict_.getOrDefault<scalar>("dielectricConstant", 1.0))
         {
             epsilon_ = epsilonR_ * constant::plasma::epsilon0;
         }
@@ -126,14 +126,29 @@ public:
 
     // Member functions
 
+        //- Update the electric field
+        void updateE()
+        {
+            E_ = fvc::grad(ePotential_);
+
+            E_.correctBoundaryConditions();
+        }
+
+        //- Return the LHS of the Poisson equation
+        tmp<fvScalarMatrix> PoissonMatrix() const
+        {
+            return fvm::laplacian(epsilon_, ePotential_);
+        }
+
     // Access
 
-        inline const fvMesh& mesh() const { return regionMesh_};
-        inline const dictionary& dict() const { return regionDict_ };
-        inline const volScalarField& ePotential() const { return ePotential_ };
-        inline const volVectorField& E() const { return E_ };
-        inline const dimensionedScalar& epsilon() const { return epsilon_ };
-        inline scalar epsilonR() const { return epsilonR_ };
+        inline const fvMesh& mesh() const { return regionMesh_; }
+        inline const dictionary& dict() const { return regionDict_; }
+        inline const volScalarField& ePotential() const { return ePotential_; }
+        inline volScalarField& ePotential() { return ePotential_; }
+        inline const volVectorField& E() const { return E_; }
+        inline const dimensionedScalar& epsilon() const { return epsilon_; }
+        inline scalar epsilonR() const { return epsilonR_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

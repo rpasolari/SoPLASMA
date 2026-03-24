@@ -102,6 +102,17 @@ singleRegionPoissonModel::singleRegionPoissonModel
     PoissonScheme_("explicit"),
     transportPtr_(nullptr)
 {
+    if (dielectricMeshes.size() > 0)
+    {
+        FatalErrorInFunction
+            << "Dielectric regions were detected (" << dielectricMeshes.size()
+            << "), but you are using the 'singleRegionPoisson' model." << nl
+            << "This model ignores dielectrics and solves only in the gas."
+            << nl << "Switch to 'multiRegionPoisson' model in your "
+            << "properties file or remove the dielectric regions." << nl
+            << exit(FatalError);
+    }
+
     const word coeffsName(type() + "Coeffs");
 
     if (!found(coeffsName))
@@ -149,6 +160,7 @@ void singleRegionPoissonModel::solve()
     ePotentialEqn.solve();
 
     E_ = -fvc::grad(ePotential_);
+    E_.correctBoundaryConditions();
     Emag_ = mag(E_);
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
 }
@@ -180,6 +192,7 @@ void singleRegionPoissonModel::solve(const plasmaTransportModel& transport)
     ePotentialEqn.solve();
 
     E_ = -fvc::grad(ePotential_);
+    E_.correctBoundaryConditions();
     Emag_ = mag(E_);
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
 }
