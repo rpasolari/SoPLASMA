@@ -58,13 +58,12 @@ SourceFiles
 #define multiRegionPoissonModel_H
 
 #include "electromagneticsModel.H"
-#include "plasmaTransportModel.H"
+#include "dielectricRegion.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
 
 /*---------------------------------------------------------------------------*\
                     Class multiRegionPoissonModel Declaration
@@ -81,41 +80,98 @@ private:
     void operator=(const multiRegionPoissonModel&) = delete;
 
 protected:
-    //--- Fields ---
+   
+    //- Electric potential field [V]
     volScalarField ePotential_;
+
+    //- Electric field [V/m]
     volVectorField E_;
+
+    //- Magnitude of the electric field [V/m]
+    volScalarField Emag_;
+
+    //- Flux of the electric field [V * m2]
+    surfaceScalarField phiE_;
+
+    //- Dielectric permittivity [F/m]
     dimensionedScalar epsilon_;
 
-    PtrList<volScalarField> ePotentialDielectricList_;
-    PtrList<volVectorField> EDielectricList_;
-    PtrList<dimensionedScalar> epsilonDielectricList_;
+    //- Relative permittivity of the medium
+    scalar epsilonR_;
 
-    //--- Persistent Coupling State (Your Logic) ---
-    bool coupled_;
+    //- Numerical scheme (explicit vs semiImplicit)
+    word PoissonScheme_;
+
+    //- Pointer to transport model (can be nullptr)
+    const plasmaTransportModel* transportPtr_;
+
+    //- A ptr list for the dielectric regions
+    PtrList<dielectricRegion> dielectrics_;
+
+    //- A boolean to check if the main region is coupled with the dielectrics
+    Switch coupled_;
+
+    //- Matrix assembly for monolithic solve
     autoPtr<fvMatrix<scalar>> fvMatrixAssemblyPtr_;
+
+    //- Max iterations for segregated (non-coupled) loop
+    label maxNonCoupledIterations_;
+
+    //- Convergence tolerance for (non-coupled) segregated loop
+    scalar nonCoupledTolerance_;
 
 public:
 
-    TypeName("multiRegionPoissonModel");
+    //- Runtime type information
+    TypeName("multiRegionPoisson");
 
-    // FULL SIGNATURE
-    multiRegionPoissonModel
-    (
-        const dynamicFvMesh& mesh,
-        const UPtrList<dynamicFvMesh>& dielectricMeshes,
-        const plasmaSpecies& species,
-        const plasmaTransport& transport,
-        const dictionary& dict
-    );
+    // Constructors
 
-    virtual ~multiRegionPoissonModel() {}
+        //- Construct from meshes and species
+        multiRegionPoissonModel
+        (
+            const fvMesh& mesh,
+            const UPtrList<fvMesh>& dielectricMeshes,
+            const plasmaSpecies* species
+        );
 
-    virtual void solve() override;
+    //- Destructor
+    virtual ~multiRegionPoissonModel() = default;
 
-    virtual const volVectorField& E() const override
-    {
-        return E_;
-    }
+    // Member Functions
+
+        //- The implementation of the solve function
+        virtual void solve() override;
+
+        //- The implementation of the solve function for semiImplicit
+        virtual void solve(const plasmaTransportModel& transport) override;
+
+        //- Return the LHS of the Poisson equation
+        virtual tmp<fvScalarMatrix> PoissonMatrix() const;
+
+        //- Update the internal transport pointer
+        void setTransport(const plasmaTransportModel& transport)
+        {
+            transportPtr_ = &transport;
+        }
+
+    // Access
+
+        const volScalarField& ePotential() const override { return ePotential_;}
+        const volVectorField& E() const override { return E_; }
+        const volScalarField& Emag() const override { return Emag_; }
+        const surfaceScalarField& phiE() const override { return phiE_; }
+        const dimensionedScalar& epsilon() const override { return epsilon_; }
+        const scalar& epsilonR() const override { return epsilonR_; }
+
+        inline const PtrList<dielectricRegion>& dielectrics() const
+        {
+            return dielectrics_;
+        }
+        inline label nDielectrics() const
+        {
+            return dielectrics_.size();
+        }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

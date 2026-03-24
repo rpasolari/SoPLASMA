@@ -130,35 +130,34 @@ singleRegionPoissonModel::singleRegionPoissonModel
 
 void singleRegionPoissonModel::solve()
 {
-    if (PoissonScheme_ == "semiImplicit" && transportPtr_)
+    if (PoissonScheme_ == "semiImplicit" && transportPtr_ && hasPlasma())
     {
         this->solve(*transportPtr_);
+        return;
     }
-    else
+
+    fvScalarMatrix ePotentialEqn
+    (
+        fvm::laplacian(epsilon_, ePotential_)
+    );
+
+    if (hasPlasma())
     {
-        fvScalarMatrix ePotentialEqn
-        (
-            fvm::laplacian(epsilon_, ePotential_)
-        );
-
-        if (hasPlasma())
-        {
-            ePotentialEqn == -species().chargeDensity();
-        }
-
-        ePotentialEqn.solve();
-
-        E_ = -fvc::grad(ePotential_);
-        Emag_ = mag(E_);
-        phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+        ePotentialEqn == -species().chargeDensity();
     }
+
+    ePotentialEqn.solve();
+
+    E_ = -fvc::grad(ePotential_);
+    Emag_ = mag(E_);
+    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
 }
 
 void singleRegionPoissonModel::solve(const plasmaTransportModel& transport)
 {
     transportPtr_ = &transport;
 
-    if (!hasPlasma())
+    if (PoissonScheme_ == "explicit" || !hasPlasma())
     {
         this->solve();
         return;

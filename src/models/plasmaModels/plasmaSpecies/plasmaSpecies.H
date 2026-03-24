@@ -192,7 +192,7 @@ public:
         explicit plasmaSpecies(const fvMesh& mesh);
 
     //- Destructor
-    virtual ~plasmaSpecies() {}
+    virtual ~plasmaSpecies() = default;
 
     // Member functions
         

@@ -132,7 +132,7 @@ public:
 
 
     //- Destructor
-    virtual ~electromagneticsModel(){}
+    virtual ~electromagneticsModel() = default;
 
 
     // Member functions
