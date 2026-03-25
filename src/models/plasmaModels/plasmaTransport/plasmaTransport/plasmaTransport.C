@@ -6,15 +6,12 @@
   Description:
     Implementation of Foam::plasmaTransport.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
 #include "plasmaTransport.H"
-#include "plasmaTransportModel.H"
-#include "driftDiffusion.H"
-
 #include "plasmaProfiler.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -28,53 +25,55 @@ defineTypeNameAndDebug(plasmaTransport, 0);
 
 // * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * *  //
 
-void plasmaTransport::constructModels()
+void plasmaTransport::constructTransportModels()
 {
-    // Loop over species and create a transport model for each one
+    Info<< "Constructing plasma transport models" << endl;
+
+    // Loop over species and create its transport model
     for (label i = 0; i < species_.nSpecies(); ++i)
     {
-        const word& sName = species_.speciesNames()[i];
-        const dictionary& sDict = species_.speciesDict(sName);
+        const word& sName = species_.speciesName(i);
+        const dictionary& sDict = species_.speciesDict(i);
 
         if (!sDict.found("transportModel"))
         {
             FatalIOErrorInFunction(sDict)
                 << "Species '" << sName
                 << "' is missing required entry 'transportModel' in "
-                << species_.dictName() << nl
-                << exit(FatalIOError);
+                << species_.dictName() << nl << exit(FatalIOError);
         }
 
-        word modelName;
-        sDict.lookup("transportModel") >> modelName;
+        const word modelName(sDict.get<word>("transportModel"));
+        const word coeffsName(modelName + "Coeffs");
+        const dictionary& modelDict = sDict.subDict(coeffsName);
 
-        // Look for each species' transportModelCoeffs
-        const dictionary& modelDict = sDict.subDict("transportModelCoeffs");
-
-        // Construct the model using the runtime selection system
+        // Construct the model using the RTS
         transportModels_.set
         (
             i,
             plasmaTransportModel::New
             (
+                mesh_,
+                species_,
+                electromagnetics_,
+                i,
                 modelName,
-                modelDict, 
-                mesh_, 
-                species_, 
-                i, 
-                species_.E(),
-                species_.phiE()
+                modelDict
             )
         );
     }
+
+    Info << "    " << sName << ": transport model '" << modelName 
+            << "' successfully constructed." << endl;
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 plasmaTransport::plasmaTransport
 (
+    const fvMesh& mesh,
     plasmaSpecies& species,
-    const fvMesh& mesh
+    const electromagneticsModel& electromagnetics
 )
 :
     regIOobject
@@ -90,22 +89,16 @@ plasmaTransport::plasmaTransport
     ),
     mesh_(mesh),
     species_(species),
-    particleFlux_(),
-    k_eff_
-    (
-        IOobject("k_eff", mesh.time().timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
-        mesh,
-        dimensionedScalar(dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
-    ),
+    electromagnetics_(electromagnetics),
+    particleFlux_(species.nSpecies()),
     transportModels_(species.nSpecies())
 {
-    constructModels();
+    constructTransportModels();
 
     particleFlux_.setSize(species.nSpecies());
 
     for (const label i : species_.mobileSpeciesIDs())
     {
-        // Surface Scalar Field
         particleFlux_.set
         (
             i,

@@ -5,7 +5,7 @@ License
     The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025
+    Copyright (C) 2026
         Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
@@ -54,12 +54,15 @@ SourceFiles
 #include "PtrList.H"
 
 #include "plasmaSpecies.H"
-#include "plasmaTransportModel.H"
+#include "electromagneticsModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+
+// Forward declarations
+class plasmaTransportModel;
 
 /*---------------------------------------------------------------------------*\
                     Class plasmaTransport Declaration
@@ -71,27 +74,28 @@ class plasmaTransport
 {
 private:
 
+    //- Disallow copy
+    plasmaTransport(const plasmaTransport&) = delete;
+    void operator=(const plasmaTransport&) = delete;
+
+    //- Construct per-species transport models
+    void constructTransportModels();
+
+protected:
+
     //- Reference to mesh
     const fvMesh& mesh_;
 
     //- Reference to species database
     plasmaSpecies& species_;
 
-    //- Total particle surface Flux [1/s]
-    PtrList<surfaceScalarField> particleFlux_;
+    const electromagneticsModel& electromagnetics_;
 
-    //- Effective reaction rate field [1/s]
-    volScalarField k_eff_;
+    //- Total particle surface flux [1/s]
+    PtrList<surfaceScalarField> particleFlux_;
 
     //- Per-species transport models
     PtrList<plasmaTransportModel> transportModels_;
-
-    //- Disallow copying
-    plasmaTransport(const plasmaTransport&) = delete;
-    void operator=(const plasmaTransport&) = delete;
-
-    //- Construct per-species models
-    void constructModels();
 
 public:
 
@@ -100,20 +104,24 @@ public:
 
     // Constructors
 
-        //- Construct from plasmaSpecies and mesh
+        //- Construct from mesh, species and electromagnetics
         plasmaTransport
         (
+            const fvMesh& mesh,
             plasmaSpecies& species,
-            const fvMesh& mesh
+            electromagneticsModel& electromagnetics
         );
 
     //- Destructor
-    virtual ~plasmaTransport() {}
+    virtual ~plasmaTransport() = default;
 
     // Member functions
 
         //- Correct all models
-        void correct(const bool firstIter, const bool finalIter);
+        void correct();
+
+        //- Return the LHS matrix for a specific species
+        tmp<fvScalarMatrix> transportMatrix(const label i);
 
         //- Return total electrical conductivity [S/m]
         tmp<volScalarField> electricalConductivity() const;
@@ -121,26 +129,27 @@ public:
         //- Return total diffusive charge source [C/m^3/s]
         tmp<volScalarField> diffusiveChargeSource() const;
 
+        //- Return the per-species advective flux [m3/s]
+        tmp<surfaceScalarField> advectiveFlux(const label i) const;
+
         virtual bool writeData(Ostream& os) const;
 
     // Access
 
-        //- Mesh and species metadata access
+        //- Metadata access
         inline const fvMesh& mesh() const;
         inline const plasmaSpecies& species() const;
+        inline const electromagneticsModel& electromagnetics() const;
 
         //- Model access
         inline plasmaTransportModel& model(const label i);
         inline const plasmaTransportModel& model(const label i) const;
 
-        //- Total number flux access
+        //- Number fluxes access
         inline const surfaceScalarField& particleFlux(label i) const;
         inline surfaceScalarField& particleFlux(label i);
         inline const PtrList<surfaceScalarField>& particleFlux() const;
         inline PtrList<surfaceScalarField>& particleFlux();
-
-        //- Return the effective reaction rate field [1/s]
-        inline const volScalarField& k_eff() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

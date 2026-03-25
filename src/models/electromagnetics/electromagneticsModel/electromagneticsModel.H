@@ -41,7 +41,6 @@ SourceFiles
 #include "runTimeSelectionTables.H"
 
 #include "plasmaSpecies.H"
-#include "plasmaTransport.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -50,6 +49,7 @@ namespace Foam
 
 // Forward declarations
 class plasmaSpecies;
+class plasmaTransportModel;
 
 /*---------------------------------------------------------------------------*\
                     Class electromagneticsModel Declaration
@@ -133,7 +133,6 @@ public:
 
     //- Destructor
     virtual ~electromagneticsModel() = default;
-
 
     // Member functions
     

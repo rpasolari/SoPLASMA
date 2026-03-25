@@ -6,7 +6,7 @@
   Description:
       Inline member function definitions for the plasmaTransport class.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -16,7 +16,7 @@
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-//- Mesh and species metadata access
+//- Metadata access
 inline const Foam::fvMesh& 
 Foam::plasmaTransport::mesh() const
 {
@@ -28,7 +28,6 @@ Foam::plasmaTransport::species() const
 {
     return species_;
 }
-
 
 //- Model access
 inline Foam::plasmaTransportModel& 
@@ -43,7 +42,7 @@ Foam::plasmaTransport::model(const label i) const
     return transportModels_[i];
 }
 
-//- Total number flux access
+//- Number fluxes access
 inline const Foam::surfaceScalarField&
 Foam::plasmaTransport::particleFlux(Foam::label i) const
 {
@@ -66,12 +65,6 @@ inline Foam::PtrList<Foam::surfaceScalarField>&
 Foam::plasmaTransport::particleFlux()
 {
     return particleFlux_;
-}
-
-inline const Foam::volScalarField&
-Foam::plasmaTransport::k_eff() const
-{
-    return k_eff_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
