@@ -11,9 +11,11 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
+#include "addToRunTimeSelectionTable.H"
 #include "mappedPatchBase.H"
 
 #include "multiRegionPoissonModel.H"
+#include "plasmaTransport.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -92,6 +94,22 @@ multiRegionPoissonModel::multiRegionPoissonModel
             IOobject::NO_WRITE
         ),
         -fvc::snGrad(ePotential_) * mesh.magSf()
+    ),
+    reducedE_
+    (
+        IOobject
+        (
+            "reducedE",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        Emag_ 
+        / (
+            species->backgroundDensity()
+          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
+        )
     ),
     epsilon_
     (
@@ -361,10 +379,15 @@ void multiRegionPoissonModel::solve()
     E_.correctBoundaryConditions();
     Emag_ = mag(E_);
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+    reducedE_ = Emag_ / (
+            species().backgroundDensity()
+          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
+            );
+    reducedE_.correctBoundaryConditions();
     for (dielectricRegion& reg : dielectrics_) reg.updateE();
 }
 
-void multiRegionPoissonModel::solve(const plasmaTransportModel& transport)
+void multiRegionPoissonModel::solve(const plasmaTransport& transport)
 {
     transportPtr_ = &transport;
 
@@ -476,6 +499,11 @@ void multiRegionPoissonModel::solve(const plasmaTransportModel& transport)
     E_.correctBoundaryConditions();
     Emag_ = mag(E_);
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+    reducedE_ = Emag_ / (
+            species().backgroundDensity()
+          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
+            );
+    reducedE_.correctBoundaryConditions();
     for (dielectricRegion& reg : dielectrics_) reg.updateE();
 }
 

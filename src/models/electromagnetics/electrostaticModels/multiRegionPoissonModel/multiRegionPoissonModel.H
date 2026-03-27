@@ -101,6 +101,9 @@ protected:
     //- Flux of the electric field [V * m2]
     surfaceScalarField phiE_;
 
+    //- Reduced electric field [V * m2]
+    volScalarField reducedE_;
+
     //- Dielectric permittivity [F/m]
     dimensionedScalar epsilon_;
 
@@ -111,7 +114,7 @@ protected:
     word PoissonScheme_;
 
     //- Pointer to transport model (can be nullptr)
-    const plasmaTransportModel* transportPtr_;
+    const plasmaTransport* transportPtr_;
 
     //- A ptr list for the dielectric regions
     PtrList<dielectricRegion> dielectrics_;
@@ -152,13 +155,13 @@ public:
         virtual void solve() override;
 
         //- The implementation of the solve function for semiImplicit
-        virtual void solve(const plasmaTransportModel& transport) override;
+        virtual void solve(const plasmaTransport& transport) override;
 
         //- Return the LHS of the Poisson equation
         virtual tmp<fvScalarMatrix> PoissonMatrix() const;
 
         //- Update the internal transport pointer
-        void setTransport(const plasmaTransportModel& transport)
+        void setTransport(const plasmaTransport& transport)
         {
             transportPtr_ = &transport;
         }
@@ -169,6 +172,7 @@ public:
         const volVectorField& E() const override { return E_; }
         const volScalarField& Emag() const override { return Emag_; }
         const surfaceScalarField& phiE() const override { return phiE_; }
+        const volScalarField& reducedE() const override { return reducedE_; }
         const dimensionedScalar& epsilon() const override { return epsilon_; }
         const scalar& epsilonR() const override { return epsilonR_; }
 

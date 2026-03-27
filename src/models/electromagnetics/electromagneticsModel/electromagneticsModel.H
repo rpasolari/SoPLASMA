@@ -37,6 +37,13 @@ SourceFiles
 #define electromagneticsModel_H
 
 #include "fvMesh.H"
+#include "fvMatrices.H"
+#include "fvc.H"
+#include "fvm.H"
+#include "IOdictionary.H"
+#include "autoPtr.H"
+#include "volFields.H"
+#include "surfaceFields.H"
 #include "UPtrList.H"
 #include "runTimeSelectionTables.H"
 
@@ -49,7 +56,7 @@ namespace Foam
 
 // Forward declarations
 class plasmaSpecies;
-class plasmaTransportModel;
+class plasmaTransport;
 
 /*---------------------------------------------------------------------------*\
                     Class electromagneticsModel Declaration
@@ -140,7 +147,7 @@ public:
         virtual void solve() = 0;
 
         //- Solve taking into account the transport (for semiImplicit)
-        virtual void solve(const plasmaTransportModel& transport) = 0;
+        virtual void solve(const plasmaTransport& transport) = 0;
 
         //- Return the LHS of the Poisson equation (for implicit coupling)
         virtual tmp<fvScalarMatrix> PoissonMatrix() const = 0;
@@ -150,6 +157,7 @@ public:
         virtual const volVectorField& E() const = 0;
         virtual const volScalarField& Emag() const = 0;
         virtual const surfaceScalarField& phiE() const = 0;
+        virtual const volScalarField& reducedE() const = 0;
         virtual const dimensionedScalar& epsilon() const = 0;
         virtual const scalar& epsilonR() const = 0;
 

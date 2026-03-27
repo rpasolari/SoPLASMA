@@ -11,7 +11,10 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
+#include "addToRunTimeSelectionTable.H"
+
 #include "singleRegionPoissonModel.H"
+#include "plasmaTransport.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -92,6 +95,17 @@ singleRegionPoissonModel::singleRegionPoissonModel
         ),
         -fvc::snGrad(ePotential_) * mesh.magSf()
     ),
+    reducedE_
+    (
+        IOobject(...),
+        mesh,
+        dimensionedScalar
+        (
+            "zero",
+            dimensionSet(0, 1, -3, 0, 0, 0, 0), // same dims as E/N
+            0.0
+        )
+    ),
     epsilon_
     (
         "epsilon", 
@@ -100,6 +114,7 @@ singleRegionPoissonModel::singleRegionPoissonModel
     ),
     epsilonR_(1.0),
     PoissonScheme_("explicit"),
+    backgroundDensity_("N", dimensionSet(0, -3, 0, 0, 0, 0, 0), 0.0)
     transportPtr_(nullptr)
 {
     if (dielectricMeshes.size() > 0)
@@ -163,9 +178,14 @@ void singleRegionPoissonModel::solve()
     E_.correctBoundaryConditions();
     Emag_ = mag(E_);
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+    reducedE_ = Emag_ / (
+            species().backgroundDensity()
+          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
+            );
+    reducedE_.correctBoundaryConditions();
 }
 
-void singleRegionPoissonModel::solve(const plasmaTransportModel& transport)
+void singleRegionPoissonModel::solve(const plasmaTransport& transport)
 {
     transportPtr_ = &transport;
 
@@ -195,6 +215,11 @@ void singleRegionPoissonModel::solve(const plasmaTransportModel& transport)
     E_.correctBoundaryConditions();
     Emag_ = mag(E_);
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+    reducedE_ = Emag_ / (
+            species().backgroundDensity()
+          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
+            );
+    reducedE_.correctBoundaryConditions();
 }
 
 tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonMatrix() const
