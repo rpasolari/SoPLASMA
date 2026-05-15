@@ -1,0 +1,1 @@
+../plasmaTransportBcs/ddWallFluxMixed/ionDDWallFluxMixed/ionDDWallFluxMixedFvPatchScalarField.C

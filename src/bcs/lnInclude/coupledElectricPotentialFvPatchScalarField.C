@@ -1,1 +1,1 @@
-../coupledElectricPotential/coupledElectricPotentialFvPatchScalarField.C
+../electromagneticsBcs/coupledElectricPotential/coupledElectricPotentialFvPatchScalarField.C
