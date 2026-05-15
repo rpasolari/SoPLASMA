@@ -1,6 +1,6 @@
 # Dependencies
 
-This document lists all dependencies required or optionally used by the `foamPlasmaToolkit`, along with their purpose, importance, and the versions tested on the developer’s system.
+This document lists all dependencies required or optionally used by the `SoPLASMA`, along with their purpose, importance, and the versions tested on the developer’s system.
 
 ---
 
@@ -55,7 +55,7 @@ Some tutorials require additional software not needed by the core toolkit.
 
 ## 4. Python Dependencies
 
-Some utilities and post-processing scripts in the `foamPlasmaToolkit` rely on a small set of Python packages. These are optional and only needed if you plan to use the Python-based tools.
+Some utilities and post-processing scripts in the `SoPLASMA` rely on a small set of Python packages. These are optional and only needed if you plan to use the Python-based tools.
 
 ### Python Packages
 

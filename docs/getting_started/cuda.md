@@ -1,6 +1,6 @@
 # CUDA Toolkit Installation Guide
 
-The `foamPlasmaToolkit` can optionally be used on systems with **NVIDIA GPUs** to accelerate linear
+The `SoPLASMA` can optionally be used on systems with **NVIDIA GPUs** to accelerate linear
 algebra operations when PETSc is compiled with CUDA support.
 
 CUDA is **not required** for normal CPU-only builds.

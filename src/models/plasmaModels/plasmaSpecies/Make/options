@@ -9,4 +9,4 @@ EXE_LIBS = \
     -lfiniteVolume \
     -lmeshTools \
     -lOpenFOAM \
-    -lfoamPlasmaToolkitConstants
+    -lSoPLASMAConstants

@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: multiRegionPoissonModel.C
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -15,7 +15,6 @@
 #include "mappedPatchBase.H"
 
 #include "multiRegionPoissonModel.H"
-#include "plasmaTransport.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -32,97 +31,306 @@ addToRunTimeSelectionTable
     dictionary
 );
 
+// * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * * //
+
+void multiRegionPoissonModel::updateDerivedFields()
+{
+    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+
+    if (EScheme_ == "reconstruct")
+    {
+        E_ = fvc::reconstruct(phiE_);
+    }
+    else // "grad"
+    {
+        E_ = -fvc::grad(ePotential_);
+    }
+    E_.correctBoundaryConditions();
+
+    Emag_ = mag(E_);
+    Emag_.correctBoundaryConditions();
+
+    if (backgroundDensityFieldPtr_)
+    {
+        reducedE_ = Emag_ /
+            (
+                *backgroundDensityFieldPtr_
+              + dimensionedScalar
+                (
+                    "s",
+                    backgroundDensityUniform_.dimensions(),
+                    SMALL
+                )
+            );
+    }
+    else
+    {
+        reducedE_ = Emag_ /
+            (
+                backgroundDensityUniform_
+              + dimensionedScalar
+                (
+                    "s",
+                    backgroundDensityUniform_.dimensions(),
+                    SMALL
+                )
+            );
+    }
+    reducedE_.correctBoundaryConditions();
+
+    for (dielectricRegion& reg : dielectrics_)
+    {
+        reg.updateE();
+    }
+}
+
+void multiRegionPoissonModel::solveCoupled()
+{
+    Info<< "Solving for ePotential in non-coupled regions "
+        << "(monolithically)" << endl;
+
+    for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
+    {
+        fvScalarMatrix gasEqn(PoissonEquation());
+
+        fvMatrixAssemblyPtr_->addFvMatrix(gasEqn);
+
+        for (dielectricRegion& reg : dielectrics_)
+        {
+            fvMatrixAssemblyPtr_->addFvMatrix(reg.PoissonMatrix().ref());
+        }
+
+        fvMatrixAssemblyPtr_->solve();
+
+        ePotential_.correctBoundaryConditions();
+        for (dielectricRegion& reg : dielectrics_)
+        {
+            reg.ePotential().correctBoundaryConditions();
+        }
+
+        fvMatrixAssemblyPtr_->clear();
+    }
+}
+
+void multiRegionPoissonModel::solveCoupled
+(
+    const volScalarField& electricalConductivity,
+    const volScalarField& diffusiveChargeSource
+)
+{
+    Info<< "Solving for ePotential in non-coupled regions "
+        << "(monolithically)" << endl;
+
+    for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
+    {
+        fvScalarMatrix gasEqn
+        (
+            PoissonEquation(electricalConductivity, diffusiveChargeSource)
+        );
+
+        fvMatrixAssemblyPtr_->addFvMatrix(gasEqn);
+
+        for (dielectricRegion& reg : dielectrics_)
+        {
+            fvMatrixAssemblyPtr_->addFvMatrix(reg.PoissonMatrix().ref());
+        }
+
+        fvMatrixAssemblyPtr_->solve();
+
+        ePotential_.correctBoundaryConditions();
+        for (dielectricRegion& reg : dielectrics_)
+        {
+            reg.ePotential().correctBoundaryConditions();
+        }
+
+        fvMatrixAssemblyPtr_->clear();
+    }
+}
+
+void multiRegionPoissonModel::solveSegregated()
+{
+    Info<< "Solving for ePotential in non-coupled regions "
+        << "(segregated)" << endl;
+
+    for (int iter = 1; iter <= maxNonCoupledIterations_; ++iter)
+    {
+        if (maxNonCoupledIterations_ > 1)
+        {
+            Info<< "  -ePotential iteration (" << iter << "/"
+                << maxNonCoupledIterations_ << ")" << endl;
+        }
+
+        bool allOK = true;
+
+        for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
+        {
+            // Rebuild all equations each pass
+            fvScalarMatrix gasEqn(PoissonEquation());
+
+            if (nonOrth < nNonOrthCorr_)
+            {
+                gasEqn.relax();
+            }
+
+            Info<< "    -Solving for ePotential (gas region: "
+                << mesh_.name() << ")" << endl;
+
+            scalar resGas = gasEqn.solve().initialResidual();
+
+            if (nonOrth == nNonOrthCorr_)
+            {
+                if (resGas >= nonCoupledTolerance_) allOK = false;
+            }
+
+            for (dielectricRegion& reg : dielectrics_)
+            {
+                fvScalarMatrix dielEqn
+                (
+                    fvm::laplacian(reg.epsilon(), reg.ePotential())
+                );
+
+                if (nonOrth < nNonOrthCorr_)
+                {
+                    dielEqn.relax();
+                }
+
+                Info<< "    -Solving for ePotential (dielectric: "
+                    << reg.mesh().name() << ")" << endl;
+
+                scalar resDiel = dielEqn.solve().initialResidual();
+
+                if (nonOrth == nNonOrthCorr_)
+                {
+                    if (resDiel >= nonCoupledTolerance_) allOK = false;
+                }
+            }
+        }
+
+        if (allOK)
+        {
+            if (maxNonCoupledIterations_ > 1)
+            {
+                Info<< ">>> ePotential converged in " << iter
+                    << " iterations." << endl;
+            }
+            break;
+        }
+        else if (iter == maxNonCoupledIterations_)
+        {
+            Info<< ">>> WARNING: ePotential did NOT converge after "
+                << iter << " iterations." << endl;
+        }
+    }
+}
+
+void multiRegionPoissonModel::solveSegregated
+(
+    const volScalarField& electricalConductivity,
+    const volScalarField& diffusiveChargeSource
+)
+{
+    Info<< "Solving for ePotential in non-coupled regions "
+        << "(segregated)" << endl;
+
+    for (int iter = 1; iter <= maxNonCoupledIterations_; ++iter)
+    {
+        if (maxNonCoupledIterations_ > 1)
+        {
+            Info<< "  -ePotential iteration (" << iter << "/"
+                << maxNonCoupledIterations_ << ")" << endl;
+        }
+
+        bool allOK = true;
+
+        for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
+        {
+            // Rebuild augmented gas equation each pass
+            fvScalarMatrix gasEqn
+            (
+                PoissonEquation(electricalConductivity, diffusiveChargeSource)
+            );
+
+            if (nonOrth < nNonOrthCorr_)
+            {
+                gasEqn.relax();
+            }
+
+            Info<< "    -Solving for ePotential (gas region: "
+                << mesh_.name() << ")" << endl;
+
+            scalar resGas = gasEqn.solve().initialResidual();
+
+            if (nonOrth == nNonOrthCorr_)
+            {
+                if (resGas >= nonCoupledTolerance_) allOK = false;
+            }
+
+            for (dielectricRegion& reg : dielectrics_)
+            {
+                // Dielectric always uses Laplace (no source term)
+                fvScalarMatrix dielEqn
+                (
+                    fvm::laplacian(reg.epsilon(), reg.ePotential())
+                );
+
+                if (nonOrth < nNonOrthCorr_)
+                {
+                    dielEqn.relax();
+                }
+
+                Info<< "    -Solving for ePotential (dielectric: "
+                    << reg.mesh().name() << ")" << endl;
+
+                scalar resDiel = dielEqn.solve().initialResidual();
+
+                if (nonOrth == nNonOrthCorr_)
+                {
+                    if (resDiel >= nonCoupledTolerance_) allOK = false;
+                }
+            }
+        }
+
+        if (allOK)
+        {
+            if (maxNonCoupledIterations_ > 1)
+            {
+                Info<< ">>> ePotential converged in " << iter
+                    << " iterations." << endl;
+            }
+            break;
+        }
+        else if (iter == maxNonCoupledIterations_)
+        {
+            Info<< ">>> WARNING: ePotential did NOT converge after "
+                << iter << " iterations." << endl;
+        }
+    }
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 multiRegionPoissonModel::multiRegionPoissonModel
 (
     const fvMesh& mesh,
-    const UPtrList<fvMesh>& dielectricMeshes,
-    const plasmaSpecies* species
+    const UPtrList<fvMesh>& dielectricMeshes
 )
 :
-    electromagneticsModel(mesh, dielectricMeshes, species),
-    ePotential_
+    electromagneticsModel(mesh, dielectricMeshes),
+    EScheme_("reconstruct"),
+    PoissonScheme_("explicit"),
+    nNonOrthCorr_(0),
+    backgroundDensityUniform_
     (
-        IOobject
-        (
-            "ePotential", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::MUST_READ, 
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    ),
-    E_
-    (
-        IOobject
-        (
-            "E", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedVector
-        (
-            "zero", 
-            dimensionSet(1, 1, -3, 0, 0, -1, 0), 
-            vector::zero
-        )
-    ),
-    Emag_
-    (
-        IOobject
-        (
-            "Emag", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::NO_WRITE
-        ),
-        mag(E_)
-    ),
-    phiE_
-    (
-        IOobject
-        (
-            "phiE", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::NO_WRITE
-        ),
-        -fvc::snGrad(ePotential_) * mesh.magSf()
-    ),
-    reducedE_
-    (
-        IOobject
-        (
-            "reducedE",
-            mesh.time().timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        Emag_ 
-        / (
-            species->backgroundDensity()
-          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
-        )
-    ),
-    epsilon_
-    (
-        "epsilon", 
-        dimensionSet(-1, -3, 4, 0, 0, 2, 0), 
+        "backgroundDensity",
+        dimensionSet(0, -3, 0, 0, 0, 0, 0),
         0.0
     ),
-    epsilonR_(1.0),
-    PoissonScheme_("explicit"),
-    transportPtr_(nullptr),
+    backgroundDensityFieldPtr_(nullptr),
     dielectrics_(dielectricMeshes.size()),
     coupled_(false),
-    fvMatrixAssemblyPtr_(nullptr)
+    fvMatrixAssemblyPtr_(nullptr),
+    maxNonCoupledIterations_(100),
+    nonCoupledTolerance_(1e-6)
 {
     if (dielectricMeshes.size() == 0)
     {
@@ -145,20 +353,20 @@ multiRegionPoissonModel::multiRegionPoissonModel
     }
 
     const dictionary& coeffs(subDict(coeffsName));
+
     epsilonR_ = coeffs.get<scalar>("dielectricConstant");
     epsilon_ = epsilonR_ * constant::plasma::epsilon0;
 
-    PoissonScheme_ = coeffs.get<word>("PoissonScheme");
+    EScheme_ = coeffs.getOrDefault<word>("EScheme", "reconstruct");
+    if (EScheme_ != "grad" && EScheme_ != "reconstruct")
+    {
+        FatalIOErrorInFunction(coeffs)
+            << "Unknown EScheme '" << EScheme_ << "'." << nl
+            << "Valid options are: (grad | reconstruct)" << nl
+            << exit(FatalIOError);
+    }
 
-    const dictionary& nonCoupledResidualControl = 
-        coeffs.subOrEmptyDict("nonCoupledResidualControl");
-
-    maxNonCoupledIterations_ = 
-        nonCoupledResidualControl.getOrDefault<label>("maxIter", 100);
-
-    nonCoupledTolerance_ = 
-        nonCoupledResidualControl.getOrDefault<scalar>("tolerance", 1e-6);
-
+    PoissonScheme_ = coeffs.getOrDefault<word>("PoissonScheme", "explicit");
     if (PoissonScheme_ != "explicit" && PoissonScheme_ != "semiImplicit")
     {
         FatalIOErrorInFunction(coeffs)
@@ -167,6 +375,21 @@ multiRegionPoissonModel::multiRegionPoissonModel
             << exit(FatalIOError);
     }
 
+    nNonOrthCorr_ = coeffs.getOrDefault<label>("nNonOrthogonalCorrectors", 0);
+
+    backgroundDensityUniform_.value() =
+        coeffs.getOrDefault<scalar>("backgroundDensity", 2.5e25);
+
+    const dictionary& nonCoupledResidualControl =
+        coeffs.subOrEmptyDict("nonCoupledResidualControl");
+
+    maxNonCoupledIterations_ =
+        nonCoupledResidualControl.getOrDefault<label>("maxIter", 100);
+
+    nonCoupledTolerance_ =
+        nonCoupledResidualControl.getOrDefault<scalar>("tolerance", 1e-6);
+
+    // Build dielectric regions
     forAll(dielectricMeshes_, i)
     {
         const word& regionName = dielectricMeshes_[i].name();
@@ -174,7 +397,7 @@ multiRegionPoissonModel::multiRegionPoissonModel
         {
             FatalIOErrorInFunction(coeffs)
                 << "Region '" << regionName << "' not found in "
-                << coeffsName << " dictionary." << nl 
+                << coeffsName << " dictionary." << nl
                 << "Every dielectric mesh must have a corresponding "
                 << "sub-dictionary." << exit(FatalIOError);
         }
@@ -185,8 +408,9 @@ multiRegionPoissonModel::multiRegionPoissonModel
             i,
             new dielectricRegion(dielectricMeshes_[i], regionDict)
         );
-    }   
+    }
 
+    // Detect implicit coupling
     bool anyImplicit = false;
 
     forAll(ePotential_.boundaryField(), patchI)
@@ -217,9 +441,9 @@ multiRegionPoissonModel::multiRegionPoissonModel
     if (anyImplicit)
     {
         coupled_ = true;
-        Info<< "    Implicit coupling detected. "
-            << "Validating interface consistency..." << endl;
+        Info<< "    Implicit coupling detected." << endl;
 
+        // Validate all mapped patches are consistent
         forAll(ePotential_.boundaryField(), patchI)
         {
             const fvPatch& p = ePotential_.boundaryField()[patchI].patch();
@@ -228,7 +452,7 @@ multiRegionPoissonModel::multiRegionPoissonModel
              && !ePotential_.boundaryField()[patchI].useImplicit())
             {
                 FatalErrorInFunction
-                    << "Mixed coupling detected on patch '" << p.name() 
+                    << "Mixed coupling detected on patch '" << p.name()
                     << "'." << nl << "In Monolithic mode, ALL interface "
                     << "patches must set 'useImplicit true'." << nl
                     << exit(FatalError);
@@ -239,15 +463,15 @@ multiRegionPoissonModel::multiRegionPoissonModel
         {
             forAll(reg.ePotential().boundaryField(), patchI)
             {
-                const fvPatch& p = 
+                const fvPatch& p =
                     reg.ePotential().boundaryField()[patchI].patch();
 
                 if (isA<mappedPatchBase>(p)
                  && !reg.ePotential().boundaryField()[patchI].useImplicit())
                 {
                     FatalErrorInFunction
-                        << "Mixed coupling detected in region '" 
-                        << reg.mesh().name() << "' on patch '" << p.name() 
+                        << "Mixed coupling detected in region '"
+                        << reg.mesh().name() << "' on patch '" << p.name()
                         << "'." << nl << "All mapped patches must be "
                         << "consistent (all implicit or all explicit)."
                         << exit(FatalError);
@@ -268,7 +492,7 @@ multiRegionPoissonModel::multiRegionPoissonModel
     {
         coupled_ = false;
         Info<< "Regions are NOT coupled; ePotential will be solved in "
-            << "SEGREGATE way" << nl << endl;
+            << "SEGREGATED way" << nl << endl;
     }
 }
 
@@ -276,240 +500,105 @@ multiRegionPoissonModel::multiRegionPoissonModel
 
 void multiRegionPoissonModel::solve()
 {
-    if (PoissonScheme_ == "semiImplicit" && transportPtr_ && hasPlasma())
-    {
-        this->solve(*transportPtr_);
-        return;
-    }
-
     if (coupled_)
     {
-        Info<< "Solving for ePotential in coupled regions "
-            << "(monolithic region-based)" << endl;
-
-        fvScalarMatrix ePotentialGasEqn
-        (
-            fvm::laplacian(epsilon_, ePotential_)
-        );
-
-        if (hasPlasma())
-        {
-            ePotentialGasEqn == -species().chargeDensity();
-        }
-
-        fvMatrixAssemblyPtr_->addFvMatrix(ePotentialGasEqn);
-
-        for (dielectricRegion& reg : dielectrics_)
-        {
-           fvMatrixAssemblyPtr_->addFvMatrix(reg.PoissonMatrix().ref());
-        }
-
-        fvMatrixAssemblyPtr_->solve();
-
-        ePotential_.correctBoundaryConditions();
-        for (dielectricRegion& reg : dielectrics_)
-        {
-            reg.ePotential().correctBoundaryConditions();
-        }
-
-        fvMatrixAssemblyPtr_->clear();
+        solveCoupled();
     }
     else
     {
-        Info<< "Solving for ePotential in non-coupled regions "
-            << "(segregated region-based)" << endl;
-
-        for (int iter = 1; iter <= maxNonCoupledIterations_; ++iter)
-        {
-            if (maxNonCoupledIterations_ > 1)
-            {
-                Info<< "  -ePotential iteration (" << iter << "/" 
-                    << maxNonCoupledIterations_ << ")" << endl;
-            }
-
-            bool allOK = true;
-
-            fvScalarMatrix ePotentialGasEqn
-            (
-                fvm::laplacian(epsilon_, ePotential_)
-            );
-
-            if (hasPlasma())
-            {
-                ePotentialGasEqn == -species().chargeDensity();
-            }
-
-            Info<< "    -Solving for ePotential (gas region: " 
-                << mesh_.name() << ")" << endl;
-            scalar resGas = ePotentialGasEqn.solve().initialResidual();
-            if (resGas >= nonCoupledTolerance_) allOK = false;
-
-            for (dielectricRegion& reg : dielectrics_)
-            {
-                fvScalarMatrix ePotentialDielectricEqn
-                (
-                    fvm::laplacian(reg.epsilon(), reg.ePotential())
-                );
-
-                Info<< "    -Solving for ePotential (dielectric: " 
-                    << reg.mesh().name() << ")" << endl;
-                scalar resDiel =
-                              ePotentialDielectricEqn.solve().initialResidual();
-                if (resDiel >= nonCoupledTolerance_) allOK = false;
-            }
-
-            if (allOK)
-            {
-                if (maxNonCoupledIterations_ > 1)
-                {
-                    Info<< ">>> ePotential converged in " << iter 
-                        << " iterations." << endl;
-                }
-                break;
-            }
-            else if (iter == maxNonCoupledIterations_)
-            {
-                Info<< ">>> WARNING: ePotential did NOT converge after " 
-                    << iter << " iterations." << endl;
-            }
-        }
+        solveSegregated();
     }
 
-    E_ = -fvc::grad(ePotential_);
-    E_.correctBoundaryConditions();
-    Emag_ = mag(E_);
-    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
-    reducedE_ = Emag_ / (
-            species().backgroundDensity()
-          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
-            );
-    reducedE_.correctBoundaryConditions();
-    for (dielectricRegion& reg : dielectrics_) reg.updateE();
+    updateDerivedFields();
 }
 
-void multiRegionPoissonModel::solve(const plasmaTransport& transport)
-{
-    transportPtr_ = &transport;
 
-    if (PoissonScheme_ == "explicit" || !hasPlasma())
+void multiRegionPoissonModel::solve
+(
+    const volScalarField& electricalConductivity,
+    const volScalarField& diffusiveChargeSource
+)
+{
+    if (PoissonScheme_ == "explicit")
     {
         this->solve();
         return;
     }
 
-    const scalar deltaT = mesh_.time().deltaTValue();
-    const volScalarField& chargeDensity = species().chargeDensity();
-
     if (coupled_)
     {
-        Info<< "Solving for ePotential in coupled regions "
-            << "(monolithic region-based)" << endl;
-
-        fvScalarMatrix ePotentialGasEqn
-        (
-            fvm::laplacian
-            (
-                epsilon_ + deltaT * transport.electricalConductivity(),
-                ePotential_
-            )
-        ==
-            -chargeDensity - deltaT * transport.diffusiveChargeSource()
-        );
-
-        fvMatrixAssemblyPtr_->addFvMatrix(ePotentialGasEqn);
-
-        for (dielectricRegion& reg : dielectrics_)
-        {
-            fvMatrixAssemblyPtr_->addFvMatrix(reg.PoissonMatrix().ref());
-        }
-
-        fvMatrixAssemblyPtr_->solve();
-
-        ePotential_.correctBoundaryConditions();
-        for (dielectricRegion& reg : dielectrics_)
-        {
-            reg.ePotential().correctBoundaryConditions();
-        }
-
-        fvMatrixAssemblyPtr_->clear();
+        solveCoupled(electricalConductivity, diffusiveChargeSource);
     }
     else
     {
-        Info<< "Solving for ePotential in non-coupled regions "
-            << "(segregated region-based)" << endl;
+        solveSegregated(electricalConductivity, diffusiveChargeSource);
+    }
 
-        for (int iter = 1; iter <= maxNonCoupledIterations_; ++iter)
+    updateDerivedFields();
+}
+
+
+tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonLHSMatrix() const
+{
+    return fvm::laplacian(epsilon_, ePotential_);
+}
+
+
+tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonEquation() const
+{
+    tmp<fvScalarMatrix> tEqn = PoissonLHSMatrix();
+
+    tEqn.ref() == -chargeDensity_;
+
+    return tEqn;
+}
+
+
+tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonEquation
+(
+    const volScalarField& electricalConductivity,
+    const volScalarField& diffusiveChargeSource
+) const
+{
+    const scalar deltaT = mesh_.time().deltaTValue();
+
+    tmp<fvScalarMatrix> tEqn = fvm::laplacian
+    (
+        epsilon_ + deltaT * electricalConductivity,
+        ePotential_
+    );
+
+    tEqn.ref() == -chargeDensity_ - deltaT * diffusiveChargeSource;
+
+    return tEqn;
+}
+
+
+const dielectricRegion& multiRegionPoissonModel::dielectric
+(
+    const word& name
+) const
+{
+    forAll(dielectrics_, i)
+    {
+        if (dielectrics_[i].mesh().name() == name)
         {
-            if (maxNonCoupledIterations_ > 1)
-            {
-                Info<< "  -ePotential iteration (" << iter << "/" 
-                    << maxNonCoupledIterations_ << ")" << endl;
-            }
-
-            bool allOK = true;
-
-            fvScalarMatrix ePotentialGasEqn
-            (
-                fvm::laplacian
-                (
-                    epsilon_ + deltaT * transport.electricalConductivity(),
-                    ePotential_
-                )
-            ==
-                -chargeDensity - deltaT * transport.diffusiveChargeSource()
-            );
-
-            Info<< "    -Solving for ePotential (gas region: " 
-                << mesh_.name() << ")" << endl;
-            scalar resGas = ePotentialGasEqn.solve().initialResidual();
-            if (resGas >= nonCoupledTolerance_) allOK = false;
-
-            for (dielectricRegion& reg : dielectrics_)
-            {
-                fvScalarMatrix ePotentialDielectricEqn
-                (
-                    fvm::laplacian(reg.epsilon(), reg.ePotential())
-                );
-
-                Info<< "    -Solving for ePotential (dielectric: " 
-                    << reg.mesh().name() << ")" << endl;
-                scalar resDiel =
-                              ePotentialDielectricEqn.solve().initialResidual();
-                if (resDiel >= nonCoupledTolerance_) allOK = false;
-            }
-
-            if (allOK)
-            {
-                if (maxNonCoupledIterations_ > 1)
-                {
-                    Info<< ">>> ePotential converged in " << iter 
-                        << " iterations." << endl;
-                }
-                break;
-            }
-            else if (iter == maxNonCoupledIterations_)
-            {
-                Info<< ">>> WARNING: ePotential did NOT converge after " 
-                    << iter << " iterations." << endl;
-            }
+            return dielectrics_[i];
         }
     }
 
-    E_ = -fvc::grad(ePotential_);
-    E_.correctBoundaryConditions();
-    Emag_ = mag(E_);
-    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
-    reducedE_ = Emag_ / (
-            species().backgroundDensity()
-          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
-            );
-    reducedE_.correctBoundaryConditions();
-    for (dielectricRegion& reg : dielectrics_) reg.updateE();
-}
+    wordList availableNames(dielectrics_.size());
+    forAll(dielectrics_, i)
+    {
+        availableNames[i] = dielectrics_[i].mesh().name();
+    }
 
-tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonMatrix() const
-{    
-    return fvm::laplacian(epsilon_, ePotential_);
+    FatalErrorInFunction
+        << "Dielectric region '" << name << "' not found." << nl
+        << "Available: " << availableNames << nl
+        << exit(FatalError);
+
+    return dielectrics_[0]; // unreachable
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

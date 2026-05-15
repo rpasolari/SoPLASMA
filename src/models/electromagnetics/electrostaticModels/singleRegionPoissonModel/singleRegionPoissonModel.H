@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
 License
-    This file is part of the foamPlasmaToolkit.
+    This file is part of the SoPLASMA.
 
-    The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
+    The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
     Copyright (C) 2026
@@ -25,29 +25,17 @@ Class
     Foam::singleRegionPoissonModel
     
 Description
-    A Poisson equation solver for electrostatic potential in a single 
-    mesh region.
+    Poisson equation solver for the electrostatic potential in a single
+    mesh region (gas only, no dielectrics).
 
-    Solves the Poisson equation for the electric potential:
+    Solves:
+        ∇·(ε∇φ) = -ρ_e                          (explicit)
+        ∇·((ε + Δt·σ)∇φ) = -ρ_e - Δt·S_diff    (semi-implicit)
 
-        ∇·(ε∇φ) = -ρ_e
-
-    where ε is the permittivity and ρ_e is the charge density.
-
-    The model also supports a semi-implicit numerical scheme. By coupling with 
-    a plasmaTransportModel, it includes the electrical conductivity (sigma) in 
-    the Laplacian operator:
-
-        ∇·((ε + Δt·σ)∇φ) = -ρ_e - Δt·S_diff
-
-    where:
-        - Δt is the time step
-        - σ is the electrical conductivity (Σ |q_i| * mu_i * n_i)
-        - S_diff is the diffusive charge source (∇·Σ q_i * D_i * ∇n_i)
-
-    This model can be initialized with or without a plasmaSpecies object. 
-    If no plasmaSpecies is provided, the model defaults to solving the 
-    pure electrostatic Laplace equation (∇²φ = 0) within the region.
+    chargeDensity and surfCharge are inherited from the base class. The
+    calling solver updates them via mutable references before each solve.
+    Conductivity and diffusive source are passed as arguments since they
+    are purely transport quantities with no reason to persist.
 
 SourceFiles
     singleRegionPoissonModel.C
@@ -78,37 +66,25 @@ private:
     singleRegionPoissonModel(const singleRegionPoissonModel&) = delete;
     void operator=(const singleRegionPoissonModel&) = delete;
 
+    //- Update E, Emag, phiE, and reducedE from ePotential
+    void updateDerivedFields();
+
 protected:
 
-    //- Electric potential field [V]
-    volScalarField ePotential_;
-
-    //- Electric field [V/m]
-    volVectorField E_;
-
-    //- Magnitude of the electric field [V/m]
-    volScalarField Emag_;
-
-    //- Flux of the electric field [V * m2]
-    surfaceScalarField phiE_;
-
-    //- Reduced electric field [V * m2]
-    volScalarField reducedE_;
-
-    //- Dielectric permittivity [F/m]
-    dimensionedScalar epsilon_;
-
-    //- Relative permittivity of the medium
-    scalar epsilonR_;
+    //- Numerical scheme for computing E
+    word EScheme_;
 
     //- Numerical scheme (explicit vs semiImplicit)
     word PoissonScheme_;
 
-    //- The bacground gas density for reducedE calculations [1/m3]
-    dimensionedScalar backgroundDensity_;
+    //- Number of non-orthogonal corrector passes
+    label nNonOrthCorr_;
 
-    //- Pointer to transport model (can be nullptr)
-    const plasmaTransport* transportPtr_;
+    //- Uniform background gas density for reducedE calculations [1/m3]
+    dimensionedScalar backgroundDensityUniform_;
+
+    //- Pointer to spatially varying background density
+    const volScalarField* backgroundDensityFieldPtr_;
 
 public:
 
@@ -117,43 +93,60 @@ public:
 
     // Constructors
 
-        //- Construct from meshes and species
+        //- Construct from meshes
         singleRegionPoissonModel
         (
             const fvMesh& mesh,
-            const UPtrList<fvMesh>& dielectricMeshes,
-            const plasmaSpecies* species
+            const UPtrList<fvMesh>& dielectricMeshes
         );
 
     //- Destructor
     virtual ~singleRegionPoissonModel() = default;
 
-    // Member Functions
+    // Solve Functions
 
-        //- The implementation of the solve function
+        //- Solve Poisson equation (for explicit Poisson)
         virtual void solve() override;
 
-        //- The implementation of the solve function for semiImplicit
-        virtual void solve(const plasmaTransport& transport) override;
+        //- Solve semi-implicit Poisson equation (for semiImplicit Poisson)
+        virtual void solve
+        (
+            const volScalarField& electricalConductivity,
+            const volScalarField& diffusiveChargeSource
+        ) override;
 
-        //- Return the LHS of the Poisson equation
-        virtual tmp<fvScalarMatrix> PoissonMatrix() const;
+    // Matrix access
 
-        //- Update the internal transport pointer
-        void setTransport(const plasmaTransport& transport)
+        //- Return the LHS Poisson matrix: fvm::laplacian(ε, φ) (explicit)
+        virtual tmp<fvScalarMatrix> PoissonLHSMatrix() const override;
+
+        //- Return the Poisson equation (explicit Poisson)
+        virtual tmp<fvScalarMatrix> PoissonEquation() const override;
+
+        //- Return the semi-implicit Poisson equation (semi-implicit Poisson)
+        virtual tmp<fvScalarMatrix> PoissonEquation
+        (
+            const volScalarField& electricalConductivity,
+            const volScalarField& diffusiveChargeSource
+        ) const override;
+
+    // Configuration
+
+        //- Set uniform background density for reducedE
+        void setBackgroundDensity(const dimensionedScalar& N)
         {
-            transportPtr_ = &transport;
+            backgroundDensityUniform_ = N;
+            backgroundDensityFieldPtr_ = nullptr;
         }
 
-    // Access
+        //- Set spatially varying background density for reducedE
+        void setBackgroundDensity(const volScalarField& N)
+        {
+            backgroundDensityFieldPtr_ = &N;
+        }
 
-        const volScalarField& ePotential() const override { return ePotential_;}
-        const volVectorField& E() const override { return E_; }
-        const volScalarField& Emag() const override { return Emag_; }
-        const surfaceScalarField& phiE() const override { return phiE_; }
-        const volScalarField& reducedE() const override { return reducedE_; }
-        const dimensionedScalar& epsilon() const override { return epsilon_; }
-        const scalar& epsilonR() const override { return epsilonR_; }
+        //- Return the Poisson scheme
+        const word& PoissonScheme() const { return PoissonScheme_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -1,1 +1,0 @@
-../plasmaEnergyModels/localEnergyEnergyModel/localEnergyEnergyModel.H

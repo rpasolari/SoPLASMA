@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
 License
-    This file is part of the foamPlasmaToolkit.
+    This file is part of the SoPLASMA.
 
-    The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
+    The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
     Copyright (C) 2025
@@ -48,7 +48,7 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 
-#include "foamPlasmaToolkitConstants.H"
+#include "SoPLASMAConstants.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

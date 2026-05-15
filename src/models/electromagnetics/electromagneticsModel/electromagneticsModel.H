@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
 License
-    This file is part of the foamPlasmaToolkit.
+    This file is part of the SoPLASMA.
 
-    The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
+    The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
     Copyright (C) 2026
@@ -27,6 +27,17 @@ Class
 Description
     Abstract base class for electromagnetic and electrostatic field solvers.
 
+    Owns all fields common to plasma EM models: electric potential, electric
+    field, charge density, and surface charge. These are persistent, registered
+    in the mesh registry, and read from disk where present.
+
+    For pure electrostatic runs, chargeDensity and surfCharge are zero or
+    read from disk and never modified. For plasma runs, the calling solver
+    updates them via mutable references before each solve.
+
+    The class has no knowledge of plasma species or transport models.
+    Conductivity and diffusive sources are passed as raw fields by the solver.
+
 SourceFiles
     electromagneticsModelI.H
     electromagneticsModel.C
@@ -47,16 +58,12 @@ SourceFiles
 #include "UPtrList.H"
 #include "runTimeSelectionTables.H"
 
-#include "plasmaSpecies.H"
+#include "SoPLASMAConstants.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// Forward declarations
-class plasmaSpecies;
-class plasmaTransport;
 
 /*---------------------------------------------------------------------------*\
                     Class electromagneticsModel Declaration
@@ -80,8 +87,32 @@ protected:
     //- Reference to the list of dielectric meshes
     const UPtrList<fvMesh>& dielectricMeshes_;
 
-    //- Pointer to plasma species
-    const plasmaSpecies* speciesPtr_;
+    //- Electric potential field [V]
+    volScalarField ePotential_;
+
+    //- Electric field [V/m]
+    volVectorField E_;
+
+    //- Magnitude of the electric field [V/m]
+    volScalarField Emag_;
+
+    //- Flux of the electric field [V * m2]
+    surfaceScalarField phiE_;
+
+    //- Reduced electric field [V * m2]
+    volScalarField reducedE_;
+
+    //- Voumetric charge density in the gas region [C/m3]
+    volScalarField chargeDensity_;
+
+    //- Surface charge density (owned by gas) [C/m2]
+    volScalarField surfCharge_;
+
+    //- Dielectric permittivity in the gas region [F/m]
+    dimensionedScalar epsilon_;
+
+    //- Relative permittivity of the medium (gas region)
+    scalar epsilonR_;
 
 public:
 
@@ -96,24 +127,15 @@ public:
         dictionary,
         (
             const fvMesh& mesh,
-            const UPtrList<fvMesh>& dielectricMeshes,
-            const plasmaSpecies* species
+            const UPtrList<fvMesh>& dielectricMeshes
         ),
-        (mesh, dielectricMeshes, species)
+        (mesh, dielectricMeshes)
     );
 
 
     // Constructors
 
-        //- Construct from meshes and species
-        electromagneticsModel
-        (
-            const fvMesh& mesh,
-            const UPtrList<fvMesh>& dielectricMeshes,
-            const plasmaSpecies* species
-        );
-
-        //- Construct from meshes only
+        //- Construct from meshes
         electromagneticsModel
         (
             const fvMesh& mesh,
@@ -122,46 +144,59 @@ public:
 
     // Selectors
     
-        //- Selector for meshes and species
-        static autoPtr<electromagneticsModel> New
-        (
-            const fvMesh& mesh,
-            const UPtrList<fvMesh>& dielectricMeshes,
-            const plasmaSpecies* species
-        );
-
-        //- Selector for meshes only
+        //- Selector
         static autoPtr<electromagneticsModel> New
         (
             const fvMesh& mesh,
             const UPtrList<fvMesh>& dielectricMeshes
         );
 
-
     //- Destructor
     virtual ~electromagneticsModel() = default;
 
-    // Member functions
+    // Solve functions
     
-        //- Solve the electromagnetics
+        //- Solve Poisson equation (for explicit Poisson)
         virtual void solve() = 0;
 
-        //- Solve taking into account the transport (for semiImplicit)
-        virtual void solve(const plasmaTransport& transport) = 0;
+        //- Solve semi-implicit Poisson equation (for semiImplicit Poisson)
+        virtual void solve
+        (
+            const volScalarField& electricalConductivity,
+            const volScalarField& diffusiveChargeSource
+        ) = 0;
 
-        //- Return the LHS of the Poisson equation (for implicit coupling)
-        virtual tmp<fvScalarMatrix> PoissonMatrix() const = 0;
+    // Matrix access
+    
+        //- Return the LHS Poisson matrix: fvm::laplacian(ε, φ) (explicit)
+        virtual tmp<fvScalarMatrix> PoissonLHSMatrix() const = 0;
 
-    // Virtual getters
-        virtual const volScalarField& ePotential() const = 0;
-        virtual const volVectorField& E() const = 0;
-        virtual const volScalarField& Emag() const = 0;
-        virtual const surfaceScalarField& phiE() const = 0;
-        virtual const volScalarField& reducedE() const = 0;
-        virtual const dimensionedScalar& epsilon() const = 0;
-        virtual const scalar& epsilonR() const = 0;
+        //- Return the Poisson equation (explicit Poisson)
+        virtual tmp<fvScalarMatrix> PoissonEquation() const = 0;
 
-    // Access
+        //- Return the semi-implicit Poisson equation (semi-implicit Poisson)
+        virtual tmp<fvScalarMatrix> PoissonEquation
+        (
+            const volScalarField& electricalConductivity,
+            const volScalarField& diffusiveChargeSource
+        ) const = 0;
+
+    // Field access
+    
+        const volScalarField& ePotential() const { return ePotential_; }
+        const volVectorField& E() const { return E_; }
+        const volScalarField& Emag() const { return Emag_; }
+        const surfaceScalarField& phiE() const { return phiE_; }
+        const volScalarField& reducedE() const { return reducedE_; }
+        const volScalarField& chargeDensity() const { return chargeDensity_; }
+        volScalarField& chargeDensity() { return chargeDensity_; }
+        const volScalarField& surfCharge() const { return surfCharge_; }
+        volScalarField& surfCharge() { return surfCharge_; }
+        const dimensionedScalar& epsilon() const { return epsilon_; }
+        scalar epsilonR() const { return epsilonR_; }
+
+
+    // Mesh and dictionary access
 
         //- Access to the main mesh
         inline const fvMesh& mesh() const;
@@ -171,12 +206,6 @@ public:
 
         //- Access to the dictionary
         inline const dictionary& dict() const;
-
-        //- Check if plasma data is available
-        inline bool hasPlasma() const;
-
-        //- Safe access to plasma species (Fatal error if !hasPlasma)
-        inline const plasmaSpecies& species() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -1,1 +1,0 @@
-../plasmaEnergyModels/isothermalEnergyModel/isothermalEnergyModel.H

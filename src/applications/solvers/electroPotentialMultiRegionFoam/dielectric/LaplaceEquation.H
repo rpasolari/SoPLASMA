@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: LaplaceEquation.H
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:

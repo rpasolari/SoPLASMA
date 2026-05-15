@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
 License
-    This file is part of the foamPlasmaToolkit.
+    This file is part of the SoPLASMA.
 
-    The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
+    The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
     Copyright (C) 2026
@@ -25,37 +25,24 @@ Class
     Foam::multiRegionPoissonModel
     
 Description
-    A multi-region Poisson equation solver for electrostatic potential in 
-    multiple domains (gas and dielectric regions).
+    Poisson equation solver for the electrostatic potential in multiple
+    domains (gas + dielectric regions).
 
-    In the gas/plasma region, it solves the Poisson equation:
-        ∇·(ε∇φ) = -ρ_e
-    In the dielectric regions, it solves the Laplace equation:
+    In the gas/plasma region:
+        ∇·(ε∇φ) = -ρ_e                          (explicit)
+        ∇·((ε + Δt·σ)∇φ) = -ρ_e - Δt·S_diff    (semi-implicit)
+
+    In each dielectric region:
         ∇·(ε∇φ) = 0
 
-    where ε is the permittivity and ρ_e is the charge density.
+    Supports two coupling architectures:
+        - Monolithic: all regions in a single global matrix.
+          Requires 'useImplicit true' on mapped patches.
+        - Segregated: regions solved iteratively until convergence.
 
-    The model supports two coupling architectures:
-        - Monolithic (coupled): Solves all regions simultaneously in a single 
-          global matrix. Requires 'useImplicit true' on mapped patches.
-        - Segregated (non-coupled): Solves regions iteratively, using 
-          residual-based convergence control to synchronize potentials at 
-          interfaces.
-
-    The model also supports a semi-implicit numerical scheme. By coupling with 
-    a plasmaTransportModel, it includes the electrical conductivity (sigma) in 
-    the Laplacian operator:
-
-        ∇·((ε + Δt·σ)∇φ) = -ρ_e - Δt·S_diff
-
-    where:
-        - Δt is the time step
-        - σ is the electrical conductivity (Σ |q_i| * mu_i * n_i)
-        - S_diff is the diffusive charge source (∇·Σ q_i * D_i * ∇n_i)
-
-    This model can be initialized with or without a plasmaSpecies object. 
-    If no plasmaSpecies is provided, the model defaults to solving the 
-    pure electrostatic Laplace equation (∇²φ = 0) within the gas region.
+    chargeDensity and surfCharge (gas side) are inherited from the base.
+    Each dielectricRegion owns its own surfCharge for the dielectric side
+    of the interface.
 
 SourceFiles
     multiRegionPoissonModel.C
@@ -87,34 +74,46 @@ private:
     multiRegionPoissonModel(const multiRegionPoissonModel&) = delete;
     void operator=(const multiRegionPoissonModel&) = delete;
 
+    //- Update E, Emag, phiE, and reducedE from ePotential
+    void updateDerivedFields();
+
+    //- Monolithic solve (explicit Poisson))
+    void solveCoupled();
+
+    //- Monolithic solve (semi-implicit Poisson)
+    void solveCoupled
+    (
+        const volScalarField& electricalConductivity,
+        const volScalarField& diffusiveChargeSource
+    );
+
+    //- Segregated solve (explicit Poisson)
+    void solveSegregated();
+
+    //- Segregated solve (semi-implicit Poisson)
+    void solveSegregated
+    (
+        const volScalarField& electricalConductivity,
+        const volScalarField& diffusiveChargeSource
+    );
+
+
 protected:
-   
-    //- Electric potential field [V]
-    volScalarField ePotential_;
 
-    //- Electric field [V/m]
-    volVectorField E_;
-
-    //- Magnitude of the electric field [V/m]
-    volScalarField Emag_;
-
-    //- Flux of the electric field [V * m2]
-    surfaceScalarField phiE_;
-
-    //- Reduced electric field [V * m2]
-    volScalarField reducedE_;
-
-    //- Dielectric permittivity [F/m]
-    dimensionedScalar epsilon_;
-
-    //- Relative permittivity of the medium
-    scalar epsilonR_;
+    //- Numerical scheme for computing E ("grad" or "reconstruct")
+    word EScheme_;
 
     //- Numerical scheme (explicit vs semiImplicit)
     word PoissonScheme_;
 
-    //- Pointer to transport model (can be nullptr)
-    const plasmaTransport* transportPtr_;
+    //- Number of non-orthogonal corrector passes
+    label nNonOrthCorr_;
+
+    //- Uniform background gas density for reducedE calculations [1/m3]
+    dimensionedScalar backgroundDensityUniform_;
+
+    //- Pointer to spatially varying background density (not owned)
+    const volScalarField* backgroundDensityFieldPtr_;
 
     //- A ptr list for the dielectric regions
     PtrList<dielectricRegion> dielectrics_;
@@ -138,51 +137,85 @@ public:
 
     // Constructors
 
-        //- Construct from meshes and species
+        //- Construct from meshes
         multiRegionPoissonModel
         (
             const fvMesh& mesh,
-            const UPtrList<fvMesh>& dielectricMeshes,
-            const plasmaSpecies* species
+            const UPtrList<fvMesh>& dielectricMeshes
         );
 
     //- Destructor
     virtual ~multiRegionPoissonModel() = default;
 
-    // Member Functions
+    // Solve
 
-        //- The implementation of the solve function
+        //- Solve Poisson equation (for explicit Poisson)
         virtual void solve() override;
 
-        //- The implementation of the solve function for semiImplicit
-        virtual void solve(const plasmaTransport& transport) override;
+        //- Solve semi-implicit Poisson equation (for semiImplicit Poisson)
+        virtual void solve
+        (
+            const volScalarField& electricalConductivity,
+            const volScalarField& diffusiveChargeSource
+        ) override;
 
-        //- Return the LHS of the Poisson equation
-        virtual tmp<fvScalarMatrix> PoissonMatrix() const;
+    // Matrix access
 
-        //- Update the internal transport pointer
-        void setTransport(const plasmaTransport& transport)
+        //- Return the LHS Poisson matrix: fvm::laplacian(ε, φ) (explicit)
+        virtual tmp<fvScalarMatrix> PoissonLHSMatrix() const override;
+
+        //- Return the Poisson equation (explicit Poisson)
+        virtual tmp<fvScalarMatrix> PoissonEquation() const override;
+
+        //- Return the semi-implicit Poisson equation (semi-implicit Poisson)
+        virtual tmp<fvScalarMatrix> PoissonEquation
+        (
+            const volScalarField& electricalConductivity,
+            const volScalarField& diffusiveChargeSource
+        ) const override;
+
+    // Configuration
+
+        //- Set uniform background density for reducedE
+        void setBackgroundDensity(const dimensionedScalar& N)
         {
-            transportPtr_ = &transport;
+            backgroundDensityUniform_ = N;
+            backgroundDensityFieldPtr_ = nullptr;
         }
 
-    // Access
-
-        const volScalarField& ePotential() const override { return ePotential_;}
-        const volVectorField& E() const override { return E_; }
-        const volScalarField& Emag() const override { return Emag_; }
-        const surfaceScalarField& phiE() const override { return phiE_; }
-        const volScalarField& reducedE() const override { return reducedE_; }
-        const dimensionedScalar& epsilon() const override { return epsilon_; }
-        const scalar& epsilonR() const override { return epsilonR_; }
-
-        inline const PtrList<dielectricRegion>& dielectrics() const
+        //- Set spatially varying background density for reducedE
+        void setBackgroundDensity(const volScalarField& N)
         {
-            return dielectrics_;
+            backgroundDensityFieldPtr_ = &N;
         }
-        inline label nDielectrics() const
-        {
-            return dielectrics_.size();
+
+        //- Return the Poisson scheme
+        const word& PoissonScheme() const { return PoissonScheme_; }
+
+    // Dielectric access
+    
+        //- Dielectric regions container access
+        inline const PtrList<dielectricRegion>& dielectrics() const 
+        { 
+            return dielectrics_; 
+        }
+        inline label nDielectrics() const { return dielectrics_.size(); }
+
+        //- Access specific dielectric region (by index or name)
+        inline const dielectricRegion& dielectric(const label i) const 
+        { 
+            return dielectrics_[i]; 
+        }
+        const dielectricRegion& dielectric(const word& name) const;
+
+        //- Access specific dielectric permittivity (by index or name)
+        inline const dimensionedScalar& epsilon(const label i) const 
+        { 
+            return dielectrics_[i].epsilon(); 
+        }
+        inline const dimensionedScalar& epsilon(const word& name) const 
+        { 
+            return dielectric(name).epsilon(); 
         }
 };
 

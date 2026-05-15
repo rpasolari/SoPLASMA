@@ -1,6 +1,6 @@
-# How to use AMR in the foamPlasmaToolkit
+# How to use AMR in the SoPLASMA
 
-In **foamPlasmaToolkit**, the **blastAMR** library has been incorporated for effective Adaptive Mesh Refinement. The `blastAMR` library comes directly with the toolkit in the `ThirdParty` directory. 
+In **SoPLASMA**, the **blastAMR** library has been incorporated for effective Adaptive Mesh Refinement. The `blastAMR` library comes directly with the toolkit in the `ThirdParty` directory. 
 
 > ⚠️ **IMPORTANT:**
 > You **must** use the version provided in the `ThirdParty` directory, as specific modifications have been applied to ensure compatibility with the toolkit.
@@ -22,7 +22,7 @@ Implementing AMR with `blastAMR` requires editing several files. In multi-region
 ---
 
 ## The dynamicMeshDict File
-This file controls the core AMR options. A typical configuration for `foamPlasmaToolkit` using a coded error estimator based on electron density ($n_e$) is shown below:
+This file controls the core AMR options. A typical configuration for `SoPLASMA` using a coded error estimator based on electron density ($n_e$) is shown below:
 
 ```cpp
 FoamFile

@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: petscSolver.C
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -10,7 +10,7 @@
     The original petsc4foam module provides the PETSc–OpenFOAM coupling
     framework and was developed and maintained by its contributors listed below.
 
-    This foamPlasmaToolkit version introduces additional functionality enabling
+    This SoPLASMA version introduces additional functionality enabling
     **implicit (monolithic) multi-region coupling**, allowing tightly coupled
     regions to be solved within a single PETSc linear system.
 
@@ -1037,7 +1037,7 @@ void Foam::petscSolver::buildMat
     else
     {
     FatalErrorInFunction
-        << "foamPlasmaToolkit: Only COO assembly is supported." << nl
+        << "SoPLASMA: Only COO assembly is supported." << nl
         << exit(FatalError);
     }
 
@@ -1142,7 +1142,7 @@ void Foam::petscSolver::updateMat
     else
     {
     FatalErrorInFunction
-        << "foamPlasmaToolkit: Only COO assembly is supported." << nl
+        << "SoPLASMA: Only COO assembly is supported." << nl
         << exit(FatalError);
     }
 }

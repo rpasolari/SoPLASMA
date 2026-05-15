@@ -1,1 +1,0 @@
-../plasmaEnergyModels/plasmaEnergyModel.C

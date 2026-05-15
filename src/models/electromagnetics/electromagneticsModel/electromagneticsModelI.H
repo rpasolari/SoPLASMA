@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: electromagneticsModelI.H
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -32,25 +32,6 @@ inline const Foam::dictionary&
 Foam::electromagneticsModel::dict() const
 { 
     return *this; 
-}
-
-inline bool Foam::electromagneticsModel::hasPlasma() const
-{
-    return (speciesPtr_ != nullptr);
-}
-
-inline const Foam::plasmaSpecies& Foam::electromagneticsModel::species() const
-{
-    if (!speciesPtr_)
-    {
-        FatalErrorInFunction
-            << "Attempted to access plasmaSpecies in a pure "
-            << "electromagneticsModel." << nl
-            << "Verify 'hasPlasma()' before calling this function."
-            << exit(FatalError);
-    }
-
-    return *speciesPtr_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

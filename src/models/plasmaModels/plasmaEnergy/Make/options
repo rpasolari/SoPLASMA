@@ -13,7 +13,7 @@ EXE_LIBS = \
     -lfiniteVolume \
     -lOpenFOAM \
     -lmeshTools \
-    -lfoamPlasmaToolkitConstants \
+    -lSoPLASMAConstants \
     -lplasmaSpecies \
     -lplasmaEnergy\
     -lplasmaNumerics \

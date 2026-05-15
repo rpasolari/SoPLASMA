@@ -1,6 +1,6 @@
-# foamPlasmaToolkit
+# SoPLASMA
 
-**foamPlasmaToolkit** is a collection of solvers, models, boundary conditions, and utilities developed for plasma applications in **OpenFOAM**. It aims to extend the capabilities of OpenFOAM to simulate plasma-related phenomena, including plasma-fluid interactions, plasma chemistry, and  coupled electromagnetic effects.
+**SoPLASMA** is a collection of solvers, models, boundary conditions, and utilities developed for plasma applications in **OpenFOAM**. It aims to extend the capabilities of OpenFOAM to simulate plasma-related phenomena, including plasma-fluid interactions, plasma chemistry, and  coupled electromagnetic effects.
 
 
 ##	Description
@@ -57,14 +57,14 @@ Additional Linux distributions and OpenFOAM (OpenCFD Ltd.) versions may work, bu
 
 ## 1. Install Required Dependencies
 
-Before installing OpenFOAM and the foamPlasmaToolkit, make sure all required dependencies are installed. Refer to **[`docs/dependencies.md`](docs/dependencies.md)** and install all packages marked as *required*.
+Before installing OpenFOAM and the SoPLASMA, make sure all required dependencies are installed. Refer to **[`docs/dependencies.md`](docs/dependencies.md)** and install all packages marked as *required*.
 
 
 ## 2. Install OpenFOAM v2412 (required)
 
 This toolkit is designed **for OpenFOAM v2412 (OpenCFD Ltd.)**. It has not been tested in other  versions.
 
-If you already have OpenFOAM installed, skip to **Step 2 (Download and build foamPlasmaToolkit)**.
+If you already have OpenFOAM installed, skip to **Step 2 (Download and build SoPLASMA)**.
 
 
 ### A. Install OpenFOAM prerequisites
@@ -164,18 +164,18 @@ When the compilation finishes, verify that OpenFOAM is correctly installed:
 foamVersion   # should print: OpenFOAM-v2412
 ```
 
-## 3. Install foamPlasmaToolkit
+## 3. Install SoPLASMA
 
 ### A. Get the source code
 
-Choose the directory where you want to install **foamPlasmaToolkit**, then download the toolkit by cloning the GitHub repository.
+Choose the directory where you want to install **SoPLASMA**, then download the toolkit by cloning the GitHub repository.
 
-#### Example: Install foamPlasmaToolkit in your home directory
+#### Example: Install SoPLASMA in your home directory
 
 ```bash
 cd ~
-git clone https://github.com/rpasolari/foamPlasmaToolkit.git
-cd foamPlasmaToolkit
+git clone https://github.com/rpasolari/SoPLASMA.git
+cd SoPLASMA
 ```
 
 Activate the toolkit environment (so OpenFOAM can detect its extensions):
@@ -194,7 +194,7 @@ gedit ~/.bashrc
 Then add the following line at the end of the file (adjust the path to match where you installed the toolkit):
 
 ```bash
-source $HOME/foamPlasmaToolkit/etc/bashrc
+source $HOME/SoPLASMA/etc/bashrc
 ```
 
 Save the file, then reload your shell configuration:
@@ -209,15 +209,15 @@ To verify that the environment was successfully loaded, open a **new terminal** 
 echo $FOAM_PLASMA   # should print the toolkit folder
 ```
 
-### B. Build foamPlasmaToolkit
-From inside the foamPlasmaToolkit directory, compile everything:
+### B. Build SoPLASMA
+From inside the SoPLASMA directory, compile everything:
 
 ```bash
 ./Allwmake
 ```
 If the compilation finishes without errors, the installation is complete.
 
-⚠️ **IMPORTANT:** Some ThirdParty packages included with the foamPlasmaToolkit (but not required as prerequisites) may fail to build (for example, **petsc4foam**). To install these optional components, refer to the corresponding instructions in the `docs/` directory.
+⚠️ **IMPORTANT:** Some ThirdParty packages included with the SoPLASMA (but not required as prerequisites) may fail to build (for example, **petsc4foam**). To install these optional components, refer to the corresponding instructions in the `docs/` directory.
 
 
 

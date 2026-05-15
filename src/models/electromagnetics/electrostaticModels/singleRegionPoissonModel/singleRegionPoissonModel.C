@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: singleRegionPoissonModel.C
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -14,7 +14,6 @@
 #include "addToRunTimeSelectionTable.H"
 
 #include "singleRegionPoissonModel.H"
-#include "plasmaTransport.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -31,91 +30,72 @@ addToRunTimeSelectionTable
     dictionary
 );
 
+// * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * * //
+
+void singleRegionPoissonModel::updateDerivedFields()
+{
+    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+
+    if (EScheme_ == "reconstruct")
+    {
+        E_ = fvc::reconstruct(phiE_);
+    }
+    else // "grad"
+    {
+        E_ = -fvc::grad(ePotential_);
+    }
+    E_.correctBoundaryConditions();
+
+    Emag_ = mag(E_);
+    Emag_.correctBoundaryConditions();
+
+    if (backgroundDensityFieldPtr_)
+    {
+        reducedE_ = Emag_ /
+            (
+                *backgroundDensityFieldPtr_
+              + dimensionedScalar
+                (
+                    "s",
+                    backgroundDensityUniform_.dimensions(),
+                    SMALL
+                )
+            );
+    }
+    else
+    {
+        reducedE_ = Emag_ /
+            (
+                backgroundDensityUniform_
+              + dimensionedScalar
+                (
+                    "s",
+                    backgroundDensityUniform_.dimensions(),
+                    SMALL
+                )
+            );
+    }
+    reducedE_.correctBoundaryConditions();
+}
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 singleRegionPoissonModel::singleRegionPoissonModel
 (
     const fvMesh& mesh,
-    const UPtrList<fvMesh>& dielectricMeshes,
-    const plasmaSpecies* species
+    const UPtrList<fvMesh>& dielectricMeshes
 )
 :
-    electromagneticsModel(mesh, dielectricMeshes, species),
-    ePotential_
+    electromagneticsModel(mesh, dielectricMeshes),
+    EScheme_("reconstruct"),
+    PoissonScheme_("explicit"),
+    nNonOrthCorr_(0),
+    backgroundDensityUniform_
     (
-        IOobject
-        (
-            "ePotential", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::MUST_READ, 
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    ),
-    E_
-    (
-        IOobject
-        (
-            "E", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedVector
-        (
-            "zero", 
-            dimensionSet(1, 1, -3, 0, 0, -1, 0), 
-            vector::zero
-        )
-    ),
-    Emag_
-    (
-        IOobject
-        (
-            "Emag", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::NO_WRITE
-        ),
-        mag(E_)
-    ),
-    phiE_
-    (
-        IOobject
-        (
-            "phiE", 
-            mesh.time().timeName(), 
-            mesh, 
-            IOobject::NO_READ, 
-            IOobject::NO_WRITE
-        ),
-        -fvc::snGrad(ePotential_) * mesh.magSf()
-    ),
-    reducedE_
-    (
-        IOobject(...),
-        mesh,
-        dimensionedScalar
-        (
-            "zero",
-            dimensionSet(0, 1, -3, 0, 0, 0, 0), // same dims as E/N
-            0.0
-        )
-    ),
-    epsilon_
-    (
-        "epsilon", 
-        dimensionSet(-1, -3, 4, 0, 0, 2, 0), 
+        "backgroundDensity",
+        dimensionSet(0, -3, 0, 0, 0, 0, 0),
         0.0
     ),
-    epsilonR_(1.0),
-    PoissonScheme_("explicit"),
-    backgroundDensity_("N", dimensionSet(0, -3, 0, 0, 0, 0, 0), 0.0)
-    transportPtr_(nullptr)
+    backgroundDensityFieldPtr_(nullptr)
 {
     if (dielectricMeshes.size() > 0)
     {
@@ -138,11 +118,20 @@ singleRegionPoissonModel::singleRegionPoissonModel
     }
 
     const dictionary& coeffs(subDict(coeffsName));
-    epsilonR_ = coeffs.get<scalar>("dielectricConstant");
+
+    epsilonR_ = coeffs.getOrDefault<scalar>("dielectricConstant", 1.0);
     epsilon_ = epsilonR_ * constant::plasma::epsilon0;
 
-    PoissonScheme_ = coeffs.get<word>("PoissonScheme");
+    EScheme_ = coeffs.getOrDefault<word>("EScheme", "reconstruct");
+    if (EScheme_ != "grad" && EScheme_ != "reconstruct")
+    {
+        FatalIOErrorInFunction(coeffs)
+            << "Unknown EScheme '" << EScheme_ << "'." << nl
+            << "Valid options are: (grad | reconstruct)" << nl
+            << exit(FatalIOError);
+    }
 
+    PoissonScheme_ = coeffs.getOrDefault<word>("PoissonScheme", "explicit");
     if (PoissonScheme_ != "explicit" && PoissonScheme_ != "semiImplicit")
     {
         FatalIOErrorInFunction(coeffs)
@@ -150,81 +139,97 @@ singleRegionPoissonModel::singleRegionPoissonModel
             << "Valid options are: (explicit | semiImplicit)" << nl
             << exit(FatalIOError);
     }
+
+    nNonOrthCorr_ = coeffs.getOrDefault<label>("nNonOrthogonalCorrectors", 0);
+
+    backgroundDensityUniform_.value() =
+        coeffs.getOrDefault<scalar>("backgroundDensity", 2.5e25);
 }
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
 void singleRegionPoissonModel::solve()
 {
-    if (PoissonScheme_ == "semiImplicit" && transportPtr_ && hasPlasma())
+    for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
-        this->solve(*transportPtr_);
-        return;
+        fvScalarMatrix ePotentialEqn(PoissonEquation());
+
+        if (nonOrth < nNonOrthCorr_)
+        {
+            ePotentialEqn.relax();
+        }
+
+        ePotentialEqn.solve();
     }
 
-    fvScalarMatrix ePotentialEqn
-    (
-        fvm::laplacian(epsilon_, ePotential_)
-    );
-
-    if (hasPlasma())
-    {
-        ePotentialEqn == -species().chargeDensity();
-    }
-
-    ePotentialEqn.solve();
-
-    E_ = -fvc::grad(ePotential_);
-    E_.correctBoundaryConditions();
-    Emag_ = mag(E_);
-    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
-    reducedE_ = Emag_ / (
-            species().backgroundDensity()
-          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
-            );
-    reducedE_.correctBoundaryConditions();
+    updateDerivedFields();
 }
 
-void singleRegionPoissonModel::solve(const plasmaTransport& transport)
-{
-    transportPtr_ = &transport;
 
-    if (PoissonScheme_ == "explicit" || !hasPlasma())
+void singleRegionPoissonModel::solve
+(
+    const volScalarField& electricalConductivity,
+    const volScalarField& diffusiveChargeSource
+)
+{
+    if (PoissonScheme_ == "explicit")
     {
         this->solve();
         return;
     }
 
-    const scalar deltaT = mesh_.time().deltaTValue();
-    const volScalarField& chargeDensity = species().chargeDensity();
-
-    fvScalarMatrix ePotentialEqn
-    (
-        fvm::laplacian
+    for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
+    {
+        fvScalarMatrix ePotentialEqn
         (
-            epsilon_ + deltaT * transport.electricalConductivity(),
-            ePotential_
-        )
-     ==
-        -chargeDensity - deltaT * transport.diffusiveChargeSource()
-    );
+            PoissonEquation(electricalConductivity, diffusiveChargeSource)
+        );
 
-    ePotentialEqn.solve();
+        if (nonOrth < nNonOrthCorr_)
+        {
+            ePotentialEqn.relax();
+        }
 
-    E_ = -fvc::grad(ePotential_);
-    E_.correctBoundaryConditions();
-    Emag_ = mag(E_);
-    phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
-    reducedE_ = Emag_ / (
-            species().backgroundDensity()
-          + dimensionedScalar("s", dimensionSet(0, -3, 0, 0, 0, 0, 0), SMALL)
-            );
-    reducedE_.correctBoundaryConditions();
+        ePotentialEqn.solve();
+    }
+
+    updateDerivedFields();
 }
 
-tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonMatrix() const
+
+tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonLHSMatrix() const
 {
     return fvm::laplacian(epsilon_, ePotential_);
+}
+
+
+tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonEquation() const
+{
+    tmp<fvScalarMatrix> tEqn = PoissonLHSMatrix();
+
+    tEqn.ref() == -chargeDensity_;
+
+    return tEqn;
+}
+
+
+tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonEquation
+(
+    const volScalarField& electricalConductivity,
+    const volScalarField& diffusiveChargeSource
+) const
+{
+    const scalar deltaT = mesh_.time().deltaTValue();
+
+    tmp<fvScalarMatrix> tEqn = fvm::laplacian
+    (
+        epsilon_ + deltaT * electricalConductivity,
+        ePotential_
+    );
+
+    tEqn.ref() == -chargeDensity_ - deltaT * diffusiveChargeSource;
+
+    return tEqn;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

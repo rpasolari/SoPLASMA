@@ -16,7 +16,7 @@ EXE_LIBS = \
     -lmeshTools \
     -lOpenFOAM \
     -lregionModels \
-    -lfoamPlasmaToolkitConstants \
+    -lSoPLASMAConstants \
     -lplasmaBCs \
     -lplasmaProfiler
     

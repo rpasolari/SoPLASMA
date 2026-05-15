@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
 License
-    This file is part of the foamPlasmaToolkit.
+    This file is part of the SoPLASMA.
 
-    The foamPlasmaToolkit is not part of OpenFOAM but is developed using the
+    The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
     Copyright (C) 2026
@@ -59,7 +59,7 @@ SourceFiles
 #include "labelList.H"
 #include "wordList.H"
 
-#include "foamPlasmaToolkitConstants.H"
+#include "SoPLASMAConstants.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -112,6 +112,9 @@ protected:
 
             //- Total charge density [C/m3]
             volScalarField chargeDensity_;
+
+            //- Surface charge density on boundaries [C/m2]
+            volScalarField surfCharge_;
 
             //- Property dictionaries per active species
             HashTable<dictionary> speciesDicts_;
@@ -196,7 +199,14 @@ public:
 
     // Member functions
         
-        void update();
+        //- Update only the volume charge density (instantaneous)
+        void updateChargeDensity();
+
+        //- Update surface charge
+        void updateSurfaceCharge(const PtrList<surfaceScalarField>& fluxes);
+
+        //- Master update (chargeDensity + surfCharge)
+        void update(const PtrList<surfaceScalarField>& fluxes);
 
     // Access
 
@@ -221,6 +231,7 @@ public:
         inline const volScalarField& numberDensity(label i) const;
         inline volScalarField& numberDensity(label i);
         inline const volScalarField& chargeDensity() const;
+        inline const volScalarField& surfCharge() const;
 
         //- Dictionary access
         inline const dictionary& speciesDict(label i) const;

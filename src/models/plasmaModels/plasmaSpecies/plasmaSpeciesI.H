@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: plasmaSpeciesI.H
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -112,6 +112,12 @@ inline const Foam::volScalarField&
 Foam::plasmaSpecies::chargeDensity() const
 {
     return chargeDensity_;
+}
+
+inline const Foam::volScalarField&
+Foam::plasmaSpecies::surfCharge() const
+{
+    return surfCharge_;
 }
 
 //- Dictionary Access

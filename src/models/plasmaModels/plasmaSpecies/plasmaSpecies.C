@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: plasmaSpecies.C
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -322,6 +322,18 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
 }  
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
+
+void Foam::plasmaSpecies::updateChargeDensity()
+{
+    chargeDensity_ == dimensionedScalar(chargeDensity_.dimensions(), 0.0);
+
+    forAll(chargedSpeciesIDs_, i)
+    {
+        const label id = chargedSpeciesIDs_[i];
+        
+        chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
+    }
+}
 
 void plasmaSpecies::update()
 {

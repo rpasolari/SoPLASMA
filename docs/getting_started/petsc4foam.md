@@ -1,5 +1,5 @@
 # petsc4foam Installation Guide
-The `foamPlasmaToolkit` optionally supports **PETSc** and **petsc4Foam**, which provide advanced linear solvers and preconditioners suitable for stiff plasma systems and large-scale parallel simulations.
+The `SoPLASMA` optionally supports **PETSc** and **petsc4Foam**, which provide advanced linear solvers and preconditioners suitable for stiff plasma systems and large-scale parallel simulations.
 
 PETSc (and `petsc4Foam`) are **not required** for basic use. Use them only if you need advanced iterative solvers or HPC-oriented solver performance.
 
@@ -161,15 +161,15 @@ make PETSC_DIR=$PWD PETSC_ARCH=$PETSC_ARCH check
 ---
 
 ##  petsc4foam Installation / Setup
-> **Note:** *`petsc4Foam` is automatically compiled during the build of the `foamPlasmaToolkit` **as long as PETSc is already installed on your system**. When you install the toolkit after installing PETSc, it will detect PETSc and build `petsc4Foam` automatically.*
+> **Note:** *`petsc4Foam` is automatically compiled during the build of the `SoPLASMA` **as long as PETSc is already installed on your system**. When you install the toolkit after installing PETSc, it will detect PETSc and build `petsc4Foam` automatically.*
 
-> *If the `foamPlasmaToolkit` was installed **before** PETSc, then `petsc4Foam` will not have been built. In that case, after installing PETSc manually (following the steps above), you need to compile `petsc4Foam` yourself by following the steps below.*
+> *If the `SoPLASMA` was installed **before** PETSc, then `petsc4Foam` will not have been built. In that case, after installing PETSc manually (following the steps above), you need to compile `petsc4Foam` yourself by following the steps below.*
 
-🚨 **IMPORTANT:** The `petsc4Foam` version included in the `foamPlasmaToolkit` is **not the same** as the version available from the official upstream repository. The toolkit version contains additional modifications that enable **implicit (monolithic) multi-region coupling**, allowing multi-processing simulations to solve tightly coupled regions in a single PETSc system.  
+🚨 **IMPORTANT:** The `petsc4Foam` version included in the `SoPLASMA` is **not the same** as the version available from the official upstream repository. The toolkit version contains additional modifications that enable **implicit (monolithic) multi-region coupling**, allowing multi-processing simulations to solve tightly coupled regions in a single PETSc system.  
 
-Therefore, even if you have installed the official petsc4Foam, you must use the version bundled with the `foamPlasmaToolkit` when performing multi-region implicit simulations (see below).
+Therefore, even if you have installed the official petsc4Foam, you must use the version bundled with the `SoPLASMA` when performing multi-region implicit simulations (see below).
 
-### 1. Go to petsc4Foam ThirdParty directory (foamPlasmaToolkit)
+### 1. Go to petsc4Foam ThirdParty directory (SoPLASMA)
 
 ```bash
 cd $FOAM_PLASMA_THIRD_PARTY/petsc4Foam
@@ -197,5 +197,5 @@ libs
 );
 ```
 
-For usage examples, see the `foamPlasmaToolkit` [`tutorials`](../tutorials) or the official `petsc4foam` tutorials at <https://gitlab.com/petsc/petsc4foam>.
+For usage examples, see the `SoPLASMA` [`tutorials`](../tutorials) or the official `petsc4foam` tutorials at <https://gitlab.com/petsc/petsc4foam>.
 

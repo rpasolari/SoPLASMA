@@ -1,1 +1,0 @@
-../plasmaEnergyModels/gasTemperatureEnergyModel/gasTemperatureEnergyModel.H

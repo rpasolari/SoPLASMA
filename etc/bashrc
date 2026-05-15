@@ -1,10 +1,10 @@
 #------------------------------------------------------------------------------#
 #  File: bashrc
-#  Part of: foamPlasmaToolkit
+#  Part of: SoPLASMA
 #  Developed for use with the OpenFOAM framework.
 #
 #  Description:
-#      Environment setup script for foamPlasmaToolkit.
+#      Environment setup script for SoPLASMA.
 #
 #  Author: Rention Pasolari
 #  Copyright (C) 2025
@@ -12,9 +12,9 @@
 #      See: <http://www.gnu.org/licenses/>.
 #------------------------------------------------------------------------------#
 
-# Determine foamPlasmaToolkit root directory (one level above this file)
+# Determine SoPLASMA root directory (one level above this file)
 export FOAM_PLASMA=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-alias foamPlasmaToolkit='cd "$FOAM_PLASMA"'
+alias SoPLASMA='cd "$FOAM_PLASMA"'
 
 export FOAM_PLASMA_ETC="$FOAM_PLASMA/etc"
 

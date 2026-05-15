@@ -14,7 +14,7 @@ EXE_LIBS = \
     -lfiniteVolume \
     -lOpenFOAM \
     -lmeshTools \
-    -lfoamPlasmaToolkitConstants \
+    -lSoPLASMAConstants \
     -lplasmaSpecies \
     -lplasmaTransport \
     -lplasmaProfiler

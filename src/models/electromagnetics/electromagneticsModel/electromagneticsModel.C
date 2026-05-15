@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*\
   File: electromagneticsModel.C
-  Part of: foamPlasmaToolkit
+  Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
@@ -25,31 +25,7 @@ defineRunTimeSelectionTable(electromagneticsModel, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-//- Construct from meshes and species
-electromagneticsModel::electromagneticsModel
-(
-    const fvMesh& mesh,
-    const UPtrList<fvMesh>& dielectricMeshes,
-    const plasmaSpecies* species
-)
-:
-    IOdictionary
-    (
-        IOobject
-        (
-            "electromagneticsProperties",
-            mesh.time().constant(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    ),
-    mesh_(mesh),
-    dielectricMeshes_(dielectricMeshes),
-    speciesPtr_(species)
-{}
-
-//- Construct from meshes only
+//- Construct from meshes
 electromagneticsModel::electromagneticsModel
 (
     const fvMesh& mesh,
@@ -69,17 +45,109 @@ electromagneticsModel::electromagneticsModel
     ),
     mesh_(mesh),
     dielectricMeshes_(dielectricMeshes),
-    speciesPtr_(nullptr)
+    ePotential_
+    (
+        IOobject
+        (
+            "ePotential",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    ),
+    E_
+    (
+        IOobject
+        (
+            "E",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedVector("zero", dimensionSet(1, 1, -3, 0, 0, -1, 0), vector::zero)
+    ),
+    Emag_
+    (
+        IOobject
+        (
+            "Emag",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mag(E_)
+    ),
+    phiE_
+    (
+        IOobject
+        (
+            "phiE",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        -fvc::snGrad(ePotential_) * mesh.magSf()
+    ),
+    reducedE_
+    (
+        IOobject
+        (
+            "reducedE",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, 1, -3, 0, 0, 0, 0), 0.0)
+    ),
+    chargeDensity_
+    (
+        IOobject
+        (
+            "chargeDensity",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, -3, 1, 0, 0, 1, 0), 0.0)
+    ),
+    surfCharge_
+    (
+        IOobject
+        (
+            "surfCharge",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, -2, 1, 0, 0, 1, 0), 0.0)
+    ),
+    epsilon_
+    (
+        "epsilon",
+        dimensionSet(-1, -3, 4, 0, 0, 2, 0),
+        0.0
+    ),
+    epsilonR_(1.0)
 {}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
-//- Selector for meshes and species
 autoPtr<electromagneticsModel> electromagneticsModel::New
 (
     const fvMesh& mesh,
-    const UPtrList<fvMesh>& dielectricMeshes,
-    const plasmaSpecies* species
+    const UPtrList<fvMesh>& dielectricMeshes
 )
 {
     IOdictionary tmpDict
@@ -110,18 +178,8 @@ autoPtr<electromagneticsModel> electromagneticsModel::New
 
     return autoPtr<electromagneticsModel>
     (
-        ctorPtr(mesh, dielectricMeshes, species)
+        ctorPtr(mesh, dielectricMeshes)
     );
-}
-
-//- Selector for meshes only
-autoPtr<electromagneticsModel> electromagneticsModel::New
-(
-    const fvMesh& mesh,
-    const UPtrList<fvMesh>& dielectricMeshes
-)
-{
-    return New(mesh, dielectricMeshes, nullptr);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -11,6 +11,6 @@ EXE_LIBS = \
     -lfvOptions \
     -lmeshTools \
     -lOpenFOAM \
-    -lfoamPlasmaToolkitConstants  
+    -lSoPLASMAConstants  
 
     

@@ -3,7 +3,7 @@
 **Solver:** `electroPotentialFoam`  
 **Case:** 2D plate with time-varying Dirichlet boundary condition  
 **Author:** Rention Pasolari  
-**Toolkit:** foamPlasmaToolkit  
+**Toolkit:** SoPLASMA  
 **License:** GPLv3  
 **Date:** November 2025 
 

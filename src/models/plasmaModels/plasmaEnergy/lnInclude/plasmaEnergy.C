@@ -1,1 +1,0 @@
-../plasmaEnergy/plasmaEnergy.C

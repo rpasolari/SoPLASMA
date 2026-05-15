@@ -1,1 +1,0 @@
-../plasmaEnergyModels/localFieldEnergyModel/localFieldEnergyModel.C
