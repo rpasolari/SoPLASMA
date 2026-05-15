@@ -16,9 +16,8 @@ FoamFile
 
 regions
 (
-    dielectric  (rightDielectric)
     fluid       (leftFluid)
-
+    dielectric  (rightDielectric)
 );
 
 

@@ -17,16 +17,28 @@
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 //- Metadata access
-inline const Foam::fvMesh& 
+inline const Foam::fvMesh&
 Foam::plasmaTransport::mesh() const
 {
     return mesh_;
 }
 
-inline const Foam::plasmaSpecies& 
+inline Foam::plasmaSpecies&
+Foam::plasmaTransport::species()
+{
+    return species_;
+}
+
+inline const Foam::plasmaSpecies&
 Foam::plasmaTransport::species() const
 {
     return species_;
+}
+
+inline const Foam::electromagneticsModel&
+Foam::plasmaTransport::em() const
+{
+    return species_.em();
 }
 
 //- Model access
@@ -42,17 +54,23 @@ Foam::plasmaTransport::model(const label i) const
     return transportModels_[i];
 }
 
-//- Number fluxes access
-inline const Foam::surfaceScalarField&
-Foam::plasmaTransport::particleFlux(Foam::label i) const
+//- Fluxes access
+inline Foam::surfaceScalarField&
+Foam::plasmaTransport::particleFlux(const Foam::label i)
 {
     return particleFlux_[i];
 }
 
-inline Foam::surfaceScalarField&
-Foam::plasmaTransport::particleFlux(Foam::label i)
+inline const Foam::surfaceScalarField&
+Foam::plasmaTransport::particleFlux(const Foam::label i) const
 {
     return particleFlux_[i];
+}
+
+inline Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::particleFlux()
+{
+    return particleFlux_;
 }
 
 inline const Foam::PtrList<Foam::surfaceScalarField>&
@@ -61,10 +79,76 @@ Foam::plasmaTransport::particleFlux() const
     return particleFlux_;
 }
 
-inline Foam::PtrList<Foam::surfaceScalarField>&
-Foam::plasmaTransport::particleFlux()
+inline Foam::surfaceScalarField&
+Foam::plasmaTransport::convectiveFlux(const Foam::label i)
 {
-    return particleFlux_;
+    return convectiveFlux_[i];
+}
+
+inline const Foam::surfaceScalarField&
+Foam::plasmaTransport::convectiveFlux(const Foam::label i) const
+{
+    return convectiveFlux_[i];
+}
+
+inline Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::convectiveFlux()
+{
+    return convectiveFlux_;
+}
+
+inline const Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::convectiveFlux() const
+{
+    return convectiveFlux_;
+}
+
+inline Foam::surfaceScalarField&
+Foam::plasmaTransport::diffusiveFlux(const Foam::label i)
+{
+    return diffusiveFlux_[i];
+}
+
+inline const Foam::surfaceScalarField&
+Foam::plasmaTransport::diffusiveFlux(const Foam::label i) const
+{
+    return diffusiveFlux_[i];
+}
+
+inline Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::diffusiveFlux()
+{
+    return diffusiveFlux_;
+}
+
+inline const Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::diffusiveFlux() const
+{
+    return diffusiveFlux_;
+}
+
+inline Foam::surfaceScalarField&
+Foam::plasmaTransport::wallFlux(const Foam::label i)
+{
+    return wallFlux_[i];
+}
+
+inline const Foam::surfaceScalarField&
+Foam::plasmaTransport::wallFlux(const Foam::label i) const
+{
+    return wallFlux_[i];
+}
+
+inline Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::wallFlux()
+{
+    return wallFlux_;
+}
+
+inline const Foam::PtrList<Foam::surfaceScalarField>&
+Foam::plasmaTransport::wallFlux() const
+{
+    return wallFlux_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

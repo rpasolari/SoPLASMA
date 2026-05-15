@@ -1,13 +1,13 @@
 epsilonRleftFluid		1.0;
 epsilonRrightDielectric	5.0;	
 
-meshSize				"100x100";
+meshSize				"10x10";
 
 dirichletValueLeft		1.0;
 dirichletValueRight		0.0;
 surfChargeDict          surfCharge;
-useImplicit             true;
-surfCharge				0.0;
+useImplicit             false;
+surfCharge				0;
 
 endTime 				10;
 

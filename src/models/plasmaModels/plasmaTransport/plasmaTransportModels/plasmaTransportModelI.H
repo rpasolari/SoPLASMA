@@ -16,11 +16,28 @@
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-//- Return model name
-inline const Foam::word& 
+inline const Foam::word&
 Foam::plasmaTransportModel::modelName() const
 {
     return modelName_;
+}
+
+inline const Foam::fvMesh&
+Foam::plasmaTransportModel::mesh() const
+{
+    return mesh_;
+}
+
+inline const Foam::plasmaSpecies&
+Foam::plasmaTransportModel::species() const
+{
+    return species_;
+}
+
+inline Foam::label
+Foam::plasmaTransportModel::specieIndex() const
+{
+    return specieIndex_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

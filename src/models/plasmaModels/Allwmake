@@ -13,9 +13,8 @@ cd "${0%/*}" || exit 1
 echo ">>> Building plasmaModels in src/models/plasmaModels"
 echo "-----------------------------------------------------"
 
-wmake libso plasmaSpecies 
 wmake libso genericPlasmaProperties
-wmake libso plasmaEnergy
+wmake libso plasmaSpecies 
 wmake libso plasmaTransport
 
 echo "-----------------------------------------------------"

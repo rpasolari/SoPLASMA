@@ -119,10 +119,13 @@ namespace Foam
 
 class plasmaMobilityModel
 {
-protected:
+private:
 
-    //- The specific math evaluator (e.g., tabulated1D, powerLaw, etc.)
-    autoPtr<plasmaPropertyEvaluator> evaluator_;
+    //- Disallow copy 
+    plasmaMobilityModel(const plasmaMobilityModel&) = delete;
+    void operator=(const plasmaMobilityModel&) = delete;
+
+protected:
 
     //- Model type (e.g. "constant", "tabulated1D", etc.)
     const word modelType_;
@@ -145,17 +148,11 @@ protected:
     //- Flag for constant or dynamic field property
     bool isConstant_;
 
-    //- Mutable flag to check if a constant field has already been calculated
-    mutable bool upToDate_;
+    //- The specific math evaluator (e.g., tabulated1D, powerLaw, etc.)
+    autoPtr<plasmaPropertyEvaluator> evaluator_;
 
-    //- Storage for the uniform value
-    mutable dimensionedScalar muValue_;
-
-    //- Storage for the volScalarField
-    mutable autoPtr<volScalarField> muFieldPtr_;
-
-    //- Private update logic
-    void update() const;
+    //- Mobility field
+    volScalarField mu_;
     
 public:
 
@@ -189,20 +186,23 @@ public:
 
     // Member Functions
 
-        //- Returns true if the mobility is spatially uniform
+        //- Update mu field from evaluator.
+        void correct();
+
+        //- Const reference to the mobility field
+        const volScalarField& mu() const { return mu_; }
+
+        //- Patch mobility values
+        const scalarField& muPatch(const label patchi) const
+        {
+            return mu_.boundaryField()[patchi];
+        }
+
+        //- True if spatially uniform (constant model type)
         bool isUniform() const { return isUniform_; }
 
-        //- Returns the actual scalar value (if spatially uniform)
-        const dimensionedScalar& muValue() const { return muValue_; }
-
-        //- Return mobility as a temporary field
-        tmp<volScalarField> mu() const;
-
-        //- Return the mobility on a patch
-        void muPatch(fvPatchScalarField& pField, const label patchi) const;
-
-        //- Correct mobility
-        void correct(volScalarField& mu) const;
+        //- True if field never changes in time
+        bool isConstant() const { return isConstant_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

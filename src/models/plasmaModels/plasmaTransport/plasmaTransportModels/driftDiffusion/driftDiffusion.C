@@ -32,13 +32,13 @@ addToRunTimeSelectionTable(plasmaTransportModel, driftDiffusion, dictionary);
 
 void driftDiffusion::constructModels()
 {
-    const word& sName = species_.speciesNames()[specieIndex_];
+    const word& sName = species_.speciesName(specieIndex_);
 
-    // Construct mobility model
     if (!dict_.found("mobility"))
     {
         FatalIOErrorInFunction(dict_)
-            << "Species '" << sName << "': missing 'mobility' dict." << nl
+            << "Species '" << sName
+            << "': missing 'mobility' sub-dictionary." << nl
             << exit(FatalIOError);
     }
 
@@ -47,29 +47,25 @@ void driftDiffusion::constructModels()
     if (!mobilityDict.found("type"))
     {
         FatalIOErrorInFunction(mobilityDict)
-            << "Species '" << sName << "': missing 'type' in mobility." << nl
+            << "Species '" << sName
+            << "': 'mobility' requires entry 'type'." << nl
             << exit(FatalIOError);
     }
 
-    word mobilityType = mobilityDict.get<word>("type");
-
-    mobilityModel_.reset
+    mobilityModel_ = plasmaMobilityModel::New
     (
-        plasmaMobilityModel::New
-        (
-            mobilityType,
-            mobilityDict,
-            mesh_,
-            species_,
-            specieIndex_
-        )
+        mobilityDict.get<word>("type"),
+        mobilityDict,
+        mesh_,
+        species_,
+        specieIndex_
     );
 
-    // Construct diffusivity model
     if (!dict_.found("diffusivity"))
     {
         FatalIOErrorInFunction(dict_)
-            << "Species '" << sName << "': missing 'diffusivity' dict." << nl
+            << "Species '" << sName
+            << "': missing 'diffusivity' sub-dictionary." << nl
             << exit(FatalIOError);
     }
 
@@ -78,21 +74,88 @@ void driftDiffusion::constructModels()
     if (!diffusivityDict.found("type"))
     {
         FatalIOErrorInFunction(diffusivityDict)
-            << "Species '" << sName << "': missing 'type' in diffusivity." << nl
+            << "Species '" << sName
+            << "': 'diffusivity' requires entry 'type'." << nl
             << exit(FatalIOError);
     }
 
-    word diffusivityType = diffusivityDict.get<word>("type");
-    diffusivityModel_.reset
+    diffusivityModel_ = plasmaDiffusivityModel::New
     (
-        plasmaDiffusivityModel::New
+        diffusivityDict.get<word>("type"),
+        diffusivityDict,
+        mesh_,
+        species_,
+        specieIndex_
+    );
+}
+
+tmp<surfaceScalarField> driftDiffusion::convectivePhi() const
+{
+    const scalar Z = species_.speciesChargeNumber(specieIndex_);
+    const volScalarField& mu = mobilityModel_->mu();
+
+    return tmp<surfaceScalarField>::New
+    (
+        IOobject
         (
-            diffusivityType,
-            diffusivityDict,
+            "phi_" + species_.speciesName(specieIndex_),
+            mesh_.time().timeName(),
+            mesh_
+        ),
+        Z * fvc::interpolate(mu) * species_.em().phiE()
+    );
+}
+
+void driftDiffusion::initFluxFields()
+{
+    const word& sName = species_.speciesName(specieIndex_);
+    const dimensionedScalar zeroFlux
+    (
+        "zero",
+        dimensionSet(0, 0, -1, 0, 0, 0, 0),
+        0.0
+    );
+
+    convectiveFlux_ = surfaceScalarField
+    (
+        IOobject
+        (
+            "convectiveFlux_" + sName,
+            mesh_.time().timeName(),
             mesh_,
-            species_,
-            specieIndex_
-        )
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        zeroFlux
+    );
+
+    diffusiveFlux_ = surfaceScalarField
+    (
+        IOobject
+        (
+            "diffusiveFlux_" + sName,
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        zeroFlux
+    );
+
+    particleFlux_ = surfaceScalarField
+    (
+        IOobject
+        (
+            "particleFlux_" + sName,
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        zeroFlux
     );
 }
 
@@ -103,32 +166,62 @@ driftDiffusion::driftDiffusion
     const word& modelName,
     const dictionary& dict,
     const fvMesh& mesh,
-    const plasmaSpecies& species,
-    const label specieIndex,
-    const volVectorField& E,
-    const surfaceScalarField& phiE
+    plasmaSpecies& species,
+    const label specieIndex
 )
 :
-    plasmaTransportModel
-    (
-        modelName, 
-        dict, 
-        mesh, 
-        species, 
-        specieIndex, 
-        E,
-        phiE
-    ),
+    plasmaTransportModel(modelName, dict, mesh, species, specieIndex),
     advection_(dict.lookupOrDefault<word>("advection", "implicit")),
     fluxScheme_(dict.lookupOrDefault<word>("fluxScheme", "standard")),
-    isExplicit_(advection_ == "explicit")
+    isExplicit_(advection_ == "explicit"),
+    mobilityModel_(nullptr),
+    diffusivityModel_(nullptr),
+    convectiveFlux_
+    (
+        IOobject
+        (
+            "convectiveFlux_" + species.speciesName(specieIndex),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
+    ),
+    diffusiveFlux_
+    (
+        IOobject
+        (
+            "diffusiveFlux_" + species.speciesName(specieIndex),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
+    ),
+    particleFlux_
+    (
+        IOobject
+        (
+            "particleFlux_" + species.speciesName(specieIndex),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
+    )
 {
     if (fluxScheme_ != "standard" && fluxScheme_ != "ScharfetterGummel")
     {
         FatalIOErrorInFunction(dict_)
-            << "Species '" << species_.speciesNames()[specieIndex_] << "': "
-            << "Invalid fluxScheme '" << fluxScheme_ << "'" << nl
-            << "Valid options are: (standard ScharfetterGummel)" << nl
+            << "Species '" << species_.speciesName(specieIndex_)
+            << "': unknown fluxScheme '" << fluxScheme_ << "'." << nl
+            << "Valid options: (standard | ScharfetterGummel)" << nl
             << exit(FatalIOError);
     }
 
@@ -139,22 +232,21 @@ driftDiffusion::driftDiffusion
     else if (advection_ != "implicit")
     {
         FatalIOErrorInFunction(dict_)
-            << "Species '" << species_.speciesNames()[specieIndex_] << "': "
-            << "Invalid advection '" << advection_ << "'" << nl
-            << "Valid options are: (implicit explicit)" << nl
+            << "Species '" << species_.speciesName(specieIndex_)
+            << "': unknown advection '" << advection_ << "'." << nl
+            << "Valid options: (implicit | explicit)" << nl
             << exit(FatalIOError);
     }
 
     if (fluxScheme_ == "ScharfetterGummel" && isExplicit_)
     {
         WarningInFunction
-            << "Species '" << species.speciesNames()[specieIndex] << "': "
-            << "advection 'explicit' is ignored because "
-            << "Scharfetter-Gummel requires implicit coupling. "
+            << "Species '" << species_.speciesName(specieIndex_)
+            << "': Scharfetter-Gummel requires implicit advection." << nl
             << "Forcing implicit mode." << endl;
-        
+
         isExplicit_ = false;
-        advection_ = "implicit";
+        advection_  = "implicit";
     }
 
     constructModels();
@@ -162,125 +254,99 @@ driftDiffusion::driftDiffusion
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
+void driftDiffusion::correct()
+{
+    mobilityModel_->correct();
+    diffusivityModel_->correct();
+}
+
 tmp<fvScalarMatrix> driftDiffusion::nEqn() const
 {
-    const volScalarField& n = species_.numberDensity(specieIndex_);
-    const scalar Z = species_.speciesChargeNumber(specieIndex_);
+    volScalarField& n = species_.numberDensity(specieIndex_);
+    const volScalarField& D = diffusivityModel_->D();
 
-    surfaceScalarField phi
-    (
-        IOobject("phi_tmp", mesh_.time().timeName(), mesh_),
-        (
-            mobilityModel_->isUniform()
-          ? Z * mobilityModel_->muValue() * phiE_
-          : Z * fvc::interpolate(mobilityModel_->mu()()) * phiE_
-        )
-    );
+    tmp<surfaceScalarField> tPhi = convectivePhi();
+    const surfaceScalarField& phi = tPhi();
 
-    tmp<fvScalarMatrix> tEqn(fvm::ddt(n));
-    fvScalarMatrix& nEqn = tEqn.ref();
+    tmp<fvScalarMatrix> tEqn = fvm::ddt(n);
 
-    if (diffusivityModel_->isUniform())
+    if (fluxScheme_ == "ScharfetterGummel")
     {
-        const dimensionedScalar& D = diffusivityModel_->DValue();
-        
-        if (fluxScheme_ == "ScharfetterGummel")
-        {
-            nEqn += fvm::ScharfetterGummel(n, phi, D);
-        }
-        else
-        {
-            if (isExplicit_)
-            {
-                nEqn += fvc::div(phi, n);
-            }
-            else
-            {
-                nEqn += fvm::div(phi, n);
-            }
+        tmp<fvScalarMatrix> tSG = fvm::ScharfetterGummel(n, phi, D);
 
-            nEqn -= fvm::laplacian(D, n);
-        }
+        particleFlux_    = tSG().flux();
+        convectiveFlux_  = phi * fvc::interpolate(n);
+        diffusiveFlux_   = particleFlux_ - convectiveFlux_;
+
+        tEqn.ref() += tSG;
     }
     else
     {
-        tmp<volScalarField> tD = diffusivityModel_->D();
-
-        if (fluxScheme_ == "ScharfetterGummel")
+        if (isExplicit_)
         {
-            nEqn += fvm::ScharfetterGummel(n, phi, tD());
+            convectiveFlux_ = phi * fvc::interpolate(n);
+            tEqn.ref() += fvc::div(phi, n);
         }
         else
         {
-            if (isExplicit_)
-            {
-                nEqn += fvc::div(phi, n);
-            }
-            else
-            {
-                nEqn += fvm::div(phi, n);
-            }
-
-            nEqn -= fvm::laplacian(tD(), n);
+            tmp<fvScalarMatrix> tDrift = fvm::div(phi, n);
+            convectiveFlux_ = tDrift().flux();
+            tEqn.ref() += tDrift;
         }
+
+        tmp<fvScalarMatrix> tDiff = fvm::laplacian(D, n);
+        diffusiveFlux_ = -tDiff().flux();
+        tEqn.ref() -= tDiff;
+
+        particleFlux_ = convectiveFlux_ + diffusiveFlux_;
     }
 
     return tEqn;
-} 
+}
 
-void driftDiffusion::updateParticleFlux(surfaceScalarField& flux) const
+void driftDiffusion::updateFluxes
+(
+    surfaceScalarField& convectiveFlux, 
+    surfaceScalarField& diffusiveFlux, 
+    surfaceScalarField& particleFlux
+) const
 {
-    const volScalarField& n = species_.numberDensity(specieIndex_);
-    const scalar Z = species_.speciesChargeNumber(specieIndex_);
+    convectiveFlux = convectiveFlux_;
+    diffusiveFlux = diffusiveFlux_;
+    particleFlux = particleFlux_;
+}
 
-    surfaceScalarField phi
-    (
-        IOobject("phi_tmp", mesh_.time().timeName(), mesh_),
-        (
-            mobilityModel_->isUniform()
-          ? Z * mobilityModel_->muValue() * phiE_
-          : Z * fvc::interpolate(mobilityModel_->mu()()) * phiE_
-        )
-    );
+void driftDiffusion::updateWallFlux(surfaceScalarField& wallFlux) const
+{
+    wallFlux = dimensionedScalar("zero", particleFlux_.dimensions(), 0.0);
 
-    if (diffusivityModel_->isUniform())
+    forAll(wallFlux.boundaryField(), patchi)
     {
-        const dimensionedScalar& D = diffusivityModel_->DValue();
-        if (fluxScheme_ == "ScharfetterGummel")
-            flux = fvc::ScharfetterGummel(n, phi, D);
-        else
-            flux = phi*fvc::interpolate(n) - D*fvc::snGrad(n)*mesh_.magSf();
-    }
-    else
-    {
-        tmp<volScalarField> tD = diffusivityModel_->D();
-        if (fluxScheme_ == "ScharfetterGummel")
-            flux = fvc::ScharfetterGummel(n, phi, tD());
-        else
-            flux = phi*fvc::interpolate(n) - fvc::interpolate(tD())*fvc::snGrad(n)*mesh_.magSf();
+        if (!wallFlux.boundaryField()[patchi].coupled())
+        {
+            wallFlux.boundaryFieldRef()[patchi] =
+                particleFlux_.boundaryField()[patchi];
+        }
     }
 }
 
 tmp<volScalarField> driftDiffusion::electricalConductivity() const
 {
     const volScalarField& n = species_.numberDensity(specieIndex_);
+    const volScalarField& mu = mobilityModel_->mu();
     const dimensionedScalar qmag = mag(species_.speciesCharge(specieIndex_));
 
-    if (mobilityModel_->isUniform())
-        return qmag * mobilityModel_->muValue() * n;
-    
-    return qmag * mobilityModel_->mu() * n;
+    return qmag * mu * n;
 }
+
 
 tmp<volScalarField> driftDiffusion::diffusiveChargeSource() const
 {
     const volScalarField& n = species_.numberDensity(specieIndex_);
+    const volScalarField& D = diffusivityModel_->D();
     const dimensionedScalar q = species_.speciesCharge(specieIndex_);
 
-    if (diffusivityModel_->isUniform())
-        return q * fvc::laplacian(diffusivityModel_->DValue(), n);
-
-    return q * fvc::laplacian(diffusivityModel_->D(), n);
+    return q * fvc::laplacian(D, n);
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

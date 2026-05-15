@@ -28,15 +28,11 @@ Description
     Abstract base class for per-species plasma transport behaviour.
 
     This class defines the minimal interface required for describing how a
-    single plasma species is transported within the simulation.  It provides
-    access to:
-        - the global plasmaSpecies database,
-        - the computational mesh,
-        - and the species index associated with this model.
+    single plasma species is transported within the simulation.
 
     The plasmaTransportModel does not implement any transport physics itself.
     Instead, it serves as a common framework from which concrete transport
-    models are derived.  Each derived class implements its own formulation
+    models are derived. Each derived class implements its own formulation
     for updating the transport state of a species during the solution loop.
 
     The run-time selection mechanism is used to construct the appropriate
@@ -72,28 +68,28 @@ namespace Foam
 
 class plasmaTransportModel
 {
+private:
+
+    //- Disallow default bitwise copy construct
+    plasmaTransportModel(const plasmaTransportModel&) = delete;
+    void operator=(const plasmaTransportModel&) = delete;
+
 protected:
 
-    //- Model name (e.g. driftDiffusion, fullMomentum)
+    //- Model name (e.g. driftDiffusion, fullMomentum, immobile, etc.)
     const word modelName_;
 
     //- Mesh reference
     const fvMesh& mesh_;
 
     //- Reference to species database
-    const plasmaSpecies& species_;
+    plasmaSpecies& species_;
 
     //- Dictionary for this species
     const dictionary& dict_;
 
     //- Index of the species
     const label specieIndex_;
-
-    //- Reference to the electric field
-    const volVectorField& E_;
-
-    //- Reference to the electric field flux
-    const surfaceScalarField& phiE_;
     
 public:
 
@@ -110,12 +106,10 @@ public:
             const word& modelName,
             const dictionary& dict,
             const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex,
-            const volVectorField& E,
-            const surfaceScalarField& phiE
+            plasmaSpecies& species,
+            const label specieIndex
         ),
-        (modelName, dict, mesh, species, specieIndex, E, phiE)
+        (modelName, dict, mesh, species, specieIndex)
     );
 
     // Constructors
@@ -126,10 +120,8 @@ public:
             const word& modelName,
             const dictionary& dict,
             const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex,
-            const volVectorField& E,
-            const surfaceScalarField& phiE
+            plasmaSpecies& species,
+            const label specieIndex
         );
 
     //- Selector
@@ -138,32 +130,47 @@ public:
         const word& modelName,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
-        const volVectorField& E,
-        const surfaceScalarField& phiE
+        plasmaSpecies& species,
+        const label specieIndex
     );
 
     //- Destructor
-    virtual ~plasmaTransportModel() {}
+    virtual ~plasmaTransportModel() = default;
 
     // Member Functions
+
+        //- Update transport coefficients
+        virtual void correct() = 0;
 
         //- Return the transport equation (Matrix)
         virtual tmp<fvScalarMatrix> nEqn() const = 0;
 
-        //- Update the particle flux in place (1/s)
-        virtual void updateParticleFlux(surfaceScalarField& flux) const = 0;
+        //- Update the fluxes in place (1/s)
+        virtual void updateFluxes
+        (
+            surfaceScalarField& convectiveFlux,
+            surfaceScalarField& diffusiveFlux,
+            surfaceScalarField& particleFlux
+        ) const = 0;
 
-        //- Getter for electric conduction coefficient
+        //- Update wall particle flux (boundary faces only)
+        virtual void updateWallFlux
+        (
+            surfaceScalarField& wallFlux
+        ) const = 0;
+
+        //- Return electrical conductivity contribution [S/m]
         virtual tmp<volScalarField> electricalConductivity() const = 0;
 
-        //- Getter for electric diffusion charge
+        //- Return diffusive charge source contribution [C/m3/s]
         virtual tmp<volScalarField> diffusiveChargeSource() const = 0;
 
     // Access
 
         inline const word& modelName() const;
+        inline const fvMesh& mesh() const;
+        inline const plasmaSpecies& species() const;
+        inline label specieIndex() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

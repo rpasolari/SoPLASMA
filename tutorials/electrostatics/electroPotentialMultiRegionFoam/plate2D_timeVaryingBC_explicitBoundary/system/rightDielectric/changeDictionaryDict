@@ -1,0 +1,88 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2412                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ePotential
+{
+    internalField   uniform 0;
+
+    boundaryField
+    {
+        ".*"
+        {
+            type            zeroGradient;
+        }
+
+        back 
+        {
+            type            empty;
+        }
+
+        front 
+        {
+            type            empty;
+        }
+
+        right
+        {
+            type            fixedValue;
+            value           uniform $dirichletValueRight;
+        }
+
+        "procBoundary.*"
+        {
+            type            processor;
+        }
+
+        rightDielectric_to_leftFluid
+        {
+            type            coupledElectricPotential;
+            value           $internalField;
+            surfCharge      none;
+            surfChargeNbr   $surfChargeDict;
+            useImplicit     $useImplicit;
+        }
+    }
+}
+
+surfCharge
+{
+    internalField   uniform 0;
+
+    boundaryField
+    {
+        ".*"
+        {
+            type            fixedValue;
+            value           uniform 0;
+        }
+
+        back 
+        {
+            type            empty;
+        }
+
+        front 
+        {
+            type            empty;
+        }
+
+        "procBoundary.*"
+        {
+            type            processor;
+            value           uniform 0;
+        }
+    }
+}

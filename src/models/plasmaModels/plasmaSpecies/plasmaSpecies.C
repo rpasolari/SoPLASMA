@@ -24,7 +24,11 @@ defineTypeNameAndDebug(plasmaSpecies, 0);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
+plasmaSpecies::plasmaSpecies
+(
+    const fvMesh& mesh,
+    electromagneticsModel& em
+)
 :
     IOdictionary
     (
@@ -38,6 +42,7 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
         )
     ),
     mesh_(mesh),
+    em_(em),
     nSpecies_(0),
     speciesNames_(),
     speciesIDs_(),
@@ -45,25 +50,12 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
     speciesCharges_(),
     speciesChargeNumbers_(),
     numberDensities_(),
-    chargeDensity_
-    (
-        IOobject
-        (
-            "chargeDensity",
-            mesh.time().timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar("zero", dimensionSet(0, -3, 1, 0, 0, 1, 0), 0.0)
-    ),
     speciesDicts_(),
     defaultSpeciesDict_(),
     backgroundName_("none"),
     backgroundDensity_
     (
-        "N", 
+        "backgroundDensity", 
         dimensionSet(0, -3, 0, 0, 0, 0, 0),
         0.0
     ),
@@ -109,9 +101,10 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
             << objectPath() << nl << exit(FatalIOError);
     }
     
-    backgroundDict_ = subDict("backgroundGas");
-    backgroundName_ = backgroundDict_.getOrDefault<word>("name", "gas");
-    backgroundDensity_.value() = backgroundDict_.getOrDefault<scalar>("N", 0.0);
+    const dictionary& bgDict = subDict("backgroundGas");
+    backgroundName_ = bgDict.get<word>("name");
+    backgroundDensity_.value() = bgDict.get<scalar>("numberDensity");
+    backgroundDict_ = bgDict;
 
     totalNeutralDensity_ == backgroundDensity_;
 
@@ -317,35 +310,34 @@ plasmaSpecies::plasmaSpecies(const fvMesh& mesh)
             dynamicTemperatureSpeciesIDs_.append(i);
         }
     }
-
-    update();
 }  
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
 void Foam::plasmaSpecies::updateChargeDensity()
 {
-    chargeDensity_ == dimensionedScalar(chargeDensity_.dimensions(), 0.0);
+    em_.chargeDensity() == dimensionedScalar
+                                        (em_.chargeDensity().dimensions(), 0.0);
 
     forAll(chargedSpeciesIDs_, i)
     {
         const label id = chargedSpeciesIDs_[i];
         
-        chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
+        em_.chargeDensity() += numberDensities_[id] * speciesCharges_[id];
     }
 }
 
-void plasmaSpecies::update()
-{
-    chargeDensity_ == dimensionedScalar(chargeDensity_.dimensions(), 0.0);
+// void plasmaSpecies::update()
+// {
+//     chargeDensity_ == dimensionedScalar(chargeDensity_.dimensions(), 0.0);
 
-    forAll(chargedSpeciesIDs_, i)
-    {
-        const label id = chargedSpeciesIDs_[i];
+//     forAll(chargedSpeciesIDs_, i)
+//     {
+//         const label id = chargedSpeciesIDs_[i];
         
-        chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
-    }
-}
+//         chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
+//     }
+// }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

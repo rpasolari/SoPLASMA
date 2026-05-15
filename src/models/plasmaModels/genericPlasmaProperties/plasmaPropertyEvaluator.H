@@ -42,8 +42,6 @@ SourceFiles:
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
 
-#include "plasmaSpecies.H"
-
 namespace Foam
 {
 
@@ -62,12 +60,6 @@ protected:
 
         //- Reference to the mesh
         const fvMesh& mesh_;
-
-        //- Reference to the species database
-        const plasmaSpecies& species_;
-
-        //- Index of the species this evaluator serves
-        const label specieIndex_;
 
         //- The name of the evaluated field (for prints)
         const word propertyName_;
@@ -90,12 +82,10 @@ public:
             const word& modelType,
             const dictionary& dict,
             const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex,
             const word& propertyName,
             const dimensionSet& dims
         ),
-        (modelType, dict, mesh, species, specieIndex, propertyName, dims)
+        (modelType, dict, mesh, propertyName, dims)
     );
 
     // Constructors
@@ -106,8 +96,6 @@ public:
             const word& modelType,
             const dictionary& dict,
             const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex,
             const word& propertyName,
             const dimensionSet& dims
         );
@@ -118,8 +106,6 @@ public:
         const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
         const word& propertyName,
         const dimensionSet& dims
     );
@@ -129,27 +115,29 @@ public:
 
     // Member Functions
 
+        //- Returns true if the property is spatially uniform
+        virtual bool isUniform() const = 0;
+
+        //- Returns true if the property is constant in time
+        virtual bool isConstant() const = 0;
+
         // Generate and return a temporary field property
         virtual tmp<volScalarField> evaluate() const = 0;
 
         //- Return the scalar value for uniform field properties
         virtual dimensionedScalar evaluateScalar() const = 0;
 
-        //- Update an existing field
+        //- Update an existing field in place
         virtual void correct(volScalarField& field) const = 0;
 
         //- Evaluate for a patch field
-        virtual void evaluate
+        virtual void evaluatePatch
         (
-            fvPatchScalarField& pField, 
+            scalarField& pField, 
             const label patchi
         ) const = 0;
 
-        //- Returns true if the property is spatially uniform
-        virtual bool isUniform() const = 0;
 
-        //- Returns true if the property is constant in time
-        virtual bool isConstant() const = 0;
 
         //- Interface compatibility: Keyword to look for in 'constant' type
         static word coeffKeyword() { return "value"; }
@@ -162,6 +150,9 @@ public:
 
         //- Access the name of the field that is evaluated (for prints)
         const word& propertyName() const { return propertyName_; }
+
+        //- Access the dimensionSet of the evaluated field
+        const dimensionSet& dims() const { return dims_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

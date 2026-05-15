@@ -89,6 +89,12 @@ void multiRegionPoissonModel::solveCoupled()
     Info<< "Solving for ePotential in non-coupled regions "
         << "(monolithically)" << endl;
 
+    ePotential_.correctBoundaryConditions();
+    for (dielectricRegion& reg : dielectrics_)
+    {
+        reg.ePotential().correctBoundaryConditions();
+    }
+
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
         fvScalarMatrix gasEqn(PoissonEquation());
@@ -120,6 +126,12 @@ void multiRegionPoissonModel::solveCoupled
 {
     Info<< "Solving for ePotential in non-coupled regions "
         << "(monolithically)" << endl;
+
+    ePotential_.correctBoundaryConditions();
+    for (dielectricRegion& reg : dielectrics_)
+    {
+        reg.ePotential().correctBoundaryConditions();
+    }
 
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
@@ -162,27 +174,37 @@ void multiRegionPoissonModel::solveSegregated()
 
         bool allOK = true;
 
-        for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
         {
-            // Rebuild all equations each pass
-            fvScalarMatrix gasEqn(PoissonEquation());
+            scalar resGas = 0.0;
 
-            if (nonOrth < nNonOrthCorr_)
+            for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
             {
-                gasEqn.relax();
+                fvScalarMatrix gasEqn(PoissonEquation());
+
+                if (nonOrth < nNonOrthCorr_)
+                    gasEqn.relax();
+
+                Info<< "    -Solving for ePotential (gas region: "
+                    << mesh_.name() << ")" << endl;
+
+                auto sp = gasEqn.solve();
+
+                if (nonOrth == 0)
+                    resGas = sp.initialResidual();
+
+                ePotential_.correctBoundaryConditions();
             }
 
-            Info<< "    -Solving for ePotential (gas region: "
-                << mesh_.name() << ")" << endl;
+            if (resGas >= nonCoupledTolerance_) allOK = false;
+        }
 
-            scalar resGas = gasEqn.solve().initialResidual();
+        for (dielectricRegion& reg : dielectrics_)
+        {
+            scalar resDiel = 0.0;
 
-            if (nonOrth == nNonOrthCorr_)
-            {
-                if (resGas >= nonCoupledTolerance_) allOK = false;
-            }
+            reg.ePotential().correctBoundaryConditions();
 
-            for (dielectricRegion& reg : dielectrics_)
+            for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
             {
                 fvScalarMatrix dielEqn
                 (
@@ -190,21 +212,23 @@ void multiRegionPoissonModel::solveSegregated()
                 );
 
                 if (nonOrth < nNonOrthCorr_)
-                {
                     dielEqn.relax();
-                }
 
                 Info<< "    -Solving for ePotential (dielectric: "
                     << reg.mesh().name() << ")" << endl;
 
-                scalar resDiel = dielEqn.solve().initialResidual();
+                auto sp = dielEqn.solve();
 
-                if (nonOrth == nNonOrthCorr_)
-                {
-                    if (resDiel >= nonCoupledTolerance_) allOK = false;
-                }
+                if (nonOrth == 0)
+                    resDiel = sp.initialResidual();
+
+                reg.ePotential().correctBoundaryConditions();
             }
+
+            if (resDiel >= nonCoupledTolerance_) allOK = false;
         }
+
+        ePotential_.correctBoundaryConditions();
 
         if (allOK)
         {
@@ -260,6 +284,8 @@ void multiRegionPoissonModel::solveSegregated
 
             scalar resGas = gasEqn.solve().initialResidual();
 
+            ePotential_.correctBoundaryConditions();
+
             if (nonOrth == nNonOrthCorr_)
             {
                 if (resGas >= nonCoupledTolerance_) allOK = false;
@@ -282,6 +308,8 @@ void multiRegionPoissonModel::solveSegregated
                     << reg.mesh().name() << ")" << endl;
 
                 scalar resDiel = dielEqn.solve().initialResidual();
+
+                reg.ePotential().correctBoundaryConditions();
 
                 if (nonOrth == nNonOrthCorr_)
                 {
@@ -494,6 +522,48 @@ multiRegionPoissonModel::multiRegionPoissonModel
         Info<< "Regions are NOT coupled; ePotential will be solved in "
             << "SEGREGATED way" << nl << endl;
     }
+
+
+
+    // --- DEBUG REGISTRY INSPECTION ---
+Info<< nl << "/*-----------------------------------------------------------*\\" << endl;
+Info<< "  DEBUG: multiRegionPoissonModel Registry Final Check" << endl;
+
+// 1. Check the Primary Gas Mesh Registry
+Info<< "  Gas Mesh (" << mesh_.name() << ") Registry:" << nl
+    << "  " << mesh_.thisDb().sortedToc() << nl << endl;
+
+// Explicitly check for the dictionary our model represents
+if (mesh_.thisDb().foundObject<IOdictionary>("electromagneticsProperties"))
+{
+    const IOdictionary& d = mesh_.thisDb().lookupObject<IOdictionary>("electromagneticsProperties");
+    Info<< "  FOUND: 'electromagneticsProperties' in gas mesh." << nl
+        << "  Address: " << &d << " | Class: " << d.type() << endl;
+}
+else
+{
+    Info<< "  CRITICAL: 'electromagneticsProperties' NOT FOUND in gas mesh registry!" << endl;
+}
+
+// 2. Check each Dielectric Mesh Registry
+forAll(dielectrics_, i)
+{
+    const fvMesh& dMesh = dielectrics_[i].mesh();
+    Info<< nl << "  Dielectric Mesh (" << dMesh.name() << ") Registry:" << nl
+        << "  " << dMesh.thisDb().sortedToc() << endl;
+
+    if (dMesh.thisDb().foundObject<IOdictionary>("electricProperties"))
+    {
+        Info<< "  FOUND: 'electricProperties' in " << dMesh.name() << endl;
+    }
+    else
+    {
+        Info<< "  WARNING: 'electricProperties' NOT FOUND in " << dMesh.name() << endl;
+    }
+}
+
+Info<< "\\*-----------------------------------------------------------*/" << nl << endl;
+// --- END DEBUG REGISTRY INSPECTION ---
 }
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //

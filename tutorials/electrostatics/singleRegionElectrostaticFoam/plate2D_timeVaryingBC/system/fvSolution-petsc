@@ -1,0 +1,49 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2412                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+solvers
+{
+    ePotential
+    {  
+        solver petsc;
+        implicitRegionCoupling false;
+
+        petsc
+        {
+            options
+            {
+                ksp_type            cg;
+                
+                pc_type             gamg;
+                mg_levels_ksp_type  chebyshev;
+                mg_levels_pc_type   jacobi;
+
+                mat_type            aij;
+            }
+        }
+
+        // OpenFOAM-level tolerances
+        tolerance   1e-9;
+        relTol      0;
+        maxIter     2000;
+    }
+}
+
+ePotentialControls
+{
+    nNonOrthogonalCorrectors    0;
+}
+
+// ************************************************************************* //

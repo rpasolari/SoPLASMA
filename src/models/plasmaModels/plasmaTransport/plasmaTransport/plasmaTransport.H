@@ -25,20 +25,19 @@ Class
     Foam::plasmaTransport
 
 Description
-    High-level manager for plasma transport models.
+    Manager class for per-species plasma transport models.
 
-    This class owns and manages one transport model per plasma species.
-    It does not implement any transport physics itself. Instead, it serves
-    as a controller that:
+    Owns one plasmaTransportModel per active species. Delegates all
+    transport physics to the individual models and aggregates their
+    outputs for use by the electromagnetics solver.
 
-        - Retrieves species-level transport configuration from plasmaSpecies
-        - Constructs the appropriate plasmaTransportModel for each species
-        - Stores all per-species transport models in a PtrList
-        - Delegates time-dependent updates to the individual models
+    Provides:
+        - Per-species particle flux (for number density equations)
+        - Total electrical conductivity (for semi-implicit Poisson)
+        - Total diffusive charge source (for semi-implicit Poisson)
+        - Wall flux list (for surface charge update via plasmaSpecies)
 
-    The plasmaTransport object is typically created once in the solver and
-    used during the solution loop to update the transport behaviour of all
-    plasma species.
+    Has no knowledge of reactions or energy models.
 
 SourceFiles
     plasmaTransportI.H
@@ -52,9 +51,9 @@ SourceFiles
 #include "fvCFD.H"
 #include "fvMesh.H"
 #include "PtrList.H"
+#include "regIOobject.H"
 
 #include "plasmaSpecies.H"
-#include "electromagneticsModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -89,13 +88,20 @@ protected:
     //- Reference to species database
     plasmaSpecies& species_;
 
-    const electromagneticsModel& electromagnetics_;
+    //- Per-species transport models
+    PtrList<plasmaTransportModel> transportModels_;
+
+    //- Convective particle flux [1/s]
+    PtrList<surfaceScalarField> convectiveFlux_;
+
+    //- Diffusive particle flux [1/s]
+    PtrList<surfaceScalarField> diffusiveFlux_;
 
     //- Total particle surface flux [1/s]
     PtrList<surfaceScalarField> particleFlux_;
 
-    //- Per-species transport models
-    PtrList<plasmaTransportModel> transportModels_;
+    //- Total wall flux [1/m2s/s]
+    PtrList<surfaceScalarField> wallFlux_;
 
 public:
 
@@ -104,12 +110,11 @@ public:
 
     // Constructors
 
-        //- Construct from mesh, species and electromagnetics
+        //- Construct from mesh and species
         plasmaTransport
         (
             const fvMesh& mesh,
-            plasmaSpecies& species,
-            electromagneticsModel& electromagnetics
+            plasmaSpecies& species
         );
 
     //- Destructor
@@ -117,8 +122,11 @@ public:
 
     // Member functions
 
-        //- Correct all models
+        //- Correct all transport models
         void correct();
+
+        //- Solve all species transport equations
+        void solve();
 
         //- Return the LHS matrix for a specific species
         tmp<fvScalarMatrix> transportMatrix(const label i);
@@ -138,18 +146,33 @@ public:
 
         //- Metadata access
         inline const fvMesh& mesh() const;
+        inline plasmaSpecies& species();
         inline const plasmaSpecies& species() const;
-        inline const electromagneticsModel& electromagnetics() const;
+
+        //- Access the EM model through species
+        inline const electromagneticsModel& em() const;
 
         //- Model access
         inline plasmaTransportModel& model(const label i);
         inline const plasmaTransportModel& model(const label i) const;
 
-        //- Number fluxes access
-        inline const surfaceScalarField& particleFlux(label i) const;
-        inline surfaceScalarField& particleFlux(label i);
-        inline const PtrList<surfaceScalarField>& particleFlux() const;
+        //- Access fluxes
+        inline surfaceScalarField& particleFlux(const label i);
+        inline const surfaceScalarField& particleFlux(const label i) const;
         inline PtrList<surfaceScalarField>& particleFlux();
+        inline const PtrList<surfaceScalarField>& particleFlux() const;
+        inline surfaceScalarField& convectiveFlux(const label i);
+        inline const surfaceScalarField& convectiveFlux(const label i) const;
+        inline PtrList<surfaceScalarField>& convectiveFlux();
+        inline const PtrList<surfaceScalarField>& convectiveFlux() const;
+        inline surfaceScalarField& diffusiveFlux(const label i);
+        inline const surfaceScalarField& diffusiveFlux(const label i) const;
+        inline PtrList<surfaceScalarField>& diffusiveFlux();
+        inline const PtrList<surfaceScalarField>& diffusiveFlux() const;
+        inline surfaceScalarField& wallFlux(const label i);
+        inline const surfaceScalarField& wallFlux(const label i) const;
+        inline const PtrList<surfaceScalarField>& wallFlux() const;
+        inline PtrList<surfaceScalarField>& wallFlux();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

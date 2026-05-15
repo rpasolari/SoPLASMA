@@ -1,0 +1,129 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2412                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    arch        "LSB;label=32;scalar=64";
+    class       volScalarField;
+    location    "9/leftGas";
+    object      ePotential;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [1 2 -3 0 0 -1 0];
+
+internalField   nonuniform List<scalar> 
+50
+(
+0.825
+0.825
+0.825
+0.825
+0.825
+0.825
+0.825
+0.825
+0.825
+0.825
+0.675
+0.675
+0.675
+0.675
+0.675
+0.675
+0.675
+0.675
+0.675
+0.675
+0.524999
+0.524999
+0.524999
+0.524999
+0.524999
+0.524999
+0.524999
+0.524999
+0.524999
+0.524999
+0.374999
+0.374999
+0.374999
+0.374999
+0.374999
+0.374999
+0.374999
+0.374999
+0.374999
+0.374999
+0.224999
+0.224999
+0.224999
+0.224999
+0.224999
+0.224999
+0.224999
+0.224999
+0.224999
+0.224999
+)
+;
+
+boundaryField
+{
+    back
+    {
+        type            empty;
+    }
+    down
+    {
+        type            zeroGradient;
+    }
+    up
+    {
+        type            zeroGradient;
+    }
+    left
+    {
+        type            uniformFixedValue;
+        uniformValue    table;
+        uniformValueCoeffs
+        {
+            values          
+2
+(
+(0 0)
+(10 1)
+)
+;
+        }
+        value           uniform 0.9;
+    }
+    front
+    {
+        type            empty;
+    }
+    leftGas_to_rightDielectric
+    {
+        type            coupledElectricPotential;
+        refValue        nonuniform List<scalar> 10(0.134999 0.134999 0.134999 0.134999 0.134999 0.134999 0.134999 0.134999 0.134999 0.134999);
+        refGradient     uniform -0;
+        valueFraction   nonuniform List<scalar> 10(0.833333 0.833333 0.833333 0.833333 0.833333 0.833333 0.833333 0.833333 0.833333 0.833333);
+        source          uniform 0;
+        value           nonuniform List<scalar> 10(0.149999 0.149999 0.149999 0.149999 0.149999 0.149999 0.149999 0.149999 0.149999 0.149999);
+        surfCharge      surfCharge;
+        logInterval     -1;
+        writePrecision  6;
+        updateHeader    1;
+        writeToFile     0;
+        useUserTime     1;
+    }
+}
+
+
+// ************************************************************************* //

@@ -47,6 +47,13 @@ Foam::plasmaSpecies::speciesID(const Foam::word& name) const
     return speciesIDs_[name];
 }
 
+//- Electromagnetics model access
+inline Foam::electromagneticsModel&
+Foam::plasmaSpecies::em() const
+{
+    return em_;
+}
+
 //- Physical properties access
 inline const Foam::List<Foam::scalar>&
 Foam::plasmaSpecies::speciesChargeNumbers() const
@@ -106,18 +113,6 @@ inline Foam::volScalarField&
 Foam::plasmaSpecies::numberDensity(Foam::label i)
 {
     return numberDensities_[i];
-}
-
-inline const Foam::volScalarField&
-Foam::plasmaSpecies::chargeDensity() const
-{
-    return chargeDensity_;
-}
-
-inline const Foam::volScalarField&
-Foam::plasmaSpecies::surfCharge() const
-{
-    return surfCharge_;
 }
 
 //- Dictionary Access

@@ -25,12 +25,7 @@ Class
     Foam::plasmaDiffusivityModel
 
 Description
-    Abstract base class for plasma species diffusivity modelling.
-
-    This class defines the common interface for diffusivity evaluation across
-    different plasma transport solvers. It utilizes a generic templated 
-    architecture (defined in genericPlasmaPropertyTemplates.H) to separate 
-    physical property identity from mathematical evaluation logic.
+    Physics manager for plasma species diffusivity modeling.
 
 Usage
     The model is selected via the 'type' entry in the diffusivity dictionary
@@ -72,7 +67,7 @@ Usage
         // 4. Power Law Diffusivity (Analytic)
         // D = amplitude * |lookupVariable|^exponent
         type            powerLaw;
-        amplitude       1.5e-4;      // Mandatory: muCoeff
+        amplitude       1.5e-4;      // Mandatory: DCoeff
         exponent        -0.5;        // Mandatory: fieldExp
         lookupVariable  E;           // Optional:  Default is E
 
@@ -83,7 +78,7 @@ Usage
         function        coded;       // Function1 type (coded|polynomial|...)
         
         // Example for 'coded' type:
-        name            myCustomD;
+        name            myCustomMu;
         code            #{ return 1.5e-4 * Foam::exp(-x/100.0); #};
 
         // Example for 'polynomial' type:
@@ -93,7 +88,7 @@ Usage
 
     Notes on Out-Of-Bounds handling:
     - clamp:  Use value of the nearest endpoint (Recommended).
-    - error:  Stop the simulation with a Fatal Error.
+    - error:  Stop the siDlation with a Fatal Error.
     - warn:   Clamp the value but print a warning to the log (Default).
     - repeat: Treat the table as a periodic cycle (1D only).
 
@@ -124,10 +119,13 @@ namespace Foam
 
 class plasmaDiffusivityModel
 {
-protected:
+private:
 
-    //- The specific math evaluator (e.g., tabulated1D, powerLaw, etc.)
-    autoPtr<plasmaPropertyEvaluator> evaluator_;
+    //- Disallow copy 
+    plasmaDiffusivityModel(const plasmaDiffusivityModel&) = delete;
+    void operator=(const plasmaDiffusivityModel&) = delete;
+
+protected:
 
     //- Model type (e.g. "constant", "tabulated1D", etc.)
     const word modelType_;
@@ -143,24 +141,19 @@ protected:
 
     //- Diffusivity model dictionary
     const dictionary dict_;
+
     //- Flag for uniform or non-uniform field property
     bool isUniform_;
 
     //- Flag for constant or dynamic field property
     bool isConstant_;
 
-    //- Mutable flag to check if a constant field has already been calculated
-    mutable bool upToDate_;
+    //- The specific math evaluator (e.g., tabulated1D, powerLaw, etc.)
+    autoPtr<plasmaPropertyEvaluator> evaluator_;
 
-    //- Storage for the uniform value
-    mutable dimensionedScalar DValue_;
-
-    //- Storage for the volScalarField
-    mutable autoPtr<volScalarField> DFieldPtr_;
-
-    //- Private update logic
-    void update() const;
-
+    //- Diffusivity field
+    volScalarField D_;
+    
 public:
 
     //- Runtime type information
@@ -193,20 +186,23 @@ public:
 
     // Member Functions
 
-        //- Returns true if the diffusivity is spatially uniform
+        //- Update D field from evaluator.
+        void correct();
+
+        //- Const reference to the diffusivity field
+        const volScalarField& D() const { return D_; }
+
+        //- Patch diffusivity values
+        const scalarField& DPatch(const label patchi) const
+        {
+            return D_.boundaryField()[patchi];
+        }
+
+        //- True if spatially uniform (constant model type)
         bool isUniform() const { return isUniform_; }
 
-        //- Returns the actual scalar value (if spatially uniform)
-        const dimensionedScalar& DValue() const { return DValue_; }
-
-        //- Return diffusivity as a temporary field
-        tmp<volScalarField> D() const;
-
-        //- Return the diffusivity on a patch
-        void DPatch(fvPatchScalarField& pField, const label patchi) const;
-
-        //- Correct diffusivity
-        void correct(volScalarField& D) const;
+        //- True if field never changes in time
+        bool isConstant() const { return isConstant_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

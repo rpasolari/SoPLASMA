@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+cd ${0%/*} || exit 1
+
+./Allclean
+
+decompDict="-decomposeParDict system/decomposeParDict"
+
+# Source run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+rm configuration/geometry/mesh.msh
+
+python ./configuration/geometry/mesh.py
+
+gmshToFoam ./configuration/geometry/mesh.msh
+
+sed -i '/physicalType[[:space:]]*patch;/d' constant/polyMesh/boundary
+
+sed -i '/^[[:space:]]*\(front\|back\)[[:space:]]*$/,/}/ s/^\([[:space:]]*type\)[[:space:]]*.*/\1\t\tempty;/' constant/polyMesh/boundary
+
+for domain in $(foamListRegions); do
+    # Create folder if it doesn't exist
+    mkdir -p system/$domain
+    mkdir -p constant/$domain
+
+    # Copy fvSchemes and fvSolution
+    cp system/fvSchemes system/$domain/fvSchemes
+    cp system/fvSolution system/$domain/fvSolution
+
+    # Update 'location' entry in fvSchemes
+    sed -i 's@#include[[:space:]]*"\.\./@#include "../../@' system/$domain/fvSchemes
+    sed -i 's@#include[[:space:]]*"\.\./@#include "../../@' system/$domain/fvSolution
+    sed -i "s|location *\".*\"|location\t\"system/$domain\"|" system/$domain/fvSchemes
+    sed -i "s|location *\".*\"|location\t\"system/$domain\"|" system/$domain/fvSolution
+done
+
+runApplication $decompDict decomposePar
+
+restore0Dir -processor
+
+runParallel $decompDict splitMeshRegions -cellZones -overwrite
+
+# Create logs folder
+mkdir -p logs
+
+# Remove redundant files in 0
+for region in $(foamListRegions dielectric)
+do
+    rm -f processor*/0/$region/eCharge
+done
+
+for region in $(foamListRegions)
+do
+    cp etc/changeDictionary.$region system/$region/changeDictionaryDict
+    runParallel $decompDict -s $region changeDictionary -region $region
+
+    # Loop through all processor directories
+    for procDir in processor*
+    do
+        # Skip if no processor directories exist (serial case safety)
+        [ -d "$procDir" ] || continue
+
+        for field in eCharge surfCharge ePotential
+        do
+            file="$procDir/0/$region/$field"
+
+            if [ -f "$file" ]; then
+                if ! grep -q '#include.*/configuration/config' "$file"; then
+                    sed -i '/^\/\/ \* \* \* \*/a #include        "../../../configuration/config"' "$file"
+                fi
+            fi
+        done
+    done
+done
+
+runParallel $(getApplication)
+
+# Reconstruct
+for region in $(foamListRegions)
+do
+    runParallel -s reconstruct-$region \
+        redistributePar -reconstruct -region $region
+done
+
+rm -r processor*
+
+mv log.$(getApplication) log.$(getApplication).parallel
+
+touch case.foam
+
+mv log.* ./logs/
+
+grep "ExecutionTime" logs/log.$(getApplication).parallel | tail -n1
+
+

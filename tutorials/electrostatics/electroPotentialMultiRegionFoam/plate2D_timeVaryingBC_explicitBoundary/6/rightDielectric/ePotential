@@ -1,0 +1,118 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2412                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    arch        "LSB;label=32;scalar=64";
+    class       volScalarField;
+    location    "6/rightDielectric";
+    object      ePotential;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [1 2 -3 0 0 -1 0];
+
+internalField   nonuniform List<scalar> 
+50
+(
+0.09
+0.09
+0.09
+0.09
+0.09
+0.09
+0.09
+0.09
+0.09
+0.09
+0.07
+0.07
+0.07
+0.07
+0.07
+0.07
+0.07
+0.07
+0.07
+0.07
+0.05
+0.05
+0.05
+0.05
+0.05
+0.05
+0.05
+0.05
+0.05
+0.05
+0.03
+0.03
+0.03
+0.03
+0.03
+0.03
+0.03
+0.03
+0.03
+0.03
+0.01
+0.01
+0.01
+0.01
+0.01
+0.01
+0.01
+0.01
+0.01
+0.01
+)
+;
+
+boundaryField
+{
+    back
+    {
+        type            empty;
+    }
+    down
+    {
+        type            zeroGradient;
+    }
+    up
+    {
+        type            zeroGradient;
+    }
+    front
+    {
+        type            empty;
+    }
+    right
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+    rightDielectric_to_leftFluid
+    {
+        type            coupledElectricPotential;
+        refValue        nonuniform List<scalar> 10(0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15);
+        refGradient     uniform -0;
+        valueFraction   nonuniform List<scalar> 10(0.166667 0.166667 0.166667 0.166667 0.166667 0.166667 0.166667 0.166667 0.166667 0.166667);
+        source          uniform 0;
+        value           nonuniform List<scalar> 10(0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1);
+        surfChargeNbr   surfCharge;
+        logInterval     -1;
+        writePrecision  6;
+        updateHeader    1;
+        writeToFile     0;
+        useUserTime     1;
+    }
+}
+
+
+// ************************************************************************* //

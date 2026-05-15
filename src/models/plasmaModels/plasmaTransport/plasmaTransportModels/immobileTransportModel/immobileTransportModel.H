@@ -60,6 +60,12 @@ class immobileTransportModel
 :
     public plasmaTransportModel
 {
+private:
+
+    //- Disallow default bitwise copy construct
+    immobileTransportModel(const immobileTransportModel&) = delete;
+    void operator=(const immobileTransportModel&) = delete;
+    
 public:
 
     //- Runtime type information
@@ -73,24 +79,39 @@ public:
             const word& modelName,
             const dictionary& dict,
             const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex,
-            const volVectorField& E,
-            const surfaceScalarField& phiE
+            plasmaSpecies& species,
+            const label specieIndex
         );
+
+    //- Destructor
+    virtual ~immobileTransportModel() = default;
 
     // Member Functions
         
-        //- Return the transport equation (Matrix)
+        //- No tranport coefficients to update
+        virtual void correct() override;
+
+        //- Return the dn/dt = 0 equation
         virtual tmp<fvScalarMatrix> nEqn() const override;
 
-        //- Update particle flux
-        virtual void updateParticleFlux(surfaceScalarField& flux) const override;
+        //- No fluxes for immobile species — FatalError if called
+        virtual void updateFluxes
+        (
+            surfaceScalarField& convectiveFlux,
+            surfaceScalarField& diffusiveFlux,
+            surfaceScalarField& particleFlux
+        ) const override;
 
-        //- Return electric conduction coefficient
+        //- No wall flux — FatalError if called
+        virtual void updateWallFlux
+        (
+            surfaceScalarField& wallFlux
+        ) const override;
+
+        //- Zero conductivity
         virtual tmp<volScalarField> electricalConductivity() const override;
 
-        //- Return electric diffusion charge
+        //- Zero diffusive source
         virtual tmp<volScalarField> diffusiveChargeSource() const override;
 };
 

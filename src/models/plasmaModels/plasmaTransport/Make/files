@@ -1,8 +1,8 @@
 plasmaTransport/plasmaTransport.C
 
 plasmaTransportModels/plasmaTransportModel.C
-plasmaTransportModels/driftDiffusion/driftDiffusion.C
 plasmaTransportModels/immobileTransportModel/immobileTransportModel.C
+plasmaTransportModels/driftDiffusion/driftDiffusion.C
 
 plasmaMobilityModels/plasmaMobilityModel.C
 plasmaDiffusivityModels/plasmaDiffusivityModel.C

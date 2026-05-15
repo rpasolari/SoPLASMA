@@ -1,0 +1,1054 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2412                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _8dbc61e11c-20241220 OPENFOAM=2412 version=v2412
+Arch   : "LSB;label=32;scalar=64"
+Exec   : multiRegionElectrostaticFoam
+Date   : May 15 2026
+Time   : 18:41:08
+Host   : rpasolari
+PID    : 143840
+I/O    : uncollated
+Case   : /home/rpasolari-wsl/Linux-Desktop/CERTH/solvers/OpenFOAM/OF2412/foamPlasmaToolkit/tutorials/electrostatics/multiRegionElectrostaticFoam/plate2D_timeVaryingBC_explicitBoundary
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create gas mesh for region leftGas for time = 0
+
+Create dielectric mesh for region rightDielectric for time = 0
+
+
+========================================
+DEBUG: Checking Object Registries
+Primary Mesh (leftGas) Registry Contents:
+
+20
+(
+E
+Emag
+boundary
+cellZones
+chargeDensity
+data
+ePotential
+electromagneticsProperties
+faceZones
+faces
+fvSchemes
+fvSolution
+leastSquaresVectors
+neighbour
+owner
+phiE
+pointZones
+points
+reducedE
+surfCharge
+)
+
+
+Dielectric Mesh (rightDielectric) Registry Contents:
+
+11
+(
+boundary
+cellZones
+data
+faceZones
+faces
+fvSchemes
+fvSolution
+neighbour
+owner
+pointZones
+points
+)
+
+
+========================================
+
+Regions are NOT coupled; ePotential will be solved in SEGREGATED way
+
+
+/*-----------------------------------------------------------*\
+  DEBUG: multiRegionPoissonModel Registry Final Check
+  Gas Mesh (leftGas) Registry:
+  
+20
+(
+E
+Emag
+boundary
+cellZones
+chargeDensity
+data
+ePotential
+electromagneticsProperties
+faceZones
+faces
+fvSchemes
+fvSolution
+leastSquaresVectors
+neighbour
+owner
+phiE
+pointZones
+points
+reducedE
+surfCharge
+)
+
+
+  FOUND: 'electromagneticsProperties' in gas mesh.
+  Address: 1 | Class: multiRegionPoisson
+
+  Dielectric Mesh (rightDielectric) Registry:
+  
+17
+(
+E
+boundary
+cellZones
+data
+ePotential
+electricProperties
+faceZones
+faces
+fvSchemes
+fvSolution
+leastSquaresVectors
+neighbour
+owner
+phiE
+pointZones
+points
+surfCharge
+)
+
+  FOUND: 'electricProperties' in rightDielectric
+\*-----------------------------------------------------------*/
+
+
+Calculating electric potential distribution
+
+Time = 1
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1, Final residual = 1.86767e-10, No Iterations 9
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1, Final residual = 3.23821e-10, No Iterations 11
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0332103, Final residual = 6.37431e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.090301, Final residual = 1.85112e-10, No Iterations 10
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0186507, Final residual = 3.57977e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0332194, Final residual = 4.32087e-10, No Iterations 9
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0102022, Final residual = 1.95819e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0151409, Final residual = 1.96939e-10, No Iterations 9
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00549796, Final residual = 9.11635e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00746608, Final residual = 6.17767e-10, No Iterations 8
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00293856, Final residual = 4.87255e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00381416, Final residual = 3.15596e-10, No Iterations 8
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00156364, Final residual = 2.59273e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00198249, Final residual = 1.64038e-10, No Iterations 8
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000830048, Final residual = 1.37633e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00103953, Final residual = 5.51987e-10, No Iterations 7
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000440068, Final residual = 6.27153e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000547573, Final residual = 2.9076e-10, No Iterations 7
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000233155, Final residual = 3.32287e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000289122, Final residual = 9.95506e-10, No Iterations 6
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000123484, Final residual = 1.75989e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00015285, Final residual = 5.26303e-10, No Iterations 6
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.53881e-05, Final residual = 7.96852e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 8.08606e-05, Final residual = 2.78427e-10, No Iterations 6
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.46218e-05, Final residual = 4.22056e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.27918e-05, Final residual = 9.72956e-10, No Iterations 5
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.83302e-05, Final residual = 2.23465e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.26503e-05, Final residual = 5.1505e-10, No Iterations 5
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 9.70459e-06, Final residual = 1.18304e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.19901e-05, Final residual = 2.72652e-10, No Iterations 5
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.13784e-06, Final residual = 5.39688e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 6.34735e-06, Final residual = 9.5945e-10, No Iterations 4
+  -ePotential iteration (17/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.72043e-06, Final residual = 2.867e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.36082e-06, Final residual = 5.08335e-10, No Iterations 4
+  -ePotential iteration (18/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.44029e-06, Final residual = 1.51755e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.77929e-06, Final residual = 2.69161e-10, No Iterations 4
+  -ePotential iteration (19/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 7.62536e-07, Final residual = 7.23616e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 9.4205e-07, Final residual = 9.65495e-10, No Iterations 3
+>>> ePotential converged in 19 iterations.
+ExecutionTime = 0.01 s  ClockTime = 0 s
+
+Time = 2
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.391304, Final residual = 6.32475e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0810819, Final residual = 1.66213e-10, No Iterations 10
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0176818, Final residual = 3.39381e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.030787, Final residual = 4.00449e-10, No Iterations 9
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00965555, Final residual = 1.85326e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0141766, Final residual = 1.84396e-10, No Iterations 9
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00519837, Final residual = 8.61959e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00702125, Final residual = 5.80961e-10, No Iterations 8
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00277699, Final residual = 4.60463e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00359441, Final residual = 2.97413e-10, No Iterations 8
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00147725, Final residual = 2.44948e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00187023, Final residual = 9.93086e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000784072, Final residual = 1.3001e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000981201, Final residual = 5.21015e-10, No Iterations 7
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000415659, Final residual = 5.92367e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000516992, Final residual = 2.74522e-10, No Iterations 7
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000220213, Final residual = 3.13843e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000273016, Final residual = 9.4005e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000116628, Final residual = 1.66217e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000144347, Final residual = 4.97023e-10, No Iterations 6
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.17566e-05, Final residual = 7.52596e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.63652e-05, Final residual = 2.62948e-10, No Iterations 6
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.26988e-05, Final residual = 3.98613e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.04137e-05, Final residual = 9.18886e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.7312e-05, Final residual = 2.11053e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.13918e-05, Final residual = 4.86433e-10, No Iterations 5
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 9.16552e-06, Final residual = 9.62789e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.13239e-05, Final residual = 2.57519e-10, No Iterations 5
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.85325e-06, Final residual = 5.1134e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.99474e-06, Final residual = 9.06089e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.56932e-06, Final residual = 2.70814e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.17412e-06, Final residual = 4.80074e-10, No Iterations 4
+  -ePotential iteration (17/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.36028e-06, Final residual = 1.43335e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.68045e-06, Final residual = 2.54201e-10, No Iterations 4
+  -ePotential iteration (18/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 7.20177e-07, Final residual = 6.83451e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 8.89719e-07, Final residual = 9.11842e-10, No Iterations 3
+>>> ePotential converged in 18 iterations.
+ExecutionTime = 0.01 s  ClockTime = 0 s
+
+Time = 3
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.243243, Final residual = 3.9316e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0422542, Final residual = 5.49603e-10, No Iterations 9
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0120483, Final residual = 2.31252e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0185569, Final residual = 2.41372e-10, No Iterations 9
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00651394, Final residual = 1.25027e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00901112, Final residual = 7.45609e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00348776, Final residual = 5.78316e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00457033, Final residual = 3.78164e-10, No Iterations 8
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00185764, Final residual = 3.08022e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00236698, Final residual = 1.95852e-10, No Iterations 8
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000986619, Final residual = 1.63595e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00123885, Final residual = 6.57823e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000523218, Final residual = 7.45654e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000651934, Final residual = 3.46175e-10, No Iterations 7
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000277249, Final residual = 3.95129e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000344051, Final residual = 1.8269e-10, No Iterations 7
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000146849, Final residual = 2.09286e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00018184, Final residual = 6.26114e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 7.77633e-05, Final residual = 9.47671e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 9.61837e-05, Final residual = 3.31188e-10, No Iterations 6
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.11752e-05, Final residual = 5.01946e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.0897e-05, Final residual = 1.75252e-10, No Iterations 6
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.18002e-05, Final residual = 2.65758e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.69388e-05, Final residual = 6.12506e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.15417e-05, Final residual = 1.40706e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.42602e-05, Final residual = 3.24265e-10, No Iterations 5
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.11045e-06, Final residual = 6.41873e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.54905e-06, Final residual = 1.71673e-10, No Iterations 5
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.23553e-06, Final residual = 3.40898e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.99643e-06, Final residual = 6.04049e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.71289e-06, Final residual = 1.80545e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.11607e-06, Final residual = 3.20047e-10, No Iterations 4
+  -ePotential iteration (17/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 9.06861e-07, Final residual = 8.6079e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.12036e-06, Final residual = 1.69581e-10, No Iterations 4
+  -ePotential iteration (18/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.80868e-07, Final residual = 4.68308e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.93122e-07, Final residual = 6.0743e-10, No Iterations 3
+>>> ePotential converged in 18 iterations.
+ExecutionTime = 0.02 s  ClockTime = 0 s
+
+Time = 4
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.176471, Final residual = 2.85234e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0285718, Final residual = 3.71636e-10, No Iterations 9
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00913715, Final residual = 1.75376e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.013281, Final residual = 1.72747e-10, No Iterations 9
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0049148, Final residual = 8.14939e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00660459, Final residual = 5.46485e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00262421, Final residual = 4.3513e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00338775, Final residual = 2.80313e-10, No Iterations 8
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00139561, Final residual = 2.31411e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00176445, Final residual = 9.36914e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000740634, Final residual = 1.22807e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000926172, Final residual = 4.91795e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000392602, Final residual = 5.59508e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000488128, Final residual = 2.59195e-10, No Iterations 7
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00020799, Final residual = 2.96422e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000257809, Final residual = 8.8769e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000110152, Final residual = 1.56987e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000136317, Final residual = 4.69374e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.83267e-05, Final residual = 7.10798e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.21199e-05, Final residual = 2.4833e-10, No Iterations 6
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.08826e-05, Final residual = 3.76472e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.81678e-05, Final residual = 8.67821e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.63504e-05, Final residual = 1.99329e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.02032e-05, Final residual = 4.59405e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 8.65638e-06, Final residual = 9.09307e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.06948e-05, Final residual = 2.43212e-10, No Iterations 5
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.58365e-06, Final residual = 4.82935e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.66171e-06, Final residual = 8.55752e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.42659e-06, Final residual = 2.5577e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.99779e-06, Final residual = 4.53405e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.28472e-06, Final residual = 1.35373e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.5871e-06, Final residual = 2.4008e-10, No Iterations 4
+  -ePotential iteration (17/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.80171e-07, Final residual = 6.45485e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 8.40294e-07, Final residual = 8.61188e-10, No Iterations 3
+>>> ePotential converged in 17 iterations.
+ExecutionTime = 0.02 s  ClockTime = 0 s
+
+Time = 5
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.138462, Final residual = 2.23798e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0215833, Final residual = 2.80735e-10, No Iterations 9
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0073591, Final residual = 1.41249e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0103411, Final residual = 8.55655e-10, No Iterations 8
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0039461, Final residual = 6.54316e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00521258, Final residual = 4.31306e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00210343, Final residual = 3.48779e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00269138, Final residual = 2.22694e-10, No Iterations 8
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00111764, Final residual = 1.8532e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00140644, Final residual = 7.46815e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000592835, Final residual = 8.44866e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000739529, Final residual = 3.92688e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000314176, Final residual = 4.47757e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000390113, Final residual = 2.07149e-10, No Iterations 7
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000166419, Final residual = 2.37177e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000206139, Final residual = 7.09781e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 8.81292e-05, Final residual = 1.25601e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000109024, Final residual = 3.75397e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.66638e-05, Final residual = 5.68668e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.76879e-05, Final residual = 1.98636e-10, No Iterations 6
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.47068e-05, Final residual = 3.01188e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.05321e-05, Final residual = 6.94208e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.30806e-05, Final residual = 1.59467e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.61621e-05, Final residual = 3.67512e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.92522e-06, Final residual = 7.27457e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 8.55575e-06, Final residual = 1.94567e-10, No Iterations 5
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.66697e-06, Final residual = 3.86353e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.52936e-06, Final residual = 6.846e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.94129e-06, Final residual = 2.04619e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.39824e-06, Final residual = 3.62725e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.02779e-06, Final residual = 9.7557e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.26975e-06, Final residual = 1.92194e-10, No Iterations 4
+  -ePotential iteration (17/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.44989e-07, Final residual = 5.30753e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 6.72212e-07, Final residual = 6.88427e-10, No Iterations 3
+>>> ePotential converged in 17 iterations.
+ExecutionTime = 0.03 s  ClockTime = 0 s
+
+Time = 6
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.113924, Final residual = 1.84138e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0173415, Final residual = 2.25562e-10, No Iterations 9
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00616029, Final residual = 1.18239e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00846679, Final residual = 7.00569e-10, No Iterations 8
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00329637, Final residual = 5.46581e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00430517, Final residual = 3.56224e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00175512, Final residual = 2.91023e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00223247, Final residual = 1.84722e-10, No Iterations 8
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000932003, Final residual = 1.54539e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0011692, Final residual = 6.20842e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000494208, Final residual = 7.04311e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000615491, Final residual = 3.26824e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000261863, Final residual = 3.73202e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000324876, Final residual = 1.72508e-10, No Iterations 7
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000138696, Final residual = 1.97667e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000171722, Final residual = 5.91274e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 7.3445e-05, Final residual = 8.95045e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 9.0836e-05, Final residual = 3.12774e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.88883e-05, Final residual = 4.74069e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.80685e-05, Final residual = 1.65513e-10, No Iterations 6
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.05893e-05, Final residual = 2.50997e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.54421e-05, Final residual = 5.78474e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.09006e-05, Final residual = 1.32891e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.3468e-05, Final residual = 3.06251e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.77104e-06, Final residual = 6.0622e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.12969e-06, Final residual = 1.62136e-10, No Iterations 5
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.05581e-06, Final residual = 3.21962e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.77444e-06, Final residual = 5.70495e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.61775e-06, Final residual = 1.70516e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.99853e-06, Final residual = 3.0227e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 8.56489e-07, Final residual = 8.12977e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.05812e-06, Final residual = 1.60161e-10, No Iterations 4
+  -ePotential iteration (17/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.54157e-07, Final residual = 4.42295e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.60176e-07, Final residual = 5.73689e-10, No Iterations 3
+>>> ePotential converged in 17 iterations.
+ExecutionTime = 0.03 s  ClockTime = 0 s
+
+Time = 7
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0967743, Final residual = 1.56418e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0144931, Final residual = 1.88513e-10, No Iterations 9
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00529734, Final residual = 8.78368e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00716766, Final residual = 5.93075e-10, No Iterations 8
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00283034, Final residual = 4.6931e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00366684, Final residual = 3.03406e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00150577, Final residual = 2.49678e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00190726, Final residual = 1.57813e-10, No Iterations 8
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00079925, Final residual = 1.32527e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00100045, Final residual = 5.31233e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000423717, Final residual = 6.03851e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000527085, Final residual = 2.79881e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000224485, Final residual = 3.19932e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000278331, Final residual = 9.58353e-10, No Iterations 6
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000118891, Final residual = 1.69442e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000147153, Final residual = 5.06687e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.29553e-05, Final residual = 7.67205e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.7849e-05, Final residual = 2.68057e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.33336e-05, Final residual = 4.06351e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.11986e-05, Final residual = 9.36733e-10, No Iterations 5
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.76481e-05, Final residual = 2.1515e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.18072e-05, Final residual = 4.95879e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 9.34346e-06, Final residual = 9.81481e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.15438e-05, Final residual = 2.62519e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.94747e-06, Final residual = 5.21267e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 6.11113e-06, Final residual = 9.23682e-10, No Iterations 4
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.6192e-06, Final residual = 2.76072e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.23575e-06, Final residual = 4.89395e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.38669e-06, Final residual = 1.46118e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.71308e-06, Final residual = 2.59137e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 7.3416e-07, Final residual = 6.9672e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 9.06994e-07, Final residual = 9.29545e-10, No Iterations 3
+>>> ePotential converged in 16 iterations.
+ExecutionTime = 0.04 s  ClockTime = 0 s
+
+Time = 8
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0841124, Final residual = 1.35952e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0124487, Final residual = 1.61921e-10, No Iterations 9
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00464653, Final residual = 7.70456e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00621429, Final residual = 5.1419e-10, No Iterations 8
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00247981, Final residual = 4.11187e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00319342, Final residual = 2.64234e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00131848, Final residual = 2.18623e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00166478, Final residual = 8.83992e-10, No Iterations 7
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000699612, Final residual = 9.97038e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000874278, Final residual = 4.64239e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000370832, Final residual = 5.28501e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000460894, Final residual = 2.44733e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000196448, Final residual = 2.79974e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000243457, Final residual = 8.38273e-10, No Iterations 6
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000104037, Final residual = 1.48273e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000128737, Final residual = 4.43275e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.50885e-05, Final residual = 6.71336e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 6.81123e-05, Final residual = 2.34531e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.91678e-05, Final residual = 3.55569e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.60475e-05, Final residual = 8.19613e-10, No Iterations 5
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.54425e-05, Final residual = 1.88261e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.90811e-05, Final residual = 4.3389e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 8.17571e-06, Final residual = 8.58815e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.01009e-05, Final residual = 2.29705e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.32912e-06, Final residual = 4.56118e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.3473e-06, Final residual = 8.0823e-10, No Iterations 4
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.29184e-06, Final residual = 2.41568e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.83132e-06, Final residual = 4.28227e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.21338e-06, Final residual = 1.27856e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.49897e-06, Final residual = 2.26748e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.42402e-07, Final residual = 6.09641e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.93633e-07, Final residual = 8.13366e-10, No Iterations 3
+>>> ePotential converged in 16 iterations.
+ExecutionTime = 0.04 s  ClockTime = 0 s
+
+Time = 9
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0743804, Final residual = 1.20222e-10, No Iterations 8
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0109096, Final residual = 9.02692e-10, No Iterations 8
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00413809, Final residual = 6.86149e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00548468, Final residual = 4.5382e-10, No Iterations 8
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00220651, Final residual = 3.65869e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00282822, Final residual = 2.34016e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00117262, Final residual = 1.94436e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00147698, Final residual = 7.84272e-10, No Iterations 7
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000622055, Final residual = 8.86509e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000776356, Final residual = 4.12243e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000329678, Final residual = 4.6985e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000409466, Final residual = 2.17426e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000174635, Final residual = 2.48886e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000216346, Final residual = 7.44923e-10, No Iterations 6
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 9.24815e-05, Final residual = 1.31804e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000114416, Final residual = 3.93964e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.89686e-05, Final residual = 5.96756e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 6.05395e-05, Final residual = 2.08455e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.59273e-05, Final residual = 3.16065e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 3.20409e-05, Final residual = 7.28515e-10, No Iterations 5
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.37268e-05, Final residual = 1.67344e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.69606e-05, Final residual = 3.85671e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 7.26733e-06, Final residual = 7.63394e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 8.97846e-06, Final residual = 2.0418e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.84812e-06, Final residual = 4.05439e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.75312e-06, Final residual = 7.18422e-10, No Iterations 4
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.0372e-06, Final residual = 2.14727e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.51672e-06, Final residual = 3.80645e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.07856e-06, Final residual = 1.13649e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.33241e-06, Final residual = 2.01554e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.71024e-07, Final residual = 5.41904e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 7.05451e-07, Final residual = 7.22991e-10, No Iterations 3
+>>> ePotential converged in 16 iterations.
+ExecutionTime = 0.05 s  ClockTime = 0 s
+
+Time = 10
+
+Solving for ePotential in non-coupled regions (segregated)
+  -ePotential iteration (1/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.0666669, Final residual = 9.39186e-10, No Iterations 7
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00970915, Final residual = 8.03366e-10, No Iterations 8
+  -ePotential iteration (2/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00372994, Final residual = 6.1847e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.0049084, Final residual = 4.06137e-10, No Iterations 8
+  -ePotential iteration (3/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00198746, Final residual = 3.29549e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00253799, Final residual = 2.10001e-10, No Iterations 8
+  -ePotential iteration (4/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.00105581, Final residual = 1.75068e-10, No Iterations 6
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.00132726, Final residual = 7.04769e-10, No Iterations 7
+  -ePotential iteration (5/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000559977, Final residual = 7.9804e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000698161, Final residual = 3.70722e-10, No Iterations 7
+  -ePotential iteration (6/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000296746, Final residual = 4.22916e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000368364, Final residual = 1.956e-10, No Iterations 7
+  -ePotential iteration (7/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 0.000157181, Final residual = 2.24012e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000194668, Final residual = 6.70281e-10, No Iterations 6
+  -ePotential iteration (8/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 8.32362e-05, Final residual = 1.18627e-10, No Iterations 5
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 0.000102962, Final residual = 3.54526e-10, No Iterations 6
+  -ePotential iteration (9/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 4.40726e-05, Final residual = 5.3709e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 5.44822e-05, Final residual = 1.87598e-10, No Iterations 6
+  -ePotential iteration (10/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 2.33348e-05, Final residual = 2.84462e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.88359e-05, Final residual = 6.55642e-10, No Iterations 5
+  -ePotential iteration (11/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.23542e-05, Final residual = 1.50611e-10, No Iterations 4
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.52643e-05, Final residual = 3.47098e-10, No Iterations 5
+  -ePotential iteration (12/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 6.54061e-06, Final residual = 6.87056e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 8.08054e-06, Final residual = 1.8376e-10, No Iterations 5
+  -ePotential iteration (13/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 3.46331e-06, Final residual = 3.64896e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 4.27779e-06, Final residual = 6.46577e-10, No Iterations 4
+  -ePotential iteration (14/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 1.83348e-06, Final residual = 1.93255e-10, No Iterations 3
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 2.26504e-06, Final residual = 3.42579e-10, No Iterations 4
+  -ePotential iteration (15/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 9.70704e-07, Final residual = 9.21388e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 1.19923e-06, Final residual = 1.8152e-10, No Iterations 4
+  -ePotential iteration (16/100)
+    -Solving for ePotential (gas region: leftGas)
+GAMG:  Solving for ePotential, Initial residual = 5.14721e-07, Final residual = 5.01276e-10, No Iterations 2
+    -Solving for ePotential (dielectric: rightDielectric)
+GAMG:  Solving for ePotential, Initial residual = 6.34878e-07, Final residual = 6.50193e-10, No Iterations 3
+>>> ePotential converged in 16 iterations.
+ExecutionTime = 0.05 s  ClockTime = 0 s
+
+End
+

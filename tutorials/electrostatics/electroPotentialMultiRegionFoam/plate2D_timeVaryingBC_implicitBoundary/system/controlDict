@@ -15,11 +15,6 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 #include "../configuration/config"
 
-libs
-(
-    // "libpetscFoam.so"
-);
-
 application     electroPotentialMultiRegionFoam;
 
 startFrom       startTime;

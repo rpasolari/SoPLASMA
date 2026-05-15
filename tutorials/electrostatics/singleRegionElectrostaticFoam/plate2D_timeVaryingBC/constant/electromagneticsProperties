@@ -1,0 +1,30 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2412                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      electromagneticsProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+electromagneticsModel   singleRegionPoisson;
+
+singleRegionPoissonCoeffs
+{
+    dielectricConstant      1.0;             // Dimensionless
+
+    EScheme                 reconstruct;     // Options: reconstruct | faceValue
+
+    PoissonScheme           explicit;        // Here, the only option
+
+    nNonOrthogonalCorrectors 0;              // Non-ortho correctors
+
+    backgroundDensity       2.5e25;          // m^-3, for plasma applications
+}

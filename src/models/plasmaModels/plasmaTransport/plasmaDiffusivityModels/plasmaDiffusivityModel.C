@@ -22,38 +22,6 @@ namespace Foam
 
 defineTypeNameAndDebug(plasmaDiffusivityModel, 0);
 
-// * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * //
-
-void plasmaDiffusivityModel::update() const
-{
-    // Skip recalculation if the model is constant in time and already set
-    if (isConstant_ && upToDate_) return;
-
-    if (isUniform_)
-    {
-        // Update the single scalar value
-        DValue_ = evaluator_->evaluateScalar();
-    }
-    else
-    {
-        // Create or update the volScalarField
-        if (!DFieldPtr_.valid())
-        {
-            DFieldPtr_.reset
-            (
-                new volScalarField
-                (
-                    IOobject("D", mesh_.time().timeName(), mesh_),
-                    mesh_, DValue_.dimensions()
-                )
-            );
-        }
-        evaluator_->correct(DFieldPtr_.ref());
-    }
-
-    upToDate_ = true;
-}
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 plasmaDiffusivityModel::plasmaDiffusivityModel
@@ -70,24 +38,51 @@ plasmaDiffusivityModel::plasmaDiffusivityModel
     species_(species),
     specieIndex_(specieIndex),
     dict_(dict),
-    upToDate_(false),
-    DValue_("D", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
+    isUniform_(false),
+    isConstant_(false),
+    evaluator_
+    (
+        plasmaPropertyEvaluator::New
+        (
+            modelType_,
+            dict_,
+            mesh_,
+            "D_" + species.speciesName(specieIndex),
+            dimensionSet(-1, 0, 2, 0, 0, 1, 0)
+        )
+    ),
+    D_
+    (
+        IOobject
+        (
+            "D_" + species.speciesName(specieIndex),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "zero",
+            dimensionSet(-1, 0, 2, 0, 0, 1, 0),
+            0.0
+        )
+    )
 {
     evaluator_ = plasmaPropertyEvaluator::New
     (
         modelType_,
         dict_,
         mesh_,
-        species_,
-        specieIndex_,
-        "Diffusivity",
-        DValue_.dimensions()
+        "D_" + species_.speciesName(specieIndex_),
+        D_.dimensions()
     );
 
     isUniform_ = evaluator_->isUniform();
     isConstant_ = evaluator_->isConstant();
 
-    update();
+    evaluator_->correct(D_);
 }
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -109,46 +104,14 @@ autoPtr<plasmaDiffusivityModel> plasmaDiffusivityModel::New
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-tmp<volScalarField> plasmaDiffusivityModel::D() const
+void plasmaDiffusivityModel::correct()
 {
-    update();
-
-    if (isUniform_)
+    if (isConstant_)
     {
-        // Return a virtual field
-        return tmp<volScalarField>::New
-        (
-            IOobject("D_tmp", mesh_.time().timeName(), mesh_),
-            mesh_, DValue_
-        );
+        return;
     }
 
-    // Return reference to the cached field (Case 2 & 4)
-    return *DFieldPtr_;
-}
-
-void plasmaDiffusivityModel::DPatch
-(
-    fvPatchScalarField& pField, 
-    const label patchi
-) const
-{
-    if (isUniform_)
-    {
-        pField = DValue_.value();
-    }
-    else
-    {
-        evaluator_->evaluate(pField, patchi);
-    }
-}
-
-void plasmaDiffusivityModel::correct(volScalarField& D) const
-{
-    update();
-
-    if (isUniform_) D = DValue_;
-    else D = *DFieldPtr_;
+    evaluator_->correct(D_);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

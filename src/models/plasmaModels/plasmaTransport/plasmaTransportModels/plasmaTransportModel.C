@@ -30,19 +30,15 @@ plasmaTransportModel::plasmaTransportModel
     const word& modelName,
     const dictionary& dict,
     const fvMesh& mesh,
-    const plasmaSpecies& species,
-    const label specieIndex,
-    const volVectorField& E,
-    const surfaceScalarField& phiE
+    plasmaSpecies& species,
+    const label specieIndex
 )
 :
     modelName_(modelName),
     mesh_(mesh),
     species_(species),
     dict_(dict),
-    specieIndex_(specieIndex),
-    E_(E),
-    phiE_(phiE)
+    specieIndex_(specieIndex)
 {}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -52,10 +48,8 @@ autoPtr<plasmaTransportModel> plasmaTransportModel::New
     const word& modelName,
     const dictionary& dict,
     const fvMesh& mesh,
-    const plasmaSpecies& species,
-    const label specieIndex,
-    const volVectorField& E,
-    const surfaceScalarField& phiE
+    plasmaSpecies& species,
+    const label specieIndex
 )
 {
     // Lookup constructor using function-call operator
@@ -76,7 +70,7 @@ autoPtr<plasmaTransportModel> plasmaTransportModel::New
     // Construct and return the model
     return autoPtr<plasmaTransportModel>
     (
-        ctorPtr(modelName, dict, mesh, species, specieIndex, E, phiE)
+        ctorPtr(modelName, dict, mesh, species, specieIndex)
     );
 }
 

@@ -64,6 +64,12 @@ class driftDiffusion
     public plasmaTransportModel
 {
 private:
+
+    //- Disallow default bitwise copy construct
+    driftDiffusion(const driftDiffusion&) = delete;
+    //- Disallow default bitwise assignment
+    void operator=(const driftDiffusion&) = delete;
+
     //- Mobility/Diffusivity submodels
     autoPtr<plasmaMobilityModel> mobilityModel_;
     autoPtr<plasmaDiffusivityModel> diffusivityModel_;
@@ -73,14 +79,25 @@ private:
     word fluxScheme_;
     bool isExplicit_;
 
+    // Cached fluxes
+
+        //- Convective particle flux [1/s]
+        mutable surfaceScalarField convectiveFlux_;
+
+        //- Diffusive particle flux [1/s]
+        mutable surfaceScalarField diffusiveFlux_;
+
+        //- Total particle flux = convective + diffusive [1/s]
+        mutable surfaceScalarField particleFlux_;
+
+    //- Build convective flux
+    tmp<surfaceScalarField> convectivePhi() const;
+
     //- Construct mobility and diffusivity models
     void constructModels();
 
-    //- Disallow default bitwise copy construct
-    driftDiffusion(const driftDiffusion&) = delete;
-
-    //- Disallow default bitwise assignment
-    void operator=(const driftDiffusion&) = delete;
+    //- Allocate the three cached flux fields
+    void initFluxFields();
 
 public:
 
@@ -95,10 +112,8 @@ public:
             const word& modelName,
             const dictionary& dict,
             const fvMesh& mesh,
-            const plasmaSpecies& species,
-            const label specieIndex,
-            const volVectorField& E,
-            const surfaceScalarField& phiE
+            plasmaSpecies& species,
+            const label specieIndex
         );
 
     //- Destructor
@@ -107,33 +122,48 @@ public:
 
     // Member Functions
         
-        //- Return the transport equation (Matrix)
+        //- Update mu and D fields from evaluators
+        virtual void correct() override;
+
+        //- Return number density equation matrix
         virtual tmp<fvScalarMatrix> nEqn() const override;
 
-        //- Update the particle flux in place (1/s)
-        virtual void updateParticleFlux
+        //- Update convective, diffusive, and total particle fluxes
+        virtual void updateFluxes
         (
-            surfaceScalarField& flux
+            surfaceScalarField& convectiveFlux,
+            surfaceScalarField& diffusiveFlux,
+            surfaceScalarField& particleFlux
         ) const override;
 
-        //- Return electric conduction coefficient
+        //- Update wall flux from boundary faces of total flux
+        virtual void updateWallFlux
+        (
+            surfaceScalarField& wallFlux
+        ) const override;
+
+        //- Return electrical conductivity [S/m]
         virtual tmp<volScalarField> electricalConductivity() const override;
 
-        //- Return electric diffusion charge
+        //- Return diffusive charge source [C/m3/s]
         virtual tmp<volScalarField> diffusiveChargeSource() const override;
 
-        //- Return the flux scheme
-        const word& fluxScheme() const { return fluxScheme_; }
+    // Access
 
+        //- Return the mobility model
         const plasmaMobilityModel& mobility() const
         {
             return *mobilityModel_;
         }
 
+        //- Return the diffusivity model
         const plasmaDiffusivityModel& diffusivity() const
         {
             return *diffusivityModel_;
         }
+
+        //- Return the flux scheme
+        const word& fluxScheme() const { return fluxScheme_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

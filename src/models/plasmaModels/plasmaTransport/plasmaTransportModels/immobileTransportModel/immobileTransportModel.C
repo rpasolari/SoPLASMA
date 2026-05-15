@@ -38,10 +38,8 @@ immobileTransportModel::immobileTransportModel
     const word& modelName,
     const dictionary& dict,
     const fvMesh& mesh,
-    const plasmaSpecies& species,
-    const label specieIndex,
-    const volVectorField& E,
-    const surfaceScalarField& phiE
+    plasmaSpecies& species,
+    const label specieIndex
 )
 :
     plasmaTransportModel
@@ -50,25 +48,47 @@ immobileTransportModel::immobileTransportModel
         dict, 
         mesh, 
         species, 
-        specieIndex, 
-        E,
-        phiE
+        specieIndex
     )
 {}
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-tmp<fvScalarMatrix> immobileTransportModel::nEqn() const
+void immobileTransportModel::correct()
 {
-    return tmp<fvScalarMatrix>(fvm::ddt(species_.numberDensity(specieIndex_)));
+    // No tranport coefficients to update
 }
 
-void immobileTransportModel::updateParticleFlux(surfaceScalarField& flux) const
+tmp<fvScalarMatrix> immobileTransportModel::nEqn() const
+{
+    return fvm::ddt(species_.numberDensity(specieIndex_));
+}
+
+void immobileTransportModel::updateFluxes
+(
+    surfaceScalarField&,
+    surfaceScalarField&,
+    surfaceScalarField&
+) const
 {
     FatalErrorInFunction
-        << "Attempted to update particle flux for immobile species '"
-        << species_.speciesNames()[specieIndex_] << "'." << nl
-        << "This indicates a logic error in the plasmaTransport class."
+        << "updateFluxes() called for immobile species '"
+        << species_.speciesName(specieIndex_) << "'." << nl
+        << "Immobile species have no particle flux." << nl
+        << "This is a logic error in plasmaTransport." << nl
+        << abort(FatalError);
+}
+
+void immobileTransportModel::updateWallFlux
+(
+    surfaceScalarField&
+) const
+{
+    FatalErrorInFunction
+        << "updateWallFlux() called for immobile species '"
+        << species_.speciesName(specieIndex_) << "'." << nl
+        << "Immobile species have no wall flux." << nl
+        << "This is a logic error in plasmaTransport." << nl
         << abort(FatalError);
 }
 

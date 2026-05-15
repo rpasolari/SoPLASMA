@@ -1,3 +1,0 @@
-electroPotentialFoam.C
-
-EXE = $(FOAM_USER_APPBIN)/electroPotentialFoam

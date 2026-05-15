@@ -40,9 +40,6 @@ Description
 
     Only a single plasmaSpecies object should exist on a given mesh.
 
-    This class forms the foundation upon which transport models, reaction
-    models, and electrostatic models build their physics algorithms.
-
 SourceFiles
     plasmaSpeciesI.H
     plasmaSpecies.C
@@ -55,11 +52,14 @@ SourceFiles
 #include "IOdictionary.H"
 #include "fvMesh.H"
 #include "volFields.H"
+#include "surfaceFields.H"
 #include "PtrList.H"
 #include "labelList.H"
 #include "wordList.H"
+#include "HashTable.H"
 
 #include "SoPLASMAConstants.H"
+#include "electromagneticsModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -87,6 +87,9 @@ protected:
         //- Mesh reference
         const fvMesh& mesh_;
 
+        //- Reference to the electromagnetics model
+        electromagneticsModel& em_;
+
         //- Active spcecies
 
             //- Number of active species
@@ -109,12 +112,6 @@ protected:
 
             //- Number density per active species [1/m3]
             PtrList<volScalarField> numberDensities_;
-
-            //- Total charge density [C/m3]
-            volScalarField chargeDensity_;
-
-            //- Surface charge density on boundaries [C/m2]
-            volScalarField surfCharge_;
 
             //- Property dictionaries per active species
             HashTable<dictionary> speciesDicts_;
@@ -192,7 +189,11 @@ public:
     // Constructors
 
         //- Construct from mesh
-        explicit plasmaSpecies(const fvMesh& mesh);
+        explicit plasmaSpecies
+        (
+            const fvMesh& mesh,
+            electromagneticsModel& em
+        );
 
     //- Destructor
     virtual ~plasmaSpecies() = default;
@@ -203,10 +204,16 @@ public:
         void updateChargeDensity();
 
         //- Update surface charge
-        void updateSurfaceCharge(const PtrList<surfaceScalarField>& fluxes);
+        // void updateSurfaceCharge
+        // (
+        //     const PtrList<surfaceScalarField>& wallFluxes
+        // );
 
         //- Master update (chargeDensity + surfCharge)
-        void update(const PtrList<surfaceScalarField>& fluxes);
+        // void update
+        // (
+        //     const PtrList<surfaceScalarField>& wallFluxes
+        // );
 
     // Access
 
@@ -215,6 +222,9 @@ public:
         inline label nSpecies() const;
         inline const wordList& speciesNames() const;
         inline const word& speciesName(label i) const;
+
+        //- Electromagnetics model access
+        inline electromagneticsModel& em() const;
 
         //- Get species index from name
         inline label speciesID(const word& name) const;

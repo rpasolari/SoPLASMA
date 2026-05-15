@@ -22,38 +22,6 @@ namespace Foam
 
 defineTypeNameAndDebug(plasmaMobilityModel, 0);
 
-// * * * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * //
-
-void plasmaMobilityModel::update() const
-{
-    // Skip recalculation if the model is constant in time and already set
-    if (isConstant_ && upToDate_) return;
-
-    if (isUniform_)
-    {
-        // Update the single scalar value
-        muValue_ = evaluator_->evaluateScalar();
-    }
-    else
-    {
-        // Create or update the volScalarField
-        if (!muFieldPtr_.valid())
-        {
-            muFieldPtr_.reset
-            (
-                new volScalarField
-                (
-                    IOobject("mu", mesh_.time().timeName(), mesh_),
-                    mesh_, muValue_.dimensions()
-                )
-            );
-        }
-        evaluator_->correct(muFieldPtr_.ref());
-    }
-
-    upToDate_ = true;
-}
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 plasmaMobilityModel::plasmaMobilityModel
@@ -70,25 +38,51 @@ plasmaMobilityModel::plasmaMobilityModel
     species_(species),
     specieIndex_(specieIndex),
     dict_(dict),
-    upToDate_(false),
-    muValue_("mu", dimensionSet(-1, 0, 2, 0, 0, 1, 0), 0.0)
+    isUniform_(false),
+    isConstant_(false),
+    evaluator_
+    (
+        plasmaPropertyEvaluator::New
+        (
+            modelType_,
+            dict_,
+            mesh_,
+            "mu_" + species.speciesName(specieIndex),
+            dimensionSet(-1, 0, 2, 0, 0, 1, 0)
+        )
+    ),
+    mu_
+    (
+        IOobject
+        (
+            "mu_" + species.speciesName(specieIndex),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "zero",
+            dimensionSet(-1, 0, 2, 0, 0, 1, 0),
+            0.0
+        )
+    )
 {
-
     evaluator_ = plasmaPropertyEvaluator::New
     (
         modelType_,
         dict_,
         mesh_,
-        species_,
-        specieIndex_,
-        "Mobility",
-        muValue_.dimensions()
+        "mu_" + species_.speciesName(specieIndex_),
+        mu_.dimensions()
     );
 
     isUniform_ = evaluator_->isUniform();
     isConstant_ = evaluator_->isConstant();
 
-    update();
+    evaluator_->correct(mu_);
 }
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -110,46 +104,14 @@ autoPtr<plasmaMobilityModel> plasmaMobilityModel::New
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-tmp<volScalarField> plasmaMobilityModel::mu() const
+void plasmaMobilityModel::correct()
 {
-    update();
-
-    if (isUniform_)
+    if (isConstant_)
     {
-        // Return a virtual field
-        return tmp<volScalarField>::New
-        (
-            IOobject("mu_tmp", mesh_.time().timeName(), mesh_),
-            mesh_, muValue_
-        );
+        return;
     }
 
-    // Return reference to the cached field
-    return *muFieldPtr_;
-}
-
-void plasmaMobilityModel::muPatch
-(
-    fvPatchScalarField& pField, 
-    const label patchi
-) const
-{
-    if (isUniform_)
-    {
-        pField = muValue_.value();
-    }
-    else
-    {
-        evaluator_->evaluate(pField, patchi);
-    }
-}
-
-void plasmaMobilityModel::correct(volScalarField& mu) const
-{
-    update();
-
-    if (isUniform_) mu = muValue_;
-    else mu = *muFieldPtr_;
+    evaluator_->correct(mu_);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

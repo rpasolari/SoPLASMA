@@ -52,19 +52,58 @@ Description:
 #include "interpolationTable.H"
 #include "interpolation2DTable.H"
 
-#include "plasmaEnergy.H"
-
 namespace Foam
 {
+
+// Used by all non-constant templates
+
+namespace detail
+{
+
+template<class Mesh>
+tmp<volScalarField> getScalarField
+(
+    const Mesh& mesh,
+    const word& name,
+    const word& propertyName
+)
+{
+    if (mesh.template foundObject<volScalarField>(name))
+    {
+        return mesh.template lookupObject<volScalarField>(name);
+    }
+
+    if (mesh.template foundObject<volVectorField>(name))
+    {
+        return mag(mesh.template lookupObject<volVectorField>(name));
+    }
+
+    const wordList availableScalars =
+        mesh.template names<volScalarField>();
+    const wordList availableVectors =
+        mesh.template names<volVectorField>();
+
+    FatalErrorInFunction
+        << "plasmaPropertyEvaluator '" << propertyName
+        << "': lookupVariable '" << name
+        << "' not found in mesh registry." << nl
+        << "Available volScalarFields: " << availableScalars << nl
+        << "Available volVectorFields: " << availableVectors << nl
+        << exit(FatalError);
+
+    return tmp<volScalarField>(nullptr);
+}
+
+} // End namespace detail
 
 /*---------------------------------------------------------------------------*\
                       Class ConstantProperty Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class BaseModel>
+template<class Base>
 class ConstantProperty
 :
-    public BaseModel
+    public Base
 {
     scalar val_;
 
@@ -74,80 +113,68 @@ public:
         const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
         const word& propertyName,
         const dimensionSet& dims
     )
     :
-        BaseModel
-        (
-            modelType, dict, mesh, species, specieIndex, propertyName, dims
-        ),
+        Base(modelType, dict, mesh, propertyName, dims),
         val_(0.0)
     {
-        const word coeffKey = this->coeffKeyword();
-        const word& sName = this->species_.speciesNames()[this->specieIndex_];
-
-        if (!dict.found(coeffKey))
+        if (!dict.readIfPresent("value", val_))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " 
-                << this->propertyName() << " model '" << modelType
-                << "' requires entry '" << coeffKey << "'." << nl
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': constant model requires entry 'value'." << nl
                 << exit(FatalIOError);
         }
-
-        dict.readEntry(coeffKey, val_);
     }
 
-    virtual bool isUniform() const override { return true; }
-    virtual bool isConstant() const override { return true; }
+    //- Destructor
+    virtual ~ConstantProperty() = default;
 
-    virtual tmp<volScalarField> evaluate() const override
-    {
-        auto tField = tmp<volScalarField>::New
-        (
-            IOobject(this->propertyName(), this->mesh_.time().timeName(),
-                     this->mesh_),
-            this->mesh_,
-            dimensionedScalar(this->propertyName(), this->dims_, 0.0)
-        );
+    //- Member Functions
 
-        this->correct(tField.ref());
+    bool isUniform() const override { return true; }
+    bool isConstant() const override { return true; }
 
-        return tField;
-    }
-
-    virtual dimensionedScalar evaluateScalar() const override
+    dimensionedScalar evaluateScalar() const override
     {
         return dimensionedScalar(this->propertyName(), this->dims_, val_);
     }
 
-    virtual void evaluate
-    (
-        fvPatchScalarField& pField, 
-        const label patchi
-    ) const override
+    tmp<volScalarField> evaluate() const override
     {
-
-        pField = val_;
+        return tmp<volScalarField>::New
+        (
+            IOobject
+            (
+                this->propertyName(),
+                this->mesh_.time().timeName(),
+                this->mesh_
+            ),
+            this->mesh_,
+            dimensionedScalar(this->propertyName(), this->dims_, val_)
+        );
     }
 
-    virtual void correct(volScalarField& field) const override
+    void correct(volScalarField& field) const override
     {
         field.primitiveFieldRef() = val_;
-        field.boundaryFieldRef() = val_;
 
         forAll(field.boundaryField(), patchi)
         {
-        if (!field.boundaryField()[patchi].coupled())
-        {
-            field.boundaryFieldRef()[patchi] = val_;
+            if (!field.boundaryField()[patchi].coupled())
+            {
+                field.boundaryFieldRef()[patchi] = val_;
+            }
         }
-        }
-        
+
         field.correctBoundaryConditions();
+    }
+
+    void evaluatePatch(scalarField& pField, const label) const override
+    {
+        pField = val_;
     }
 };
 
@@ -155,10 +182,10 @@ public:
                       Class TabulatedProperty1D Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class BaseModel>
+template<class Base>
 class TabulatedProperty1D
 :
-    public BaseModel
+    public Base
 {
     //- The interpolation table (handles file reading and interpolation)
     interpolationTable<scalar> table_;
@@ -174,36 +201,31 @@ public:
         const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
         const word& propertyName,
         const dimensionSet& dims
     )
     :
-        BaseModel
-        (
-            modelType, dict, mesh, species, specieIndex, propertyName, dims
-        ),
+        Base(modelType, dict, mesh, propertyName, dims),
         table_(dict),
         lookupVariable_(dict.get<word>("lookupVariable"))
     {
-        const word& sName = this->species_.speciesNames()[this->specieIndex_];
-
         if (!dict.found("file"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': missing 'file' entry for "
-                << this->propertyName() << " model '" << modelType << "'."
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': tabulated1D requires entry 'file'." << nl
                 << exit(FatalIOError);
         }
 
-        fileName tableFile = dict.get<fileName>("file").expand();
+        const fileName tableFile =
+            dict.get<fileName>("file").expand();
 
         if (!isFile(tableFile))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': table file \"" << tableFile
-                << "\" not found for " << this->propertyName() << "."
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': table file not found:" << nl
+                << "    " << tableFile << nl
                 << exit(FatalIOError);
         }
     }
@@ -213,29 +235,19 @@ public:
 
     //- Member Functions
 
-    virtual bool isUniform() const override
+    bool isUniform() const override { return false; }
+    bool isConstant() const override { return false; }
+
+    dimensionedScalar evaluateScalar() const override
     {
-        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
-                                                               ("plasmaEnergy");
-        if (lookupVariable_ == "T_gas") return energy.isGasUniform();
-        if (lookupVariable_.startsWith("T_")) return energy.model
-                                               (this->specieIndex_).isUniform();
-        
-        return false; 
+        FatalErrorInFunction
+            << "evaluateScalar() called on tabulated1D evaluator '"
+            << this->propertyName() << "' which is not uniform." << nl
+            << exit(FatalError);
+        return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
     }
 
-    virtual bool isConstant() const override
-    {
-        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
-                                                               ("plasmaEnergy");
-        if (lookupVariable_ == "T_gas") return energy.isGasConstant();
-        if (lookupVariable_.startsWith("T_")) return energy.model
-                                              (this->specieIndex_).isConstant();
-
-        return false;
-    }
-
-    virtual tmp<volScalarField> evaluate() const override
+    tmp<volScalarField> evaluate() const override
     {
         auto tField = tmp<volScalarField>::New
         (
@@ -248,125 +260,48 @@ public:
             this->mesh_,
             dimensionedScalar(this->propertyName(), this->dims_, 0.0)
         );
-
-        this->correct(tField.ref());
-
+        correct(tField.ref());
         return tField;
     }
 
-    virtual dimensionedScalar evaluateScalar() const override
+    void correct(volScalarField& field) const override
     {
-        const auto& energy = this->mesh_.template 
-            lookupObject<plasmaEnergy>("plasmaEnergy");
-
-        scalar x = 0.0;
-
-        if (lookupVariable_ == "T_gas")
-        {
-            x = energy.TgasValue().value();
-        }
-        else if (lookupVariable_.startsWith("T_"))
-        {
-            x = energy.model(this->specieIndex_).Tvalue().value();
-        }
-
-        return dimensionedScalar
+        tmp<volScalarField> tVar = detail::getScalarField
         (
-            this->propertyName(),
-            this->dims_,
-            table_.interpolateValue(x)
+            this->mesh_, lookupVariable_, this->propertyName()
         );
+        const volScalarField& var = tVar();
+
+        field.primitiveFieldRef() =
+            table_.interpolateValues(var.primitiveField());
+
+        forAll(field.boundaryField(), patchi)
+        {
+            if (!field.boundaryField()[patchi].coupled())
+            {
+                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+            }
+        }
+
+        field.correctBoundaryConditions();
     }
 
-    virtual void evaluate
+    void evaluatePatch
     (
-        fvPatchScalarField& pField, 
+        scalarField& pField,
         const label patchi
     ) const override
     {
-        const objectRegistry& db = this->mesh_;
-        tmp<volScalarField> tScalarLookup;
-
-        if (db.template foundObject<volScalarField>(lookupVariable_))
-        {
-            tScalarLookup = db.template lookupObject<volScalarField>
-                (lookupVariable_);
-        }
-        else if (db.template foundObject<volVectorField>(lookupVariable_))
-        {
-            tScalarLookup = mag
-            (
-                db.template lookupObject<volVectorField>(lookupVariable_)
-            );
-        }
-        else
-        {
-            const word& sName = 
-                this->species_.speciesNames()[this->specieIndex_];
-
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '"
-                << lookupVariable_ << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError);
-        }
-
-        const volScalarField& var = tScalarLookup();
-
-        const fvPatchScalarField& pVar = var.boundaryField()[patchi];
+        tmp<volScalarField> tVar = detail::getScalarField
+        (
+            this->mesh_, lookupVariable_, this->propertyName()
+        );
+        const scalarField& pVar = tVar().boundaryField()[patchi];
 
         forAll(pField, i)
         {
             pField[i] = table_.interpolateValue(pVar[i]);
         }
-    }
-
-    virtual void correct(volScalarField& field) const override
-    {
-        const objectRegistry& db = this->mesh_;
-        tmp<volScalarField> tScalarLookup;
-
-        if (db.template foundObject<volScalarField>(lookupVariable_))
-        {
-            tScalarLookup = db.template lookupObject<volScalarField>
-                (lookupVariable_);
-        }
-        else if (db.template foundObject<volVectorField>(lookupVariable_))
-        {
-            tScalarLookup = mag
-            (
-                db.template lookupObject<volVectorField>(lookupVariable_)
-            );
-        }
-        else
-        {
-            const word& sName = 
-                this->species_.speciesNames()[this->specieIndex_];
-
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '"
-                << lookupVariable_ << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError);
-        }
-
-        const volScalarField& var = tScalarLookup();
-
-        // Update Internal Field
-        field.primitiveFieldRef() = table_.interpolateValues
-                                                         (var.primitiveField());
-
-        // Update Boundary Fields
-        forAll(field.boundaryField(), patchi)
-        {
-            const fvPatchScalarField& pVar = var.boundaryField()[patchi];
-            fvPatchScalarField& pField = field.boundaryFieldRef()[patchi];
-
-            forAll(pField, i)
-            {
-                pField[i] = table_.interpolateValue(pVar[i]);
-            }
-        }
-
-        field.correctBoundaryConditions();
     }
 };
 
@@ -374,10 +309,10 @@ public:
                       Class TabulatedProperty2D Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class BaseModel>
+template<class Base>
 class TabulatedProperty2D
 :
-    public BaseModel
+    public Base
 {
     //- The 2D interpolation table
     interpolation2DTable<scalar> table_;
@@ -393,45 +328,40 @@ public:
         const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
         const word& propertyName,
         const dimensionSet& dims
     )
     :
-        BaseModel
-        (
-            modelType, dict, mesh, species, specieIndex, propertyName, dims
-        ),
+        Base(modelType, dict, mesh, propertyName, dims),
         table_(dict),
         lookupVariables_(dict.get<wordList>("lookupVariables"))
     {
-        const word& sName = this->species_.speciesNames()[this->specieIndex_];
+        if (lookupVariables_.size() != 2)
+        {
+            FatalIOErrorInFunction(dict)
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': tabulated2D requires exactly 2 lookupVariables." << nl
+                << exit(FatalIOError);
+        }
 
         if (!dict.found("file"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': missing 'file' for "
-                << this->propertyName() << " model '" << modelType << "'."
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': tabulated2D requires entry 'file'." << nl
                 << exit(FatalIOError);
         }
 
-        fileName tableFile = dict.get<fileName>("file").expand();
+        const fileName tableFile =
+            dict.get<fileName>("file").expand();
 
         if (!isFile(tableFile))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': file \"" << tableFile
-                << "\" not found for " << this->propertyName() << "."
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': table file not found:" << nl
+                << "    " << tableFile << nl
                 << exit(FatalIOError);
-        }
-
-        if (lookupVariables_.size() != 2)
-        {
-            FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << this->propertyName()
-                << " tabulated2D requires exactly 2 lookupVariables. "
-                << "Found: " << lookupVariables_.size() << exit(FatalIOError);
         }
     }
 
@@ -440,13 +370,19 @@ public:
 
     //- Member Functions
 
-    //- Return always false
-    virtual bool isUniform() const override { return false; }
+    bool isUniform() const override { return false; }
+    bool isConstant() const override { return false; }
 
-    //- Return always false
-    virtual bool isConstant() const override { return false; }
+    dimensionedScalar evaluateScalar() const override
+    {
+        FatalErrorInFunction
+            << "evaluateScalar() called on tabulated2D evaluator '"
+            << this->propertyName() << "' which is not uniform." << nl
+            << exit(FatalError);
+        return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
+    }
 
-    virtual tmp<volScalarField> evaluate() const override
+    tmp<volScalarField> evaluate() const override
     {
         auto tField = tmp<volScalarField>::New
         (
@@ -459,114 +395,62 @@ public:
             this->mesh_,
             dimensionedScalar(this->propertyName(), this->dims_, 0.0)
         );
-
-        // Since isUniform() is false, this always performs 
-        // a full 2D field interpolation.
-        this->correct(tField.ref());
-
+        correct(tField.ref());
         return tField;
     }
 
-    virtual dimensionedScalar evaluateScalar() const override
+    void correct(volScalarField& field) const override
     {
-        FatalErrorInFunction
-            << "evaluateScalar() called for 2D tabulated property '"
-            << this->propertyName() << "', but model is forced non-uniform."
-            << abort(FatalError);
+        tmp<volScalarField> tX = detail::getScalarField
+        (
+            this->mesh_, lookupVariables_[0], this->propertyName()
+        );
+        tmp<volScalarField> tY = detail::getScalarField
+        (
+            this->mesh_, lookupVariables_[1], this->propertyName()
+        );
 
-        return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
+        const volScalarField& X = tX();
+        const volScalarField& Y = tY();
+
+        forAll(field.primitiveField(), cellI)
+        {
+            field.primitiveFieldRef()[cellI] = table_(X[cellI], Y[cellI]);
+        }
+
+        forAll(field.boundaryField(), patchi)
+        {
+            if (!field.boundaryField()[patchi].coupled())
+            {
+                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+            }
+        }
+
+        field.correctBoundaryConditions();
     }
 
-    virtual void evaluate
+    void evaluatePatch
     (
-        fvPatchScalarField& pField, 
+        scalarField& pField,
         const label patchi
     ) const override
     {
-        const objectRegistry& db = this->mesh_;
+        tmp<volScalarField> tX = detail::getScalarField
+        (
+            this->mesh_, lookupVariables_[0], this->propertyName()
+        );
+        tmp<volScalarField> tY = detail::getScalarField
+        (
+            this->mesh_, lookupVariables_[1], this->propertyName()
+        );
 
-        auto getScalarField = [&](const word& name) -> tmp<volScalarField>
-        {
-            if (db.template foundObject<volScalarField>(name))
-            {
-                return db.template lookupObject<volScalarField>(name);
-            }
-            else if (db.template foundObject<volVectorField>(name))
-            {
-                return mag(db.template lookupObject<volVectorField>(name));
-            }
-            const word& sName = this->species_.speciesNames()
-                                                        [this->specieIndex_];
-            
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '" << name
-                << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError); 
-
-            return tmp<volScalarField>(nullptr);
-        };
-
-        tmp<volScalarField> tX = getScalarField(lookupVariables_[0]);
-        tmp<volScalarField> tY = getScalarField(lookupVariables_[1]);
-
-        const fvPatchScalarField& pX = tX().boundaryField()[patchi];
-        const fvPatchScalarField& pY = tY().boundaryField()[patchi];
+        const scalarField& pX = tX().boundaryField()[patchi];
+        const scalarField& pY = tY().boundaryField()[patchi];
 
         forAll(pField, i)
         {
             pField[i] = table_(pX[i], pY[i]);
         }
-    }
-
-    virtual void correct(volScalarField& field) const override
-    {
-        const objectRegistry& db = this->mesh_;
-
-        auto getScalarField = [&](const word& name) -> tmp<volScalarField>
-        {
-            if (db.template foundObject<volScalarField>(name))
-            {
-                return db.template lookupObject<volScalarField>(name);
-            }
-            else if (db.template foundObject<volVectorField>(name))
-            {
-                return mag(db.template lookupObject<volVectorField>(name));
-            }
-            const word& sName = this->species_.speciesNames()
-                                                        [this->specieIndex_];
-            
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '" << name
-                << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError); 
-
-            return tmp<volScalarField>(nullptr);
-        };
-
-        tmp<volScalarField> tX = getScalarField(lookupVariables_[0]);
-        tmp<volScalarField> tY = getScalarField(lookupVariables_[1]);
-
-        const volScalarField& fieldX = tX();
-        const volScalarField& fieldY = tY();
-
-        forAll(field, cellI)
-        {
-            field[cellI] = table_(fieldX[cellI], fieldY[cellI]);
-        }
-
-        forAll(field.boundaryField(), patchi)
-        {
-            const fvPatchScalarField& pX = fieldX.boundaryField()[patchi];
-            const fvPatchScalarField& pY = fieldY.boundaryField()[patchi];
-            fvPatchScalarField& pF = field.boundaryFieldRef()[patchi];
-
-            forAll(pF, i)
-            {
-                pF[i] = table_(pX[i], pY[i]);
-            }
-        }
-
-        field.correctBoundaryConditions();
     }
 };
 
@@ -574,10 +458,10 @@ public:
                       Class PowerLawProperty Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class BaseModel>
+template<class Base>
 class PowerLawProperty
 :
-    public BaseModel
+    public Base
 {
     //- Amplitude (A)
     scalar amplitude_;
@@ -596,191 +480,114 @@ public:
         const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
         const word& propertyName,
         const dimensionSet& dims
     )
     :
-        BaseModel
-        (
-            modelType, dict, mesh, species, specieIndex, propertyName, dims
-        ),
+        Base(modelType, dict, mesh, propertyName, dims),
         amplitude_(0.0),
         exponent_(0.0),
         lookupVariable_("none")
     {
-        const word& sName = this->species_.speciesNames()[this->specieIndex_];
-        const word ampK = "amplitude";
-        const word expK = "exponent";
-        const word lookupK = "lookupVariable";
-
-        if (!dict.found(lookupK))
+        if (!dict.found("amplitude"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << this->propertyName()
-                << " requires entry '" << lookupK << "'." << exit(FatalIOError);
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': powerLaw requires entry 'amplitude'." << nl
+                << exit(FatalIOError);
         }
-        dict.readEntry(lookupK, lookupVariable_);
+        amplitude_ = dict.get<scalar>("amplitude");
 
-        if (!dict.found(ampK))
+        if (!dict.found("exponent"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << this->propertyName()
-                << " requires entry '" << ampK << "'." << exit(FatalIOError);
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': powerLaw requires entry 'exponent'." << nl
+                << exit(FatalIOError);
         }
-        dict.readEntry(ampK, amplitude_);
+        exponent_ = dict.get<scalar>("exponent");
 
-        if (!dict.found(expK))
+        if (!dict.found("lookupVariable"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << this->propertyName()
-                << " requires entry '" << expK << "'." << exit(FatalIOError);
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': powerLaw requires entry 'lookupVariable'." << nl
+                << "Provide the name of the field to use as the independent "
+                << "variable (e.g. 'Emag', 'reducedE', 'Te')." << nl
+                << exit(FatalIOError);
         }
-        dict.readEntry(expK, exponent_);
+        lookupVariable_ = dict.get<word>("lookupVariable");
     }
+
+    //- Destructor
+    virtual ~PowerLawProperty() = default;
 
     //- Member Functions
 
-    virtual bool isUniform() const override
+    bool isUniform() const override { return false; }
+    bool isConstant() const override { return false; }
+
+    dimensionedScalar evaluateScalar() const override
     {
-        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
-                                                               ("plasmaEnergy");
-        if (lookupVariable_ == "T_gas") return energy.isGasUniform();
-        if (lookupVariable_.startsWith("T_")) return energy.model
-                                               (this->specieIndex_).isUniform();
-        
-        return false; 
+        FatalErrorInFunction
+            << "evaluateScalar() called on powerLaw evaluator '"
+            << this->propertyName() << "' which is not uniform." << nl
+            << exit(FatalError);
+        return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
     }
 
-    virtual bool isConstant() const override
-    {
-        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
-                                                               ("plasmaEnergy");
-        if (lookupVariable_ == "T_gas") return energy.isGasConstant();
-        if (lookupVariable_.startsWith("T_")) return energy.model
-                                              (this->specieIndex_).isConstant();
-
-        return false;
-    }
-
-    virtual tmp<volScalarField> evaluate() const override
+    tmp<volScalarField> evaluate() const override
     {
         auto tField = tmp<volScalarField>::New
         (
-            IOobject(this->propertyName(), this->mesh_.time().timeName(), 
-                this->mesh_),
+            IOobject
+            (
+                this->propertyName(),
+                this->mesh_.time().timeName(),
+                this->mesh_
+            ),
             this->mesh_,
             dimensionedScalar(this->propertyName(), this->dims_, 0.0)
         );
-
-        this->correct(tField.ref());
+        correct(tField.ref());
         return tField;
     }
 
-    virtual dimensionedScalar evaluateScalar() const override
+    void correct(volScalarField& field) const override
     {
-        const auto& energy = this->mesh_.template 
-            lookupObject<plasmaEnergy>("plasmaEnergy");
-
-        scalar x = (lookupVariable_ == "T_gas")
-            ? energy.TgasValue().value()
-            : energy.model(this->specieIndex_).Tvalue().value();
-
-        return dimensionedScalar
+        tmp<volScalarField> tVar = detail::getScalarField
         (
-            this->propertyName(),
-            this->dims_,
-            amplitude_ * pow(max(x, SMALL), exponent_)
+            this->mesh_, lookupVariable_, this->propertyName()
         );
-    }
+        const volScalarField& var = tVar();
 
-    virtual void evaluate
-    (
-        fvPatchScalarField& pField, 
-        const label patchi
-    ) const override
-    {
-        const objectRegistry& db = this->mesh_;
-
-        tmp<volScalarField> tScalarLookup;
-
-        if (db.template foundObject<volScalarField>(lookupVariable_))
-        {
-            tScalarLookup = db.template lookupObject<volScalarField>
-                                                              (lookupVariable_);
-        }
-        else if (db.template foundObject<volVectorField>(lookupVariable_))
-        {
-            tScalarLookup = mag
-            (
-                db.template lookupObject<volVectorField>(lookupVariable_)
-            );
-        }
-        else
-        {
-            const word& sName = 
-                this->species_.speciesNames()[this->specieIndex_];
-
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '"
-                << lookupVariable_ << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError);
-        }
-
-
-        const volScalarField& var = tScalarLookup();
-        const fvPatchScalarField& pVar = var.boundaryField()[patchi];
-
-        pField = amplitude_ * pow(max(pVar, SMALL), exponent_);
-    }
-    
-    virtual void correct(volScalarField& field) const override
-    {
-        const objectRegistry& db = this->mesh_;
-
-        tmp<volScalarField> tScalarLookup;
-
-        if (db.template foundObject<volScalarField>(lookupVariable_))
-        {
-            tScalarLookup = db.template lookupObject<volScalarField>
-                                                              (lookupVariable_);
-        }
-        else if (db.template foundObject<volVectorField>(lookupVariable_))
-        {
-            tScalarLookup = mag
-            (
-                db.template lookupObject<volVectorField>(lookupVariable_)
-            );
-        }
-        else
-        {
-            const word& sName = 
-                this->species_.speciesNames()[this->specieIndex_];
-
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '"
-                << lookupVariable_ << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError);
-        }
-
-
-        const volScalarField& var = tScalarLookup();
-
-        field.primitiveFieldRef() = amplitude_ * 
-                               pow(max(var.primitiveField(), SMALL), exponent_);
+        field.primitiveFieldRef() =
+            amplitude_ * pow(max(var.primitiveField(), SMALL), exponent_);
 
         forAll(field.boundaryField(), patchi)
         {
             if (!field.boundaryField()[patchi].coupled())
             {
-                const fvPatchScalarField& pVar = var.boundaryField()[patchi];
-                field.boundaryFieldRef()[patchi] = amplitude_ 
-                                             * pow(max(pVar, SMALL), exponent_);
+                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
             }
         }
 
         field.correctBoundaryConditions();
+    }
+
+    void evaluatePatch
+    (
+        scalarField& pField,
+        const label patchi
+    ) const override
+    {
+        tmp<volScalarField> tVar = detail::getScalarField
+        (
+            this->mesh_, lookupVariable_, this->propertyName()
+        );
+        const scalarField& pVar = tVar().boundaryField()[patchi];
+
+        pField = amplitude_ * pow(max(pVar, SMALL), exponent_);
     }
 };
 
@@ -788,10 +595,10 @@ public:
                       Class Function1Property Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class BaseModel>
+template<class Base>
 class Function1Property
 :
-    public BaseModel
+    public Base
 {
     autoPtr<Function1<scalar>> functionPtr_;
 
@@ -805,172 +612,105 @@ public:
         const word& modelType,
         const dictionary& dict,
         const fvMesh& mesh,
-        const plasmaSpecies& species,
-        const label specieIndex,
         const word& propertyName,
         const dimensionSet& dims
     )
     :
-        BaseModel
-        (
-            modelType, dict, mesh, species, specieIndex, propertyName, dims
-        ),
+        Base(modelType, dict, mesh, propertyName, dims),
         functionPtr_(nullptr),
         lookupVariable_("none")
     {
-        const word& sName = this->species_.speciesNames()[this->specieIndex_];
-        const word fK = "function";
-
         if (!dict.found("lookupVariable"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << this->propertyName()
-                << " requires entry 'lookupVariable'." << exit(FatalIOError);
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': function1 requires entry 'lookupVariable'." << nl
+                << "Provide the name of the field to use as the independent "
+                << "variable (e.g. 'Emag', 'reducedE', 'Te')." << nl
+                << exit(FatalIOError);
         }
-        dict.readEntry("lookupVariable", lookupVariable_);
+        lookupVariable_ = dict.get<word>("lookupVariable");
 
-        if (!dict.found(fK))
+        if (!dict.found("function"))
         {
             FatalIOErrorInFunction(dict)
-                << "Species '" << sName << "': " << this->propertyName()
-                << " requires entry '" << fK << "'." << exit(FatalIOError);
+                << "plasmaPropertyEvaluator '" << propertyName
+                << "': function1 requires entry 'function'." << nl
+                << "Provide a valid OpenFOAM Function1<scalar> entry." << nl
+                << exit(FatalIOError);
         }
-
-        functionPtr_ = Function1<scalar>::New(fK, dict, &mesh);
+        functionPtr_ = Function1<scalar>::New("function", dict, &mesh);
     }
+
+    //- Destructor
+    virtual ~Function1Property() = default;
 
     //- Member Functions
 
-    virtual bool isUniform() const override
+    bool isUniform() const override { return false; }
+    bool isConstant() const override { return false; }
+
+    dimensionedScalar evaluateScalar() const override
     {
-        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
-                                                               ("plasmaEnergy");
-        if (lookupVariable_ == "T_gas") return energy.isGasUniform();
-        if (lookupVariable_.startsWith("T_")) return energy.model
-                                               (this->specieIndex_).isUniform();
-        
-        return false; 
+        FatalErrorInFunction
+            << "evaluateScalar() called on function1 evaluator '"
+            << this->propertyName() << "' which is not uniform." << nl
+            << exit(FatalError);
+        return dimensionedScalar(this->propertyName(), this->dims_, 0.0);
     }
 
-    virtual bool isConstant() const override
-    {
-        const auto& energy = this->mesh_.template lookupObject<plasmaEnergy>
-                                                               ("plasmaEnergy");
-        if (lookupVariable_ == "T_gas") return energy.isGasConstant();
-        if (lookupVariable_.startsWith("T_")) return energy.model
-                                              (this->specieIndex_).isConstant();
-
-        return false;
-    }
-
-    virtual dimensionedScalar evaluateScalar() const override
-    {
-        const auto& energy = this->mesh_.template 
-            lookupObject<plasmaEnergy>("plasmaEnergy");
-
-        scalar x = (lookupVariable_ == "T_gas")
-            ? energy.TgasValue().value()
-            : energy.model(this->specieIndex_).Tvalue().value();
-
-        return dimensionedScalar
-        (
-            this->propertyName(),
-            this->dims_,
-            functionPtr_->value(x)
-        );
-    }
-
-    virtual tmp<volScalarField> evaluate() const override
+    tmp<volScalarField> evaluate() const override
     {
         auto tField = tmp<volScalarField>::New
         (
             IOobject
             (
-                this->propertyName(), 
-                this->mesh_.time().timeName(), 
+                this->propertyName(),
+                this->mesh_.time().timeName(),
                 this->mesh_
             ),
             this->mesh_,
             dimensionedScalar(this->propertyName(), this->dims_, 0.0)
         );
-
-        this->correct(tField.ref());
+        correct(tField.ref());
         return tField;
     }
 
-    virtual void evaluate
-    (
-        fvPatchScalarField& pField, 
-        const label patchi
-    ) const override
+    void correct(volScalarField& field) const override
     {
-        const objectRegistry& db = this->mesh_;
-        tmp<volScalarField> tScalarLookup;
+        tmp<volScalarField> tVar = detail::getScalarField
+        (
+            this->mesh_, lookupVariable_, this->propertyName()
+        );
+        const volScalarField& var = tVar();
 
-        if (db.template foundObject<volScalarField>(lookupVariable_))
-        {
-            tScalarLookup = db.template lookupObject<volScalarField>
-                                                              (lookupVariable_);
-        }
-        else if (db.template foundObject<volVectorField>(lookupVariable_))
-        {
-            tScalarLookup = mag(db.template lookupObject<volVectorField>
-                                                             (lookupVariable_));
-        }
-        else
-        {
-            const word& sName = this->species_.speciesNames()
-                                                           [this->specieIndex_];
-
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '"
-                << lookupVariable_ << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError);
-        }
-
-        const volScalarField& var = tScalarLookup();
-        const fvPatchScalarField& pVar = var.boundaryField()[patchi];
-
-        pField = functionPtr_->value(pVar);
-    }
-
-    virtual void correct(volScalarField& field) const override
-    {
-        const objectRegistry& db = this->mesh_;
-        tmp<volScalarField> tScalarLookup;
-
-        if (db.template foundObject<volScalarField>(lookupVariable_))
-        {
-            tScalarLookup = db.template lookupObject<volScalarField>
-                                                              (lookupVariable_);
-        }
-        else if (db.template foundObject<volVectorField>(lookupVariable_))
-        {
-            tScalarLookup = mag(db.template lookupObject<volVectorField>
-                                                             (lookupVariable_));
-        }
-        else
-        {
-            const word& sName = this->species_.speciesNames()
-                                                           [this->specieIndex_];
-
-            FatalErrorInFunction
-                << "Species '" << sName << "': lookupVariable '"
-                << lookupVariable_ << "' not found in mesh database!" << nl
-                << "Available fields: " << db.names() << exit(FatalError);
-        }
-
-        const volScalarField& var = tScalarLookup();
-
-        field.primitiveFieldRef() = functionPtr_->value(var.primitiveField());
+        field.primitiveFieldRef() =
+            functionPtr_->value(var.primitiveField());
 
         forAll(field.boundaryField(), patchi)
         {
-            field.boundaryFieldRef()[patchi] = 
-                functionPtr_->value(var.boundaryField()[patchi]);
+            if (!field.boundaryField()[patchi].coupled())
+            {
+                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+            }
         }
 
         field.correctBoundaryConditions();
+    }
+
+    void evaluatePatch
+    (
+        scalarField& pField,
+        const label patchi
+    ) const override
+    {
+        tmp<volScalarField> tVar = detail::getScalarField
+        (
+            this->mesh_, lookupVariable_, this->propertyName()
+        );
+        const scalarField& pVar = tVar().boundaryField()[patchi];
+
+        pField = functionPtr_->value(pVar);
     }
 };
 
