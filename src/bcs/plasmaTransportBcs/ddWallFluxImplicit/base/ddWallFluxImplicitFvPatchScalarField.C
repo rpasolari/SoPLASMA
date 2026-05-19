@@ -13,7 +13,7 @@
 
 #include "fvPatchFieldMapper.H"
 
-#include "ddWallFluxMixedFvPatchScalarField.H"
+#include "ddWallFluxImplicitFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,14 +63,10 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mixedFvPatchScalarField(p, iF),
+    fvPatchScalarField(p, iF),
     TName_("none"),
     TValue_("T", dimTemperature, 300.0)
-{
-    this->refValue()      = 0.0;
-    this->refGrad()       = 0.0;
-    this->valueFraction() = 0.0;
-}
+{}
 
 // Dictionary Constructor
 ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
@@ -80,7 +76,7 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
     const dictionary& dict
 )
 :
-    mixedFvPatchScalarField(p, iF),
+    fvPatchScalarField(p, iF),
     TName_("none"),
     TValue_("T", dimTemperature, 300.0)
 {
@@ -102,17 +98,6 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
             << "Entry 'T' must be either a word (field name) or a scalar value."
             << exit(FatalIOError);
     }
-
-    if (this->readMixedEntries(dict))
-    {
-        // Full restart or values provided in dictionary
-    }
-    else
-    {
-        this->refValue()      = 0.0;
-        this->refGrad()       = 0.0;
-        this->valueFraction() = 0.0;
-    }
 }
 
 // Mapping Constructor
@@ -124,7 +109,7 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    mixedFvPatchScalarField(ptf, p, iF, mapper),
+    fvPatchScalarField(ptf, p, iF, mapper),
     TName_(ptf.TName_),
     TValue_(ptf.TValue_)
 {}
@@ -135,7 +120,7 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
     const ddWallFluxImplicitFvPatchScalarField& ptf
 )
 :
-    mixedFvPatchScalarField(ptf),
+    fvPatchScalarField(ptf),
     TName_(ptf.TName_),
     TValue_(ptf.TValue_)
 {}
@@ -147,31 +132,51 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mixedFvPatchScalarField(ptf, iF),
+    fvPatchScalarField(ptf, iF),
     TName_(ptf.TName_),
     TValue_(ptf.TValue_)
 {}
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void ddWallFluxImplicitFvPatchScalarField::updateCoeffs()
+void ddWallFluxImplicitFvPatchScalarField::evaluate
+(
+    const Pstream::commsTypes
+)
 {
-    if (updated()) return;
-
-    const fvPatch& p = patch();
-    if (p.size() == 0)
+    if (!this->updated())
     {
-        mixedFvPatchScalarField::updateCoeffs();
-        return;
+        this->updateCoeffs();
     }
 
-    // Access the mesh from the patch
-    const fvMesh& mesh = p.boundaryMesh().mesh();
+    // Set n_face = n_cell (consistent with valueInternalCoeffs = 1 for drift)
+    // The actual flux is controlled by the coefficient methods, not n_face.
+    // This ensures post-processing and fvc operators see a sensible face value.
+    fvPatchScalarField::operator==(this->patchInternalField());
+
+    fvPatchField<scalar>::evaluate();
+}
+
+void ddWallFluxImplicitFvPatchScalarField::updateCoeffs()
+{
+    // Coefficients are computed on-the-fly in the coefficient methods.
+    // Nothing to precompute here.
+    if (updated()) return;
+    fvPatchScalarField::updateCoeffs();
+}
+
+tmp<Field<scalar>>
+ddWallFluxImplicitFvPatchScalarField::valueInternalCoeffs
+(
+    const tmp<scalarField>&
+) const
+{
+    const fvPatch& p = patch();
+
     // Access the normal vector and delta coeffs
     const vectorField nf = p.nf();
-    const scalarField& delta = p.deltaCoeffs()
 
-    // 1. Determine species name (e.g., n_e -> e)
+    // Determine species name (e.g., n_e -> e)
     const word fieldName = this->internalField().name();
     word speciesName = fieldName;
     if (speciesName.startsWith("n_"))
@@ -179,7 +184,76 @@ void ddWallFluxImplicitFvPatchScalarField::updateCoeffs()
         speciesName.erase(0, 2);
     }
 
-    // 2. Lookup Temperature (T)
+   // Lookup Transport Registry and Species Data
+    if (!db().foundObject<plasmaTransport>("plasmaTransport"))
+    {
+        FatalErrorInFunction
+            << "plasmaTransport not found in registry." << nl
+            << exit(FatalError);
+    }
+    const plasmaTransport& transport =
+                          db().lookupObject<plasmaTransport>("plasmaTransport");
+
+    const plasmaSpecies& speciesDB = transport.species();
+
+    const label speciesID = speciesDB.speciesID(speciesName);
+    const scalar Z = speciesDB.speciesChargeNumber(speciesID);
+
+    // Access the drift-diffusion model
+    const plasmaTransportModel& baseModel = transport.model(speciesID);
+
+    if (!isA<driftDiffusion>(baseModel))
+    {
+        FatalErrorInFunction
+            << "Species '" << speciesName << "' must use the driftDiffusion "
+            << "transport model for this boundary condition." << nl
+            << "Current model: " << baseModel.type() << nl
+            << exit(FatalError);
+    }
+
+    const driftDiffusion& ddModel = refCast<const driftDiffusion>(baseModel);
+
+    // Access the patch mobility and electric field
+    const scalarField& muf = ddModel.mobility().muPatch(p.index());
+    const fvPatchField<vector>& Ef = 
+                                p.lookupPatchField<volVectorField, vector>("E");
+
+    const scalarField uDrift_n = Z * (muf * Ef) & nf;
+
+    // Implicit drift flux: upwind coeff = 1 if drift toward wall, else 0
+    return tmp<Field<scalar>>
+    (
+        new scalarField(pos(uDrift_n))
+    );
+}
+
+tmp<Field<scalar>>
+ddWallFluxImplicitFvPatchScalarField::valueBoundaryCoeffs
+(
+    const tmp<scalarField>&
+) const
+{
+    // No explicit RHS contribution from drift
+    return tmp<Field<scalar>>
+    (
+        new scalarField(this->size(), Zero)
+    );
+}
+
+tmp<Field<scalar>>
+ddWallFluxImplicitFvPatchScalarField::gradientInternalCoeffs() const
+{
+    const fvPatch& p = patch();
+
+    // Determine species name (e.g., n_e -> e)
+    const word fieldName = this->internalField().name();
+    word speciesName = fieldName;
+    if (speciesName.startsWith("n_"))
+    {
+        speciesName.erase(0, 2);
+    }
+
+    // Lookup Temperature (T)
     tmp<scalarField> tT;
     if (TName_ == "none")
     {
@@ -189,97 +263,75 @@ void ddWallFluxImplicitFvPatchScalarField::updateCoeffs()
     {
         tT = p.lookupPatchField<volScalarField, scalar>(TName_);
     }
-    else if (db().foundObject<UniformDimensionedField<scalar>>(TName_))
-    {
-        const auto& udf = db().lookupObject<UniformDimensionedField<scalar>>(TName_);
-        tT = tmp<scalarField>::New(p.size(), udf.value());
-    }
     else
     {
-        FatalErrorInFunction << "Temperature '" << TName_ << "' not found." << exit(FatalError);
+        FatalErrorInFunction
+            << "Temperature field '" << TName_ << "' not found in registry." 
+            << nl << "Either set TName to 'none' and provide a constant TValue,"
+            << " or ensure the field exists in the mesh registry." << nl
+            << exit(FatalError);
     }
     const scalarField& T = tT();
 
-    // 3. Lookup Transport Registry and Species Data
-    const plasmaTransport& transport = db().lookupObject<plasmaTransport>("plasmaTransport");
+    // Lookup Transport Registry and Species Data
+    if (!db().foundObject<plasmaTransport>("plasmaTransport"))
+    {
+        FatalErrorInFunction
+            << "plasmaTransport not found in registry." << nl
+            << exit(FatalError);
+    }
+    const plasmaTransport& transport =
+                          db().lookupObject<plasmaTransport>("plasmaTransport");
+
     const plasmaSpecies& speciesDB = transport.species();
+
     const label speciesID = speciesDB.speciesID(speciesName);
     const dimensionedScalar& m = speciesDB.speciesMass(speciesID);
-    const scalar& Z = speciesDB.speciesChargeNumber(speciesID);
 
-    // 4. Access the Model and Extract mu/D
+    // Access the drift-diffusion model
     const plasmaTransportModel& baseModel = transport.model(speciesID);
-    
-    // We strictly require driftDiffusion for this BC
+
     if (!isA<driftDiffusion>(baseModel))
     {
-        FatalErrorInFunction << "Species " << speciesName 
-            << " must use driftDiffusion transport model." << exit(FatalError);
+        FatalErrorInFunction
+            << "Species '" << speciesName << "' must use the driftDiffusion "
+            << "transport model for this boundary condition." << nl
+            << "Current model: " << baseModel.type() << nl
+            << exit(FatalError);
     }
+
     const driftDiffusion& ddModel = refCast<const driftDiffusion>(baseModel);
-tmp<fvPatchScalarField> tmuPatch = 
-    fvPatchField<scalar>::New("calculated", p, this->internalField());
 
-tmp<fvPatchScalarField> tDPatch = 
-    fvPatchField<scalar>::New("calculated", p, this->internalField());
-    ddModel.mobility().muPatch(tmuPatch.ref(), p.index());
-    ddModel.diffusivity().DPatch(tDPatch.ref(), p.index());
-    const scalarField& muf = tmuPatch();
-    const scalarField& Df = tDPatch();
-    const fvPatchField<vector>& Ef = p.lookupPatchField<volVectorField, vector>("E");
+    // Access the patch diffusivity
+    const scalarField& Df  = ddModel.diffusivity().DPatch(p.index());
 
-    // 5. Physics Calculations
-    word scheme = ddModel.fluxScheme();
-    scalarField uDrift_n = (muf * Ef) & nf;
+    // Physics Calculations
+    tmp<scalarField> tUth = this->calcWallThermalVelocity(m, T);
+    const scalarField& uth4 = tUth();
 
-    // Get wall velocity from the child class (e.g., thermal flux or recombination)
-    tmp<scalarField> tUWall = this->calcWallVelocity(m, T, uDrift_n, Z);
-    const scalarField& uWall = tUWall();
+    // Implicit thermal flux: gradCoeff = -u_th/4 / D
+    // (negative so fvm::laplacian adds positive diagonal contribution)
+    return tmp<Field<scalar>>
+    (
+        new scalarField(-uth4 / (Df + VSMALL))
+    );
+}
 
-    // 6. Set Mixed BC parameters
-    this->refValue() = 0.0;
-    this->refGrad() = 0.0;
-    this->operator==(this->patchInternalField());
-    scalarField& f = this->valueFraction();
-
-    scalarField D_delta = Df * delta;
-
-    if (scheme == "ScharfetterGummel")
-    {
-        auto Bern = [](scalar x) -> scalar
-        {
-            const scalar ax = mag(x);
-            if (ax < 1e-4) return 1.0 - 0.5*x + (x*x)/12.0;
-            if (x > 100.0)  return 0.0;
-            if (x < -100.0) return -x;
-            return x / (Foam::exp(x) - 1.0);
-        };
-
-        forAll(p, faceI)
-        {
-            scalar Pe = uDrift_n[faceI] / (D_delta[faceI] + VSMALL);
-            scalar num = uWall[faceI] - D_delta[faceI] * Pe;
-            scalar den = D_delta[faceI] * Bern(Pe) + uWall[faceI];
-            f[faceI] = num / (den + VSMALL);
-        }
-    }
-    else // Standard Upwind/Central scheme
-    {
-        forAll(p, faceI)
-        {
-            f[faceI] = uWall[faceI] / (D_delta[faceI] + uWall[faceI] + SMALL);
-        }
-    }
-
-    mixedFvPatchField<scalar>::updateCoeffs();
+tmp<Field<scalar>>
+ddWallFluxImplicitFvPatchScalarField::gradientBoundaryCoeffs() const
+{
+    // No explicit RHS contribution from diffusion
+    return tmp<Field<scalar>>
+    (
+        new scalarField(this->size(), Zero)
+    );
 }
 
 void ddWallFluxImplicitFvPatchScalarField::write(Ostream& os) const
 {
-    // 1. Write standard Mixed BC entries (valueFraction, refValue, etc.)
-    mixedFvPatchScalarField::write(os);
+    fvPatchScalarField::write(os);
 
-    // 2. Write our custom entries so the simulation can be restarted
+    // Write our custom entries so the simulation can be restarted
     if (TName_ != "none")
     {
         os.writeEntry("T", TName_);
@@ -288,6 +340,8 @@ void ddWallFluxImplicitFvPatchScalarField::write(Ostream& os) const
     {
         os.writeEntry("T", TValue_.value());
     }
+
+    fvPatchScalarField::writeValueEntry(os);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -147,37 +147,6 @@ namespace fvc
             flux[facei] = (coeffP * rho[P]) - (coeffN * rho[N]);
         }
 
-        // Boundary Face Loop
-        forAll(rho.boundaryField(), patchi)
-        {
-            const fvPatchField<Type>& ptf = rho.boundaryField()[patchi];
-            
-            // Get internal field values for the patch
-            tmp<Field<Type>> tRhoInternal = ptf.patchInternalField();
-            const Field<Type>& rhoInternal = tRhoInternal();
-
-            auto& fluxPatch = flux.boundaryFieldRef()[patchi];
-
-            const scalarField pDiffCond = Df.boundaryField()[patchi] 
-                * mesh.magSf().boundaryField()[patchi] 
-                * mesh.deltaCoeffs().boundaryField()[patchi];
-                
-            const scalarField& pPhi = phi.boundaryField()[patchi];
-
-            forAll(ptf, facei)
-            {
-                scalar Pe = pPhi[facei] / (pDiffCond[facei] + VSMALL);
-
-                scalar coeffP = pDiffCond[facei] * Bern(-Pe);
-                scalar coeffB = pDiffCond[facei] * Bern(Pe);
-
-                // For FVC, we use the actual boundary values (ptf[facei])
-                fluxPatch[facei] = 
-                    (coeffP * rhoInternal[facei]) -
-                    (coeffB * ptf[facei]);
-            }
-        }
-
         return tFlux;
     }
 

@@ -5,7 +5,7 @@ License
     The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025 Rention Pasolari
+    Copyright (C) 2026 Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the
@@ -28,7 +28,8 @@ Description
     ion species.
 
     This boundary condition calculates the ion flux to a solid surface 
-    based on thermal motion.
+    based on thermal motion. The drift flux is also added, if it pushes ions
+    towards the boundary
 
 Usage
     Example boundary condition entry:
@@ -74,13 +75,12 @@ protected:
 
     // Protected Member Functions
 
-        //- Calculate the ion-specific wall absorption velocity
-        virtual tmp<scalarField> calcWallVelocity
+        //- Return u_th/4 for ions
+        //  Simply delegates to the base calcThermalVelocity
+        virtual tmp<scalarField> calcWallThermalVelocity
         (
             const dimensionedScalar& m,
-            const scalarField& T,
-            const scalarField& uDriftNormal,
-            const scalar Z
+            const scalarField& T
         ) const override;
 
 public:

@@ -6,7 +6,7 @@
   Description:
     Implementation of Foam::neutralDDWallFluxImplicitFvPatchScalarField.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -31,12 +31,11 @@ makePatchTypeField
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-tmp<scalarField> neutralDDWallFluxImplicitFvPatchScalarField::calcWallVelocity
+tmp<scalarField>
+neutralDDWallFluxImplicitFvPatchScalarField::calcWallThermalVelocity
 (
     const dimensionedScalar& m,
-    const scalarField& T,
-    const scalarField& uDriftNormal,
-    const scalar Z
+    const scalarField& T
 ) const
 {
     return calcThermalVelocity(m, T);
@@ -102,6 +101,16 @@ neutralDDWallFluxImplicitFvPatchScalarField
 {}
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+tmp<Field<scalar>>
+neutralDDWallFluxImplicitFvPatchScalarField::valueInternalCoeffs
+(
+    const tmp<scalarField>&
+) const
+{
+    // Neutrals have Z=0: no drift flux contribution to the matrix
+    return tmp<Field<scalar>>(new scalarField(this->size(), Zero));
+}
 
 void neutralDDWallFluxImplicitFvPatchScalarField::write(Ostream& os) const
 {

@@ -14,9 +14,9 @@ echo ">>> Building Applications in src/applications"
 echo "----------------------------------------------"
 
 # Build solvers
-wmake solvers/electroPotentialFoam
-wmake solvers/electroPotentialMultiRegionFoam
-wmake solvers/plasmaDielectricFoam
+wmake solvers/singleRegionElectrostaticFoam
+wmake solvers/multiRegionElectrostaticFoam
+wmake solvers/soPlasmaFoam
 
 # Build utilities
 wmake utilities/foamPlasmaCreateSpeciesFields

@@ -165,8 +165,6 @@ void ddWallFluxMixedFvPatchScalarField::updateCoeffs()
         return;
     }
 
-    // Access the mesh from the patch
-    const fvMesh& mesh = p.boundaryMesh().mesh();
     // Access the normal vector and delta coeffs
     const vectorField nf = p.nf();
     const scalarField& delta = p.deltaCoeffs();

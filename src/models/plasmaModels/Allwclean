@@ -13,9 +13,8 @@ cd "${0%/*}" || exit 1
 echo ">>> Cleaning plasmaModels in src/models/plasmaModels"
 echo "----------------------------------------------------"
 
-wclean plasmaSpecies
-wclean plasmaEnergy
 wclean genericPlasmaProperties
+wclean plasmaSpecies
 wclean plasmaTransport
 
 echo "----------------------------------------------------"

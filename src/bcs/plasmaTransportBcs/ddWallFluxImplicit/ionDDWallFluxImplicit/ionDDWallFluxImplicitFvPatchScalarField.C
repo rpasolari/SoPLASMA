@@ -6,12 +6,13 @@
   Description:
     Implementation of Foam::ionDDWallFluxImplicitFvPatchScalarField.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
 #include "addToRunTimeSelectionTable.H"
+#include "fvPatchFieldMapper.H"
 
 #include "ionDDWallFluxImplicitFvPatchScalarField.H"
 
@@ -31,17 +32,17 @@ makePatchTypeField
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-tmp<scalarField> ionDDWallFluxImplicitFvPatchScalarField::calcWallVelocity
+tmp<scalarField>
+ionDDWallFluxImplicitFvPatchScalarField::calcWallThermalVelocity
 (
     const dimensionedScalar& m,
-    const scalarField& T,
-    const scalarField& uDriftNormal,
-    const scalar Z
+    const scalarField& T
 ) const
 {
-    // This is mathematically identical to uTh - Z*uD + max(0, Z*uD)
-    // but uses half the operations.
-    return calcThermalVelocity(m, T) + max(0.0, -Z * uDriftNormal);
+    // For ions, the thermal velocity is simply u_th/4
+    // No drift correction here. Drift is handled separately in
+    // valueInternalCoeffs() via the pos()/neg() switch
+    return calcThermalVelocity(m, T);
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //

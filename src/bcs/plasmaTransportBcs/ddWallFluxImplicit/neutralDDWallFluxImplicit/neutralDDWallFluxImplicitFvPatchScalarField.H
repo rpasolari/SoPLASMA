@@ -5,7 +5,7 @@ License
     The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025 Rention Pasolari
+    Copyright (C) 2026 Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the
@@ -39,9 +39,6 @@ Usage
 
         // Neutral temperature [K]
         T               Tn; 
-
-        // Optional: Enable surface charge accumulation
-        enableSurfaceCharging_ false;
     }
     \endverbatim
     
@@ -69,13 +66,11 @@ protected:
 
     // Protected Member Functions
 
-        //- Calculate the neutral-specific wall absorption velocity
-        virtual tmp<scalarField> calcWallVelocity
+        //- Return u_th/4 for neutrals
+        virtual tmp<scalarField> calcWallThermalVelocity
         (
             const dimensionedScalar& m,
-            const scalarField& T,
-            const scalarField& uDriftNormal,
-            const scalar Z
+            const scalarField& T
         ) const override;
 
 public:
@@ -144,6 +139,12 @@ public:
         }
 
         // Member Functions
+
+            //- No drift for neutrals: always return zero
+            virtual tmp<Field<scalar>> valueInternalCoeffs
+            (
+                const tmp<scalarField>&
+            ) const override;
 
             //- Write dictionary entries
             virtual void write(Ostream& os) const;

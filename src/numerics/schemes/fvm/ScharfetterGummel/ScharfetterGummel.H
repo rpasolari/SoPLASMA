@@ -113,20 +113,19 @@ namespace fvm
             return x / (Foam::exp(x) - 1.0);
         };
 
+        surfaceScalarField diffCond = Df * mesh.magSf() * mesh.deltaCoeffs();
+        const scalarField& diffCondInternal = diffCond.primitiveField();
         const scalarField& convFlux = phi.primitiveField();
-        const scalarField diffCond = 
-            Df.primitiveField() * mesh.magSf().primitiveField()
-          * mesh.deltaCoeffs().primitiveField();
 
-        const scalarField Pe = convFlux / (diffCond + VSMALL);
+        const scalarField Pe = convFlux / (diffCondInternal + VSMALL);
 
         scalarField coeffP(diffCond.size());
         scalarField coeffN(diffCond.size());
 
         forAll(Pe, facei)
         {
-            coeffP[facei] = diffCond[facei] * Bern(-Pe[facei]);
-            coeffN[facei] = diffCond[facei] * Bern(Pe[facei]);
+            coeffP[facei] = diffCondInternal[facei] * Bern(-Pe[facei]);
+            coeffN[facei] = diffCondInternal[facei] * Bern(Pe[facei]);
         }
 
         fvm.lower() = -coeffP; 
@@ -136,37 +135,23 @@ namespace fvm
         // Boundaries
         forAll(rho.boundaryField(), patchi)
         {
-            const fvPatchField<scalar>& ptf = rho.boundaryField()[patchi];
+            const fvPatchField<Type>& patchRho = rho.boundaryField()[patchi];
 
-            scalarField diffCond = Df.boundaryField()[patchi] 
-                * mesh.magSf().boundaryField()[patchi] 
-                * mesh.deltaCoeffs().boundaryField()[patchi];
-                
-            scalarField Pe = phi.boundaryField()[patchi] 
-                / (diffCond + VSMALL);
+            const scalarField& patchPhi = phi.boundaryField()[patchi];
+            const scalarField& patchDiffCond = diffCond.boundaryField()[patchi];
 
-            scalarField coeffP(Pe.size());
-            scalarField coeffB(Pe.size());  
+            tmp<Field<Type>> tValInt = patchPhi 
+                                       * patchRho.valueInternalCoeffs(patchPhi);
+            tmp<Field<Type>> tValBnd = -patchPhi 
+                                       * patchRho.valueBoundaryCoeffs(patchPhi);  
 
-            forAll(ptf, facei)
-            {
-                coeffP[facei] = diffCond[facei] * Bern(-Pe[facei]);
-                coeffB[facei] = diffCond[facei] * Bern(Pe[facei]);
-            }
+            tmp<Field<Type>> tGradInt = patchDiffCond 
+                                            * patchRho.gradientInternalCoeffs();
+            tmp<Field<Type>> tGradBnd = -patchDiffCond 
+                                            * patchRho.gradientBoundaryCoeffs();
 
-            if (ptf.coupled())
-            {
-                fvm.internalCoeffs()[patchi] = coeffP;
-                fvm.boundaryCoeffs()[patchi] = coeffB;
-            }
-            else
-            {
-                tmp<scalarField> tAlpha = ptf.valueInternalCoeffs(rho);
-                tmp<scalarField> tBeta = ptf.valueBoundaryCoeffs(rho);
-
-                fvm.internalCoeffs()[patchi] = coeffP - (coeffB * tAlpha());
-                fvm.boundaryCoeffs()[patchi] = coeffB * tBeta();
-            }
+            fvm.internalCoeffs()[patchi] = tValInt() - tGradInt();
+            fvm.boundaryCoeffs()[patchi] = tValBnd() - tGradBnd();
         }
 
         return tfvm;

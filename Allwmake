@@ -33,7 +33,6 @@ echo ""
 
 ./src/applications/Allwmake
 
-
 # ThirdParty
 echo "Building ThirdParty..."
 echo "-------------------------------------"

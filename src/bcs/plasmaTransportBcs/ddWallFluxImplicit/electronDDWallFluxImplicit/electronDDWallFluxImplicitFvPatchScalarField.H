@@ -5,7 +5,7 @@ License
     The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025 Rention Pasolari
+    Copyright (C) 2026 Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the
@@ -28,7 +28,12 @@ Description
     electron species.
 
     This boundary condition calculates the electron flux to a solid surface 
-    based on thermal motion.
+    based on thermal motion. Given a switch (includeDriftFlux_) the user can
+    include the drift flux for the calculation of the total wall flux (if the
+    drift is towards the wall).
+
+    The boundary condition accounts for the Secondary Electron Emission, based
+    on the ion wall flux.
 
 Usage
     Example boundary condition entry:
@@ -41,7 +46,19 @@ Usage
         T               Te; 
 
         // Optional: Enable surface charge accumulation
-        enableSurfaceCharging_ false;
+        enableSurfaceCharging false;
+
+        // Optional: Include the drift flux
+        includeDriftFlux      false;
+
+        // Optional: Enable secondary electron emission
+        enableSEE             true;
+        defaultSEEC           0.05; // SEE coefficient
+        speciesSEEC
+        {
+            ion1              0.01;
+            ion2              0.04;
+        }
     }
     \endverbatim
     
@@ -65,6 +82,15 @@ class electronDDWallFluxImplicitFvPatchScalarField
 :
     public ddWallFluxImplicitFvPatchScalarField
 {
+private:
+    // Private Member Functions
+
+        //- Build seec_ list from plasmaSpecies registry (called once)
+        void buildSEECList() const;
+
+        //- Compute total SEE flux field on this patch [1/m^2/s]
+        tmp<scalarField> calcSEEFlux() const;
+
 protected:
 
     // Protected data
@@ -85,23 +111,19 @@ protected:
         dictionary speciesSEEC_;
 
         //- List to keep the SEE coefficients for each ion species
-        List<scalar> seec_;
-
-        //- Switch to use refValue for the SEE instead of refGrad
-        Switch setRefValue_;
+        mutable List<scalar> seec_;
 
         //- Switch to read the SEE entries only once
-        Switch mapped_;
+        mutable Switch mapped_;
 
     // Protected Member Functions
 
-        //- Calculate the electron-specific wall absorption velocity
-        virtual tmp<scalarField> calcWallVelocity
+        //- Return u_th/4 for electrons (pure thermal, no drift correction)
+        //  Drift correction is handled separately in valueInternalCoeffs()
+        virtual tmp<scalarField> calcWallThermalVelocity
         (
             const dimensionedScalar& m,
-            const scalarField& T,
-            const scalarField& uDriftNormal,
-            const scalar Z
+            const scalarField& T
         ) const override;
 
 public:
@@ -171,7 +193,17 @@ public:
 
         // Member Functions
 
-            virtual void updateCoeffs();
+            //- Coefficient for fvm::div diagonal
+            virtual tmp<Field<scalar>> valueInternalCoeffs
+            (
+                const tmp<scalarField>&
+            ) const;
+
+            //- Coefficient for fvm::laplacian diagonal
+            virtual tmp<Field<scalar>> gradientInternalCoeffs() const;
+
+            //- RHS coefficient for fvm::laplacian
+            virtual tmp<Field<scalar>> gradientBoundaryCoeffs() const;
 
             //- Return the surface charging switch value
             inline bool enableSurfaceCharging() const

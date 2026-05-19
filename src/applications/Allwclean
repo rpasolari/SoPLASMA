@@ -14,9 +14,9 @@ echo ">>> Cleaning Applications in src/applications"
 echo "----------------------------------------------"
 
 # Solvers
-wclean solvers/electroPotentialFoam
-wclean solvers/electroPotentialMultiRegionFoam
-wclean solvers/plasmaDielectricFoam
+wclean solvers/singleRegionElectrostaticFoam
+wclean solvers/multiRegionElectrostaticFoam
+wclean solvers/soPlasmaFoam
 
 # Utilities
 wclean utilities/foamPlasmaCreateSpeciesFields

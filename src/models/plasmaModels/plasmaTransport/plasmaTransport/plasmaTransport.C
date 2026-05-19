@@ -69,8 +69,6 @@ void plasmaTransport::constructTransportModels()
         Info << "    " << sName << ": transport model '" << modelName 
              << "' successfully constructed." << endl;
     }
-
-
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //

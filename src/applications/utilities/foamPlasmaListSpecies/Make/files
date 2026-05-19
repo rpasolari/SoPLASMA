@@ -1,3 +1,0 @@
-foamPlasmaListSpecies.C
-
-EXE = $(FOAM_USER_APPBIN)/foamPlasmaListSpecies

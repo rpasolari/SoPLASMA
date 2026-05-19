@@ -47,7 +47,9 @@ SourceFiles
 #ifndef Foam_ddWallFluxImplicitFvPatchScalarField_H
 #define Foam_ddWallFluxImplicitFvPatchScalarField_H
 
-#include "mixedFvPatchFields.H"
+#include "fvPatchFields.H"
+#include "fvPatchField.H"
+#include "fvPatchFieldMapper.H"
 
 #include "SoPLASMAConstants.H"
 #include "plasmaSpecies.H"
@@ -65,7 +67,7 @@ namespace Foam
 
 class ddWallFluxImplicitFvPatchScalarField
 :
-    public mixedFvPatchScalarField
+    public fvPatchScalarField
 {
 protected:
 
@@ -79,36 +81,26 @@ protected:
 
     // Protected Member Functions
 
-        //- Calculate thermal velocity (account for the 1/4)
-        //- For a single constant temperature (dimensionedScalar)
+        //- Calculate thermal velocity u_th/4 for a constant temperature
         dimensionedScalar calcThermalVelocity
         (
             const dimensionedScalar& m,
             const dimensionedScalar& T
         ) const;
 
-        //- Calculate thermal velocity (account for the 1/4)
-        //- For a field temperature (scalarField)
+        //- Calculate thermal velocity u_th/4 for a temperature field
         tmp<scalarField> calcThermalVelocity
         (
             const dimensionedScalar& m,
             const scalarField& T
         ) const;
 
-        //- Calculate the effective wall absorption velocity
-        virtual tmp<scalarField> calcAbsorptionVelocity
+        //- Pure virtual: return u_th/4 for this species on this patch
+        //  Derived classes implement this based on species mass and temperature
+        virtual tmp<scalarField> calcWallThermalVelocity
         (
             const dimensionedScalar& m,
-            const scalarField& T,
-            const scalarField& uDriftNormal
-        ) const = 0;
-
-        //- Calculate the effective wall velocity
-        virtual tmp<scalarField> calcEffectiveWallVelocity
-        (
-            const dimensionedScalar& m,
-            const scalarField& T,
-            const scalarField& uDriftNormal
+            const scalarField& T
         ) const = 0;
 
 public:
@@ -166,8 +158,33 @@ public:
 
         // Member Functions
 
+            //- Update the face value (n_face = n_cell, consistent with matrix)
+            virtual void evaluate
+            (
+                const Pstream::commsTypes commsType =
+                    Pstream::commsTypes::blocking
+            );
+
             //- Update the coefficients
             virtual void updateCoeffs();
+
+            //- Coefficient for fvm::div diagonal
+            virtual tmp<Field<scalar>> valueInternalCoeffs
+            (
+                const tmp<scalarField>&
+            ) const;
+
+            //- RHS coefficient for fvm::div
+            virtual tmp<Field<scalar>> valueBoundaryCoeffs
+            (
+                const tmp<scalarField>&
+            ) const;
+
+            //- Coefficient for fvm::laplacian diagonal
+            virtual tmp<Field<scalar>> gradientInternalCoeffs() const;
+
+            //- RHS coefficient for fvm::laplacian
+            virtual tmp<Field<scalar>> gradientBoundaryCoeffs() const;
 
             //- Returns the enableSurfaceCharging flag
             virtual bool enableSurfaceCharging() const
