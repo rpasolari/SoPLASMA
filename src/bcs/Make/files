@@ -1,3 +1,8 @@
 electromagneticsBcs/coupledElectricPotential/coupledElectricPotentialFvPatchScalarField.C
 
+plasmaTransportBcs/ddWallFluxMixed/base/ddWallFluxMixedFvPatchScalarField.C
+plasmaTransportBcs/ddWallFluxMixed/electronDDWallFluxMixed/electronDDWallFluxMixedFvPatchScalarField.C
+plasmaTransportBcs/ddWallFluxMixed/ionDDWallFluxMixed/ionDDWallFluxMixedFvPatchScalarField.C
+plasmaTransportBcs/ddWallFluxMixed/neutralDDWallFluxMixed/neutralDDWallFluxMixedFvPatchScalarField.C
+
 LIB = $(FOAM_USER_LIBBIN)/libplasmaBcs

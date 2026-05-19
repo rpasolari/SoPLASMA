@@ -222,7 +222,7 @@ public:
             return limitVoltageRiseRate_;
         }
 
-        //- Get the maximum allowed voltage rise rate [V/s]
+        //- Get the maximum allowed voltage rise rate [V/dt]
         inline scalar maxVoltageRiseRate() const
         {
             return maxVoltageRiseRate_;

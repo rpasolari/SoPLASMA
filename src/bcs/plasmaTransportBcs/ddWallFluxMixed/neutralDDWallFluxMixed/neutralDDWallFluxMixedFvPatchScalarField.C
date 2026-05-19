@@ -6,7 +6,7 @@
   Description:
     Implementation of Foam::neutralDDWallFluxMixedFvPatchScalarField.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -31,12 +31,23 @@ makePatchTypeField
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-tmp<scalarField> neutralDDWallFluxMixedFvPatchScalarField::calcWallVelocity
+tmp<scalarField> 
+                neutralDDWallFluxMixedFvPatchScalarField::calcAbsorptionVelocity
 (
     const dimensionedScalar& m,
     const scalarField& T,
-    const scalarField& uDriftNormal,
-    const scalar Z
+    const scalarField& uDriftNormal
+) const
+{
+    return calcThermalVelocity(m, T);
+}
+
+tmp<scalarField> 
+             neutralDDWallFluxMixedFvPatchScalarField::calcEffectiveWallVelocity
+(
+    const dimensionedScalar& m,
+    const scalarField& T,
+    const scalarField& uDriftNormal
 ) const
 {
     return calcThermalVelocity(m, T);

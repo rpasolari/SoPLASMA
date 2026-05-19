@@ -3,7 +3,10 @@ EXE_INC = \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/OpenFOAM/lnInclude \
     -I$(FOAM_PLASMA_SRC)/constants/lnInclude \
-    -I$(FOAM_PLASMA_SRC)/models/electromagnetics/lnInclude
+    -I$(FOAM_PLASMA_SRC)/models/electromagnetics/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/genericPlasmaProperties/lnInclude
 
 LIB_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
@@ -11,4 +14,7 @@ LIB_LIBS = \
     -lmeshTools \
     -lOpenFOAM \
     -lSoPLASMAConstants \
-    -lplasmaElectromagnetics
+    -lplasmaElectromagnetics \
+    -lplasmaSpecies \
+    -lplasmaTransport \
+    -lplasmaProperties

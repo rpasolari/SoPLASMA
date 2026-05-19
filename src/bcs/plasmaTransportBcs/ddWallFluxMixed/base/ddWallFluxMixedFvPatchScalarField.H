@@ -27,8 +27,9 @@ Description
     Abstract base class for scalar flux boundary conditions at solid surfaces,
     derived from mixedFvPatchScalarField.
 
-    This class serves as a foundation for specific particle or charge flux 
-    conditions (e.g., ion or electron fluxes) where particles impact a wall.
+    Enforces the particle flux at absorbing walls by setting the relation of 
+    the face and the cell center value. The wall flux is imposed through the 
+    valueFraction field of the mixed BC.
 
     This is an abstract class. It cannot be used directly in a case file
     as the 'type'. Derived classes must implement the pure virtual function.
@@ -45,14 +46,15 @@ SourceFiles
 
 #include "mixedFvPatchFields.H"
 
+#include "SoPLASMAConstants.H"
+#include "plasmaSpecies.H"
+#include "plasmaTransport.H"
+#include "driftDiffusion.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// Forward declaration of plasmaTransport and plasmaSpecies classes
-class plasmaTransport;
-class plasmaSpecies;
 
 /*---------------------------------------------------------------------------*\
          Class ddWallFluxMixedFvPatchScalarField Declaration
@@ -90,13 +92,20 @@ protected:
             const scalarField& T
         ) const;
 
-        //- Calculate the effective wall absorption velocity
-        virtual tmp<scalarField> calcWallVelocity
+        //- Calculate the wall absorption velocity
+        virtual tmp<scalarField> calcAbsorptionVelocity
         (
             const dimensionedScalar& m,
             const scalarField& T,
-            const scalarField& uDriftNormal,
-            const scalar Z
+            const scalarField& uDriftNormal
+        ) const = 0;
+
+        //- Calculate the effective wall velocity
+        virtual tmp<scalarField> calcEffectiveWallVelocity
+        (
+            const dimensionedScalar& m,
+            const scalarField& T,
+            const scalarField& uDriftNormal
         ) const = 0;
 
 public:

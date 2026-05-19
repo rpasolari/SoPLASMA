@@ -6,7 +6,7 @@
   Description:
     Implementation of Foam::ionDDWallFluxMixedFvPatchScalarField.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -31,17 +31,24 @@ makePatchTypeField
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-tmp<scalarField> ionDDWallFluxMixedFvPatchScalarField::calcWallVelocity
+tmp<scalarField> ionDDWallFluxMixedFvPatchScalarField::calcAbsorptionVelocity
 (
     const dimensionedScalar& m,
     const scalarField& T,
-    const scalarField& uDriftNormal,
-    const scalar Z
+    const scalarField& uDriftNormal
 ) const
 {
-    // This is mathematically identical to uTh - Z*uD + max(0, Z*uD)
-    // but uses half the operations.
-    return calcThermalVelocity(m, T) + max(0.0, -Z * uDriftNormal);
+    return calcThermalVelocity(m, T) + max(0.0, uDriftNormal);
+}
+
+tmp<scalarField> ionDDWallFluxMixedFvPatchScalarField::calcEffectiveWallVelocity
+(
+    const dimensionedScalar& m,
+    const scalarField& T,
+    const scalarField& uDriftNormal
+) const
+{
+    return calcThermalVelocity(m, T) + max(0.0, -uDriftNormal);
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //

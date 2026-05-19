@@ -264,27 +264,15 @@ if (limitVoltageRiseRate_ || printVoltageRiseRate_)
 {
     const scalar currentVoltage = patchVoltageAvg(transport);
     const scalar dV = mag(currentVoltage - prevPatchVoltage_);
-    voltageRiseRate = dV / (currentDeltaT + VSMALL);
-
-    Info<< "  [voltage debug]" << nl
-        << "    prevVoltage       = " << prevPatchVoltage_ << " V" << nl
-        << "    currentVoltage    = " << currentVoltage    << " V" << nl
-        << "    dV                = " << dV                << " V" << nl
-        << "    currentDeltaT     = " << currentDeltaT     << " s" << nl
-        << "    voltageRiseRate   = " << voltageRiseRate   << " V/s" << nl
-        << "    maxVoltageRiseRate= " << maxVoltageRiseRate_<< " V/s" << nl;
+    voltageRiseRate = dV / (runTime_.deltaT0Value() + VSMALL);
 
     if (limitVoltageRiseRate_)
     {
         const scalar dtLimit =
-            maxVoltageRiseRate_ / (voltageRiseRate + VSMALL) * currentDeltaT;
-
-        Info<< "    dtLimit           = " << dtLimit << " s" << nl;
+            maxVoltageRiseRate_ / (voltageRiseRate + VSMALL);
 
         newDeltaT = min(newDeltaT, dtLimit);
     }
-
-    Info<< "    newDeltaT         = " << newDeltaT << " s" << nl;
 
     prevPatchVoltage_ = currentVoltage;
 }
@@ -394,14 +382,15 @@ if (limitVoltageRiseRate_ || printVoltageRiseRate_)
 
     if (limitVoltageRiseRate_ || printVoltageRiseRate_)
     {
+        const scalar dVPerStep = voltageRiseRate * actualDeltaT;
         const bool binding =
             limitVoltageRiseRate_
-        && voltageRiseRate >= maxVoltageRiseRate_ * 0.99;
+        && dVPerStep >= maxVoltageRiseRate_ * 0.99;
 
         Info<< "  " << fmtLine
             (
-                "voltage rise [V/s]",
-                voltageRiseRate,
+                "dV/step [V]",
+                dVPerStep,
                 limitVoltageRiseRate_,
                 maxVoltageRiseRate_,
                 binding
