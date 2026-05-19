@@ -38,7 +38,7 @@ electromagneticsModel::electromagneticsModel
         (
             "electromagneticsProperties",
             mesh.time().constant(),
-            mesh,
+            mesh.time(),
             IOobject::MUST_READ,
             IOobject::NO_WRITE,
             IOobject::REGISTER
@@ -141,24 +141,7 @@ electromagneticsModel::electromagneticsModel
         0.0
     ),
     epsilonR_(1.0)
-{
-    // --- DEBUG PRINTING START ---
-    Info<< "\n" << "========================================" << endl;
-    Info<< "DEBUG: Checking Object Registries" << endl;
-    
-    // 1. Check primary mesh registry
-    Info<< "Primary Mesh (" << mesh_.name() << ") Registry Contents:" << nl
-        << mesh_.thisDb().sortedToc() << nl << endl;
-
-    // 2. Check each dielectric mesh registry
-    forAll(dielectricMeshes_, i)
-    {
-        Info<< "Dielectric Mesh (" << dielectricMeshes_[i].name() << ") Registry Contents:" << nl
-            << dielectricMeshes_[i].thisDb().sortedToc() << nl << endl;
-    }
-    Info<< "========================================\n" << endl;
-    // --- DEBUG PRINTING END ---
-}
+{}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
@@ -174,7 +157,7 @@ autoPtr<electromagneticsModel> electromagneticsModel::New
         (
             "electromagneticsProperties",
             mesh.time().constant(),
-            mesh,
+            mesh.time(),
             IOobject::MUST_READ,
             IOobject::NO_WRITE,
             IOobject::NO_REGISTER

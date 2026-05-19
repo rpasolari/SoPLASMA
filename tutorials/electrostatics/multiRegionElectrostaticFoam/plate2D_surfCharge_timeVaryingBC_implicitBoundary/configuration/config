@@ -1,0 +1,13 @@
+epsilonRleftGas		    1.0;
+epsilonRrightDielectric	5.0;	
+
+meshSize				"100x100";
+
+dirichletValueLeft		1e7;
+dirichletValueRight		0.0;
+surfChargeDict          surfCharge;
+useImplicit             true;
+surfCharge				1e-2;
+
+endTime 				10;
+

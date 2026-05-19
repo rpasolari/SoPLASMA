@@ -68,24 +68,6 @@ int main(int argc, char *argv[])
     autoPtr<electromagneticsModel> em =
         electromagneticsModel::New(gasMesh(), dielectricMeshes);
 
-// // --- POST-INITIALIZATION REGISTRY DUMP ---
-// Info<< nl << "/*-----------------------------------------------------------*\\" << endl;
-// Info<< "  FINAL REGISTRY VERIFICATION" << endl;
-
-// // 1. Check the Gas Mesh
-// Info<< "  [Region: " << gasMesh().name() << "]" << nl
-//     << "  Contents: " << gasMesh().thisDb().sortedToc() << nl << endl;
-
-// // 2. Check each Dielectric Mesh
-// forAll(dielectricMeshes, i)
-// {
-//     Info<< "  [Region: " << dielectricMeshes[i].name() << "]" << nl
-//         << "  Contents: " << dielectricMeshes[i].thisDb().sortedToc() << nl << endl;
-// }
-
-// Info<< "\\*-----------------------------------------------------------*/" << nl << endl;
-// // --- END DUMP ---
-
     Info<< "\nCalculating electric potential distribution\n" << endl;
 
     while (runTime.run())

@@ -26,6 +26,8 @@ boundaryField
         type    fixedValue;
         value   $internalField;
     }
+
+    #includeEtc "caseDicts/setConstraintTypes"
 }
 
 // ************************************************************************* //

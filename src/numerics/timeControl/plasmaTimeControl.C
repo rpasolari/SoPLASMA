@@ -6,14 +6,13 @@
   Description:
     Implementation of Foam::plasmaTimeControl.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
 #include "plasmaTimeControl.H"
 #include "plasmaTransport.H"
-#include "plasmaProfiler.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -34,11 +33,17 @@ plasmaTimeControl::plasmaTimeControl(Time& runTime, const fvMesh& mesh)
     maxDielectricRelaxationRatio_(1.0),
     limitSpeciesCo_(false),
     printSpeciesCo_(false),
-    maxSpeciesCo_(1.0),
-    speciesName_("e"),
+    maxSpeciesConvectiveCo_(1.0),
+    maxSpeciesDiffusiveCo_(1.0),
+    courantSpeciesName_("e"),
     limitChemistryCo_(false),
     printChemistryCo_(false),
-    maxChemistryCo_(1.0)
+    maxChemistryCo_(1.0),
+    limitVoltageRiseRate_(false),
+    printVoltageRiseRate_(false),
+    maxVoltageRiseRate_(GREAT),
+    voltagePatchName_(""),
+    prevPatchVoltage_(0.0)
 {
     read();
 }
@@ -70,6 +75,7 @@ void plasmaTimeControl::read()
         maxDeltaT_ =
             dict_.lookupOrDefault<scalar>("maxDeltaT", GREAT);
 
+        // Dielectric relaxation
         limitDielectricRelaxationRatio_ =
          dict_.lookupOrDefault<Switch>("limitDielectricRelaxationRatio", false);
 
@@ -79,21 +85,26 @@ void plasmaTimeControl::read()
         maxDielectricRelaxationRatio_ =
             dict_.lookupOrDefault<scalar>("maxDielectricRelaxationRatio", 1.0);
 
+        // Species Courant
         limitSpeciesCo_ = 
             dict_.lookupOrDefault<Switch>("limitSpeciesCo", false);
 
         printSpeciesCo_ = 
             dict_.lookupOrDefault<Switch>("printSpeciesCo", false);
 
-        if (limitSpeciesCo_)
-                {
-                    maxSpeciesCo_ = 
-                        dict_.lookupOrDefault<scalar>("maxSpeciesCo", 1.0);
+        if (limitSpeciesCo_ || printSpeciesCo_)
+        {
+            maxSpeciesConvectiveCo_ =
+                dict_.lookupOrDefault<scalar>("maxSpeciesConvectiveCo", 1.0);
 
-                    speciesName_ = 
-                        dict_.lookupOrDefault<word>("speciesName", "e");
-                }
+            maxSpeciesDiffusiveCo_ =
+                dict_.lookupOrDefault<scalar>("maxSpeciesDiffusiveCo", 1.0);
 
+            courantSpeciesName_ =
+                dict_.lookupOrDefault<word>("courantSpeciesName", "e");
+        }
+
+        // Chemistry Courant
         limitChemistryCo_ = 
             dict_.lookupOrDefault<Switch>("limitChemistryCo", false);
 
@@ -102,22 +113,68 @@ void plasmaTimeControl::read()
 
         maxChemistryCo_ = 
             dict_.lookupOrDefault<scalar>("maxChemistryCo", 1.0);
+
+        // Voltage rise rate
+        limitVoltageRiseRate_ =
+            dict_.lookupOrDefault<Switch>("limitVoltageRiseRate", false);
+
+        printVoltageRiseRate_ =
+            dict_.lookupOrDefault<Switch>("printVoltageRiseRate", false);
+
+        if (limitVoltageRiseRate_ || printVoltageRiseRate_)
+        {
+            maxVoltageRiseRate_ =
+                dict_.lookupOrDefault<scalar>("maxVoltageRiseRate", 1e5);
+
+            voltagePatchName_ =
+                dict_.lookupOrDefault<word>("voltagePatchName", "");
+
+            if (voltagePatchName_.empty())
+            {
+                FatalIOErrorInFunction(dict_)
+                    << "'voltagePatchName' must be specified when "
+                    << "'limitVoltageRiseRate' or 'printVoltageRiseRate' "
+                    << "is true."
+                    << nl << exit(FatalIOError);
+            }
+        }
     }
+}
+
+scalar plasmaTimeControl::patchVoltageAvg
+(
+    const plasmaTransport& transport
+) const
+{
+    const volScalarField& phi = transport.species().em().ePotential();
+    const label patchi = mesh_.boundaryMesh().findPatchID(voltagePatchName_);
+
+    if (patchi < 0)
+    {
+        FatalErrorInFunction
+            << "Patch '" << voltagePatchName_ << "' not found in mesh."
+            << nl << exit(FatalError);
+    }
+
+    const scalarField& phiPatch = phi.boundaryField()[patchi];
+    return phiPatch.empty() ? 0.0 : gAverage(phiPatch);
 }
 
 void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
 {
-    
     const scalar currentDeltaT = runTime_.deltaTValue();
     const scalar eps0 = constant::plasma::epsilon0.value();
     scalar newDeltaT = maxDeltaT_;
 
     scalar maxSigma = 0.0;
-    scalar maxFluxRate = 0.0;
-    scalar meanFluxRate = 0.0;
+    scalar maxConvFluxRate  = 0.0;
+    scalar maxDiffFluxRate  = 0.0;
+    scalar meanConvFluxRate  = 0.0;
+    scalar meanDiffFluxRate  = 0.0;
     scalar maxKeff = 0.0;
+    scalar voltageRiseRate  = 0.0;
 
-    // 1. Dielectric relaxation (tau = epsilon / sigma)
+    //  Dielectric relaxation (tau = epsilon / sigma)
     if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
         tmp<volScalarField> tSigma = transport.electricalConductivity();
@@ -134,50 +191,105 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         tSigma.clear();
     }
     
-    // 2. Species Courant Limit
+    //  Species Courant Limit (convective and diffusive)
     if (limitSpeciesCo_ || printSpeciesCo_)
     {
-        label sIdx = transport.species().speciesID(speciesName_);
+        label sIdx = transport.species().speciesID(courantSpeciesName_);
         const volScalarField& n = transport.species().numberDensity(sIdx);
-        const surfaceScalarField& flux = transport.particleFlux(sIdx);
+        const scalarField& nField = n.primitiveField();
+        const scalarField& V = mesh_.V().field();
 
-        scalarField sumPhi
+        // Convective
+        const surfaceScalarField& convFlux = transport.convectiveFlux(sIdx);
+        const scalarField sumConv
         (
-            fvc::surfaceSum(mag(flux))().primitiveField()
+            fvc::surfaceSum(mag(convFlux))().primitiveField()
         );
-
-        scalarField fluxRate
+        const scalarField convRate
         (
-            0.5 * sumPhi 
-          / (n.primitiveField() * mesh_.V().field() + VSMALL)
+            0.5 * sumConv / (nField * V + VSMALL)
         );
+        maxConvFluxRate = gMax(convRate);
+        if (limitSpeciesCo_)
+        {
+            newDeltaT = min
+            (
+                newDeltaT,
+                maxSpeciesConvectiveCo_ / (maxConvFluxRate + VSMALL)
+            );
+        }
 
-        maxFluxRate = gMax(fluxRate);
-        meanFluxRate = (gSum(sumPhi)*0.5) / (gSum(n.primitiveField()*mesh_.V().field()) + VSMALL);
-
-        scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
+        // Diffusive
+        const surfaceScalarField& diffFlux = transport.diffusiveFlux(sIdx);
+        const scalarField sumDiff
+        (
+            fvc::surfaceSum(mag(diffFlux))().primitiveField()
+        );
+        const scalarField diffRate
+        (
+            0.5 * sumDiff / (nField * V + VSMALL)
+        );
+        maxDiffFluxRate = gMax(diffRate);
 
         if (limitSpeciesCo_)
         {
-            newDeltaT = min(newDeltaT, courantLimit);
+            newDeltaT = min
+            (
+                newDeltaT,
+                maxSpeciesDiffusiveCo_ / (maxDiffFluxRate + VSMALL)
+            );
         }
     }
 
-    // 3. Chemistry Limit
+    // Chemistry Limit
     if (limitChemistryCo_ || printChemistryCo_)
     {
-        const volScalarField& keff = transport.k_eff();
-        maxKeff = gMax(mag(keff)().primitiveField());
+        // const volScalarField& keff = transport.k_eff();
+        // maxKeff = gMax(mag(keff)().primitiveField());
         
-        scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
+        // scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
 
-        if (limitChemistryCo_)
-        {
-            newDeltaT = min(newDeltaT, chemistryLimit);
-        }
+        // if (limitChemistryCo_)
+        // {
+        //     newDeltaT = min
+        //     (
+        //         newDeltaT,
+        //         maxChemistryCo_ / (maxKeff + VSMALL)
+        //     );
+        // }
     }
 
-    // 4. Reduction and set
+    // Voltage rise rate
+if (limitVoltageRiseRate_ || printVoltageRiseRate_)
+{
+    const scalar currentVoltage = patchVoltageAvg(transport);
+    const scalar dV = mag(currentVoltage - prevPatchVoltage_);
+    voltageRiseRate = dV / (currentDeltaT + VSMALL);
+
+    Info<< "  [voltage debug]" << nl
+        << "    prevVoltage       = " << prevPatchVoltage_ << " V" << nl
+        << "    currentVoltage    = " << currentVoltage    << " V" << nl
+        << "    dV                = " << dV                << " V" << nl
+        << "    currentDeltaT     = " << currentDeltaT     << " s" << nl
+        << "    voltageRiseRate   = " << voltageRiseRate   << " V/s" << nl
+        << "    maxVoltageRiseRate= " << maxVoltageRiseRate_<< " V/s" << nl;
+
+    if (limitVoltageRiseRate_)
+    {
+        const scalar dtLimit =
+            maxVoltageRiseRate_ / (voltageRiseRate + VSMALL) * currentDeltaT;
+
+        Info<< "    dtLimit           = " << dtLimit << " s" << nl;
+
+        newDeltaT = min(newDeltaT, dtLimit);
+    }
+
+    Info<< "    newDeltaT         = " << newDeltaT << " s" << nl;
+
+    prevPatchVoltage_ = currentVoltage;
+}
+
+    // Apply and clamp
     if (adjustTimeStep_)
     {
         reduce(newDeltaT, minOp<scalar>());
@@ -191,28 +303,112 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     }
 
     // Report
-    scalar actualDeltaT = runTime_.deltaTValue();
+    const scalar actualDeltaT = runTime_.deltaTValue();
 
-    Info << "Time step monitoring:" << endl;
-    Info << "  current deltaT   = " << actualDeltaT << endl;
+    word   bindingName  = "maxDeltaT";
+
+    auto fmtLine = [](
+        const std::string& label,
+        scalar value,
+        bool   limited,
+        scalar limitVal,
+        bool   isBinding,
+        int    lw = 26) -> std::string
+    {
+        std::string line = "  " + label + ":";
+        while (static_cast<int>(line.size()) < lw) line += ' ';
+        line += Foam::name(value).c_str();
+
+        if (limited)
+        {
+            while (static_cast<int>(line.size()) < lw + 14) line += ' ';
+            line += "[ max: " + std::string(Foam::name(limitVal).c_str()) + " ]";
+        }
+
+        if (isBinding) line += "  <--";
+        return line;
+    };
+
+    Info<< "  Time step control" << nl
+        << "  " << std::string(52, '-').c_str() << nl
+        << "  current deltaT:           " << actualDeltaT << nl;
 
     if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
-        scalar currentRatio = (actualDeltaT * maxSigma) / eps0;
-        Info << "  deltaT/RelaxTime = " << currentRatio << endl;
+        const scalar val = (actualDeltaT * maxSigma) / eps0;
+        const bool binding =
+            limitDielectricRelaxationRatio_
+        && (actualDeltaT * maxSigma) / eps0 >= maxDielectricRelaxationRatio_ * 0.99;
+
+        Info<< "  " << fmtLine
+            (
+                "Diel. relax. ratio",
+                val,
+                limitDielectricRelaxationRatio_,
+                maxDielectricRelaxationRatio_,
+                binding
+            ).c_str() << nl;
     }
 
     if (limitSpeciesCo_ || printSpeciesCo_)
     {
-        scalar currentCo = maxFluxRate * actualDeltaT;
-        Info << "  Max Courant ("<< speciesName_ <<") = " << currentCo << endl;
+        const scalar convVal = maxConvFluxRate * actualDeltaT;
+        const scalar diffVal = maxDiffFluxRate * actualDeltaT;
+        const bool convBinding =
+            limitSpeciesCo_ && convVal >= maxSpeciesConvectiveCo_ * 0.99;
+        const bool diffBinding =
+            limitSpeciesCo_ && diffVal >= maxSpeciesDiffusiveCo_ * 0.99;
+
+        Info<< "  " << fmtLine
+            (
+                "Co_conv (" + courantSpeciesName_ + ")",
+                convVal,
+                limitSpeciesCo_,
+                maxSpeciesConvectiveCo_,
+                convBinding
+            ).c_str() << nl
+            << "  " << fmtLine
+            (
+                "Co_diff (" + courantSpeciesName_ + ")",
+                diffVal,
+                limitSpeciesCo_,
+                maxSpeciesDiffusiveCo_,
+                diffBinding
+            ).c_str() << nl;
     }
 
     if (limitChemistryCo_ || printChemistryCo_)
     {
-        scalar currentChemCo = maxKeff * actualDeltaT;
-        Info << "  Max Chem Courant = " << currentChemCo << endl;
+        const scalar val = maxKeff * actualDeltaT;
+        const bool binding = limitChemistryCo_ && val >= maxChemistryCo_ * 0.99;
+
+        Info<< "  " << fmtLine
+            (
+                "Co_chem",
+                val,
+                limitChemistryCo_,
+                maxChemistryCo_,
+                binding
+            ).c_str() << nl;
     }
+
+    if (limitVoltageRiseRate_ || printVoltageRiseRate_)
+    {
+        const bool binding =
+            limitVoltageRiseRate_
+        && voltageRiseRate >= maxVoltageRiseRate_ * 0.99;
+
+        Info<< "  " << fmtLine
+            (
+                "voltage rise [V/s]",
+                voltageRiseRate,
+                limitVoltageRiseRate_,
+                maxVoltageRiseRate_,
+                binding
+            ).c_str() << nl;
+    }
+
+    Info<< "  " << std::string(52, '-').c_str() << nl << endl;
 }
 
 void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
@@ -228,49 +424,74 @@ void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
     {
         tmp<volScalarField> tSigma = transport.electricalConductivity();
         const volScalarField& sigma = tSigma();
-
-        scalar maxSigma = gMax(mag(sigma)().primitiveField());
-        scalar dielectricLimit = 
-            (maxDielectricRelaxationRatio_ * eps0) / (maxSigma + VSMALL);
-
-        newDeltaT = min(newDeltaT, dielectricLimit);
+        const scalar maxSigma = gMax(mag(sigma)().primitiveField());
+        newDeltaT = min
+        (
+            newDeltaT,
+            (maxDielectricRelaxationRatio_ * eps0) / (maxSigma + VSMALL)
+        );
         tSigma.clear();
     }
 
-    // Species Courant Limit
+    // Species Courant Limit (convective and diffusive)
     if (limitSpeciesCo_)
     {
-        label sIdx = transport.species().speciesID(speciesName_);
+        const label sIdx = transport.species().speciesID(courantSpeciesName_);
         const volScalarField& n = transport.species().numberDensity(sIdx);
-        const surfaceScalarField& flux = transport.particleFlux(sIdx);
+        const scalarField& nField = n.primitiveField();
+        const scalarField& V = mesh_.V().field();
 
-        scalarField sumPhi
-        (
-            fvc::surfaceSum(mag(flux))().primitiveField()
-        );
-        
-        scalarField fluxRate
-        (
-            0.5 * sumPhi 
-          / (n.primitiveField() * mesh_.V().field() + VSMALL)
-        );
+        // Convective
+        {
+            const surfaceScalarField& convFlux =
+                transport.convectiveFlux(sIdx);
+            const scalarField sumConv
+            (
+                fvc::surfaceSum(mag(convFlux))().primitiveField()
+            );
+            const scalar maxRate =
+                gMax(0.5 * sumConv / (nField * V + VSMALL));
+            newDeltaT = min
+            (
+                newDeltaT,
+                maxSpeciesConvectiveCo_ / (maxRate + VSMALL)
+            );
+        }
 
-        scalar maxFluxRate = gMax(fluxRate);
-
-        scalar courantLimit = maxSpeciesCo_ / (maxFluxRate + VSMALL);
-
-        newDeltaT = min(newDeltaT, courantLimit);
+        // Diffusive
+        {
+            const surfaceScalarField& diffFlux =
+                transport.diffusiveFlux(sIdx);
+            const scalarField sumDiff
+            (
+                fvc::surfaceSum(mag(diffFlux))().primitiveField()
+            );
+            const scalar maxRate =
+                gMax(0.5 * sumDiff / (nField * V + VSMALL));
+            newDeltaT = min
+            (
+                newDeltaT,
+                maxSpeciesDiffusiveCo_ / (maxRate + VSMALL)
+            );
+        }
     }
 
     // Chemistry Courant Limit
     if (limitChemistryCo_)
     {
-        const volScalarField& keff = transport.k_eff();
-        
-        scalar maxKeff = gMax(mag(keff)().primitiveField());
-        scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
+        // const volScalarField& keff = transport.k_eff();
+        // const scalar maxKeff = gMax(mag(keff)().primitiveField());
+        // newDeltaT = min
+        // (
+        //     newDeltaT,
+        //     maxChemistryCo_ / (maxKeff + VSMALL)
+        // );
+    }
 
-        newDeltaT = min(newDeltaT, chemistryLimit);
+    // Voltage rise rate
+    if (limitVoltageRiseRate_ || printVoltageRiseRate_)
+    {
+        prevPatchVoltage_ = patchVoltageAvg(transport);
     }
 
     // Reduction and setting

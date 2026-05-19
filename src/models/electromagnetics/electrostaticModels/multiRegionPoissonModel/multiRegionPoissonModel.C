@@ -86,7 +86,7 @@ void multiRegionPoissonModel::updateDerivedFields()
 
 void multiRegionPoissonModel::solveCoupled()
 {
-    Info<< "Solving for ePotential in non-coupled regions "
+    Info<< "Solving for ePotential in coupled regions "
         << "(monolithically)" << endl;
 
     ePotential_.correctBoundaryConditions();
@@ -124,7 +124,7 @@ void multiRegionPoissonModel::solveCoupled
     const volScalarField& diffusiveChargeSource
 )
 {
-    Info<< "Solving for ePotential in non-coupled regions "
+    Info<< "Solving for ePotential in coupled regions "
         << "(monolithically)" << endl;
 
     ePotential_.correctBoundaryConditions();
@@ -509,12 +509,17 @@ multiRegionPoissonModel::multiRegionPoissonModel
 
         Info<< "Regions are COUPLED; "
             << "ePotential will be solved MONOLITHICALLY." << nl
-            << "Assembling ePotential fvMatrixAssembly" << endl;
+            << "Assembling ePotential fvMatrixAssembly" << nl << endl;
 
-        fvMatrixAssemblyPtr_.reset
+    fvMatrixAssemblyPtr_.reset
+    (
+        new fvMatrix<scalar>
         (
-            new fvMatrix<scalar>(ePotential_, ePotential_.dimensions())
-        );
+            ePotential_,
+            dimensionSet(0, 0, 1, 0, 0, 1, 0)
+        )
+    );
+    
     }
     else
     {
@@ -522,48 +527,6 @@ multiRegionPoissonModel::multiRegionPoissonModel
         Info<< "Regions are NOT coupled; ePotential will be solved in "
             << "SEGREGATED way" << nl << endl;
     }
-
-
-
-    // --- DEBUG REGISTRY INSPECTION ---
-Info<< nl << "/*-----------------------------------------------------------*\\" << endl;
-Info<< "  DEBUG: multiRegionPoissonModel Registry Final Check" << endl;
-
-// 1. Check the Primary Gas Mesh Registry
-Info<< "  Gas Mesh (" << mesh_.name() << ") Registry:" << nl
-    << "  " << mesh_.thisDb().sortedToc() << nl << endl;
-
-// Explicitly check for the dictionary our model represents
-if (mesh_.thisDb().foundObject<IOdictionary>("electromagneticsProperties"))
-{
-    const IOdictionary& d = mesh_.thisDb().lookupObject<IOdictionary>("electromagneticsProperties");
-    Info<< "  FOUND: 'electromagneticsProperties' in gas mesh." << nl
-        << "  Address: " << &d << " | Class: " << d.type() << endl;
-}
-else
-{
-    Info<< "  CRITICAL: 'electromagneticsProperties' NOT FOUND in gas mesh registry!" << endl;
-}
-
-// 2. Check each Dielectric Mesh Registry
-forAll(dielectrics_, i)
-{
-    const fvMesh& dMesh = dielectrics_[i].mesh();
-    Info<< nl << "  Dielectric Mesh (" << dMesh.name() << ") Registry:" << nl
-        << "  " << dMesh.thisDb().sortedToc() << endl;
-
-    if (dMesh.thisDb().foundObject<IOdictionary>("electricProperties"))
-    {
-        Info<< "  FOUND: 'electricProperties' in " << dMesh.name() << endl;
-    }
-    else
-    {
-        Info<< "  WARNING: 'electricProperties' NOT FOUND in " << dMesh.name() << endl;
-    }
-}
-
-Info<< "\\*-----------------------------------------------------------*/" << nl << endl;
-// --- END DEBUG REGISTRY INSPECTION ---
 }
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //

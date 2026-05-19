@@ -16,6 +16,9 @@ sed -i '/physicalType[[:space:]]*patch;/d' constant/polyMesh/boundary
 
 sed -i '/^[[:space:]]*\(front\|back\)[[:space:]]*$/,/}/ s/^\([[:space:]]*type\)[[:space:]]*.*/\1\t\tempty;/' constant/polyMesh/boundary
 
+cp system/fvSolution-foam system/fvSolution
+# cp system/fvSolution-petsc system/fvSolution
+
 for domain in $(foamListRegions); do
     # Create folder if it doesn't exist
     mkdir -p system/$domain

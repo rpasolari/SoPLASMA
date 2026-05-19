@@ -38,19 +38,12 @@ void driftDiffusion::constructModels()
     {
         FatalIOErrorInFunction(dict_)
             << "Species '" << sName
-            << "': missing 'mobility' sub-dictionary." << nl
+            << "': missing 'mobility' sub-dictionary in '"
+            << dict_.name() << "'." << nl
             << exit(FatalIOError);
     }
 
     const dictionary& mobilityDict = dict_.subDict("mobility");
-
-    if (!mobilityDict.found("type"))
-    {
-        FatalIOErrorInFunction(mobilityDict)
-            << "Species '" << sName
-            << "': 'mobility' requires entry 'type'." << nl
-            << exit(FatalIOError);
-    }
 
     mobilityModel_ = plasmaMobilityModel::New
     (
@@ -65,19 +58,12 @@ void driftDiffusion::constructModels()
     {
         FatalIOErrorInFunction(dict_)
             << "Species '" << sName
-            << "': missing 'diffusivity' sub-dictionary." << nl
+            << "': missing 'diffusivity' sub-dictionary in '"
+            << dict_.name() << "'." << nl
             << exit(FatalIOError);
     }
 
     const dictionary& diffusivityDict = dict_.subDict("diffusivity");
-
-    if (!diffusivityDict.found("type"))
-    {
-        FatalIOErrorInFunction(diffusivityDict)
-            << "Species '" << sName
-            << "': 'diffusivity' requires entry 'type'." << nl
-            << exit(FatalIOError);
-    }
 
     diffusivityModel_ = plasmaDiffusivityModel::New
     (

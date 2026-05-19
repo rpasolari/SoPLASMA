@@ -1,6 +1,6 @@
 # plate2D_timeVaryingBC_explicitBoundary
 
-**Solver:** `electroPotentialMultiRegionFoam`  
+**Solver:** `multiRegionElectrostaticFoam`  
 **Case:** 2D two-region plate with time-varying Dirichlet boundary and explicit interface coupling 
 **Author:** Rention Pasolari  
 **Toolkit:** SoPLASMA  
@@ -14,14 +14,14 @@
 
 ## Description
 
-This tutorial solves the electrostatic Poisson equation in the **left fluid region** and
+This tutorial solves the electrostatic Poisson equation in the **left gas region** and
 the Laplace equation in the **right dielectric region** of a 2D plate. The two regions
 are coupled **explicitly**: each region solves its own equation independently, and the
 interface potential is passed staggeredly from one region to the other. An internal
 sub-iteration loop is performed at every time step to ensure that both regions reach a
 consistent interface potential before proceeding.
 
-A linearly rising voltage (ramp) is applied on the left boundary of the fluid region,
+A linearly rising voltage (ramp) is applied on the left boundary of the gas region,
 while the right boundary of the dielectric region is grounded. All other boundaries use
 `zeroGradient`.
 
@@ -33,11 +33,11 @@ simulation of the system response under a continuously increasing applied voltag
 ## Problem Setup
 
 - **Geometry:** 2D two-region plate  
-  - Left: fluid region (solves Poisson equation)
+  - Left: gas region (solves Poisson equation)
   - Right: dielectric region (solves Laplace equation)
 
 - **Materials:**
-  - Fluid region: εᵣ defined in `constant/leftFluid`
+  - Gas region: εᵣ defined in `constant/leftGas`
   - Dielectric region: εᵣ defined in `constant/rightDielectric`
 
 - **Coupling:**
@@ -47,11 +47,11 @@ simulation of the system response under a continuously increasing applied voltag
     (controlled via `system/<region>/fvSolution` files)
 
 - **Boundary Conditions:**
-  - Left boundary of fluid region: linearly rising Dirichlet voltage (ramp)
+  - Left boundary of gas region: linearly rising Dirichlet voltage (ramp)
   - Right boundary of dielectric region: fixedValue 0 V (ground)
   - All other boundaries: `zeroGradient`
 
-- **Charge density:** zero (no space charge in fluid region)
+- **Charge density:** zero (no space charge in gas region)
 
 - **Surface charge:** zero (no surface charge at the interface)
 
@@ -72,3 +72,20 @@ This case can be executed:
 ```bash
 ./Allrun-prallel
 ```
+
+---
+
+### Solver Options
+
+The case can run using:
+
+- OpenFOAM linear solvers (default)
+- PETSc linear solvers (if PETSc support is compiled)
+
+If PETSc is installed and you want to use it:
+
+1. Use the PETSc fvSolution file (can be set in `Allrun-*` scripts)  
+   `cp system/fvSolution-petsc system/fvSolution`
+
+2. Make sure `controlDict` includes the PETSc library:  
+   `libs ("libpetscFoam.so");`

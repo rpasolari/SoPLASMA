@@ -1,3 +1,0 @@
-electroPotentialMultiRegionFoam.C
-
-EXE = $(FOAM_USER_APPBIN)/electroPotentialMultiRegionFoam

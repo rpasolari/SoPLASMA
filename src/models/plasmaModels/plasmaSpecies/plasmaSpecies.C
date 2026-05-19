@@ -50,6 +50,7 @@ plasmaSpecies::plasmaSpecies
     speciesCharges_(),
     speciesChargeNumbers_(),
     numberDensities_(),
+    speciesMinNumberDensities_(),
     speciesDicts_(),
     defaultSpeciesDict_(),
     backgroundName_("none"),
@@ -132,6 +133,7 @@ plasmaSpecies::plasmaSpecies
     speciesCharges_.setSize(nSpecies_);
     speciesMasses_.setSize(nSpecies_);
     numberDensities_.setSize(nSpecies_);
+    speciesMinNumberDensities_.setSize(nSpecies_);
     speciesDicts_.resize(nSpecies_);
 
     // Read species properties dictionary
@@ -226,6 +228,9 @@ plasmaSpecies::plasmaSpecies
             )
         );
 
+        speciesMinNumberDensities_[i] = 
+                       mergedDict.getOrDefault<scalar>("minNumberDensity", 0.0);
+
         // Groups
         scalar Z = speciesChargeNumbers_[i];
         if (Z == -1 && massValue < 1e-29)
@@ -251,15 +256,9 @@ plasmaSpecies::plasmaSpecies
         }
             
         // Mobile vs immobile species
-        if (!mergedDict.found("transportModel"))
-        {
-            FatalIOErrorInFunction(*this)
-                << "Species '" << sName << "' is missing required entry "
-                << "'transportModel' in " << objectPath() << nl
-                << exit(FatalIOError);
-        }
-        word transport;
-        mergedDict.lookup("transportModel") >> transport;
+        const word transport =
+            mergedDict.getOrDefault<word>("transportModel", "immobile");
+
         if (transport == "immobile")
         {
             immobileSpeciesIDs_.append(i);
@@ -270,15 +269,8 @@ plasmaSpecies::plasmaSpecies
         }
 
         // Energy groups
-        if (!mergedDict.found("energyModel"))
-        {
-            FatalIOErrorInFunction(*this)
-                << "Species '" << sName << "' is missing required entry "
-                << "'energyModel' in " << objectPath() << nl
-                << exit(FatalIOError);
-        }
-        word energy;
-        mergedDict.lookup("energyModel") >> energy;
+        const word energy =
+            mergedDict.getOrDefault<word>("energyModel", "isothermal");
 
         // Constant vs Dynamic Temperature
         if (energy == "isothermal")
@@ -338,6 +330,29 @@ void Foam::plasmaSpecies::updateChargeDensity()
 //         chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
 //     }
 // }
+
+void plasmaSpecies::clampNumberDensities()
+{
+    forAll(numberDensities_, i)
+    {
+        clampNumberDensity(i);
+    }
+}
+
+void plasmaSpecies::clampNumberDensity(const label i)
+{
+    if (speciesMinNumberDensities_[i] > 0.0)
+    {
+        volScalarField& n = numberDensities_[i];
+        const dimensionedScalar nMin
+        (
+            "nMin",
+            n.dimensions(),
+            speciesMinNumberDensities_[i]
+        );
+        n = Foam::max(n, nMin);
+    }
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

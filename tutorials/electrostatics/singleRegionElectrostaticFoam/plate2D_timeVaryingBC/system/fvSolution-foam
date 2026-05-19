@@ -26,9 +26,4 @@ solvers
     }
 }
 
-ePotentialControls
-{
-    nNonOrthogonalCorrectors    0;
-}
-
 // ************************************************************************* //

@@ -1,10 +1,9 @@
 # plate2D_timeVaryingBC
 
-**Solver:** `electroPotentialFoam`  
+**Solver:** `singleRegionElectrostaticFoam`  
 **Case:** 2D plate with time-varying Dirichlet boundary condition  
 **Author:** Rention Pasolari  
 **Toolkit:** SoPLASMA  
-**Solver:** singleRegionElectrostaticFoam
 **License:** GPLv3  
 **Date:** November 2025 
 
@@ -57,7 +56,7 @@ The case can run using:
 
 If PETSc is installed and you want to use it:
 
-1. Use the PETSc fvSolution file:  
+1. Use the PETSc fvSolution file (can be set in `Allrun-*` scripts)  
    `cp system/fvSolution-petsc system/fvSolution`
 
 2. Make sure `controlDict` includes the PETSc library:  

@@ -52,7 +52,7 @@ ePotential
             type            processor;
         }
 
-        leftFluid_to_rightDielectric
+        leftGas_to_rightDielectric
         {
             type            coupledElectricPotential;
             value           $internalField;
@@ -63,7 +63,7 @@ ePotential
     }
 }
 
-eCharge
+chargeDensity
 {
     internalField   uniform 0;
 
@@ -119,7 +119,7 @@ surfCharge
             value           uniform 0;
         }
 
-        leftFluid_to_rightDielectric
+        leftGas_to_rightDielectric
         {
             type            fixedValue;
             value           uniform $surfCharge;

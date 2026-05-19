@@ -47,15 +47,10 @@ void plasmaTransport::constructTransportModels()
         const word modelName(sDict.get<word>("transportModel"));
         const word coeffsName(modelName + "Coeffs");
 
-        if (!sDict.found(coeffsName))
-        {
-            FatalIOErrorInFunction(sDict)
-                << "Species '" << sName << "': missing coefficients dictionary '"
-                << coeffsName << "' for transport model '" << modelName
-                << "'." << nl << exit(FatalIOError);
-        }
-
-        const dictionary& modelDict = sDict.subDict(coeffsName);
+        const dictionary emptyDict;
+        const dictionary& modelDict = sDict.found(coeffsName) 
+                                    ? sDict.subDict(coeffsName)
+                                    : emptyDict;
 
         // Construct the model using the RTS
         transportModels_.set
@@ -64,7 +59,7 @@ void plasmaTransport::constructTransportModels()
             plasmaTransportModel::New
             (
                 modelName,
-                sDict.subDict(coeffsName),
+                modelDict,
                 mesh_,
                 species_,
                 i

@@ -115,6 +115,18 @@ Foam::plasmaSpecies::numberDensity(Foam::label i)
     return numberDensities_[i];
 }
 
+inline const Foam::List<Foam::scalar>&
+Foam::plasmaSpecies::speciesMinNumberDensities() const
+{
+    return speciesMinNumberDensities_;
+}
+
+inline Foam::scalar
+Foam::plasmaSpecies::speciesMinNumberDensity(Foam::label i) const
+{
+    return speciesMinNumberDensities_[i];
+}
+
 //- Dictionary Access
 inline const Foam::dictionary&
 Foam::plasmaSpecies::speciesDict(Foam::label i) const

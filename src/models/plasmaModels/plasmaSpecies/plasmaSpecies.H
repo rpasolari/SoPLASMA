@@ -113,6 +113,9 @@ protected:
             //- Number density per active species [1/m3]
             PtrList<volScalarField> numberDensities_;
 
+            //- Minimum number density clamp per active species [1/m3]
+            List<scalar> speciesMinNumberDensities_;
+
             //- Property dictionaries per active species
             HashTable<dictionary> speciesDicts_;
 
@@ -215,6 +218,12 @@ public:
         //     const PtrList<surfaceScalarField>& wallFluxes
         // );
 
+        //- Clamp all number density fields to their minimum values
+        void clampNumberDensities();
+
+        //- Clamp a single species number density field
+        void clampNumberDensity(label i);
+
     // Access
 
         //- Metadata access
@@ -239,6 +248,8 @@ public:
         inline const PtrList<volScalarField>& numberDensities() const;
         inline PtrList<volScalarField>& numberDensities();
         inline const volScalarField& numberDensity(label i) const;
+        inline const List<scalar>& speciesMinNumberDensities() const;
+        inline scalar speciesMinNumberDensity(label i) const;
         inline volScalarField& numberDensity(label i);
         inline const volScalarField& chargeDensity() const;
         inline const volScalarField& surfCharge() const;

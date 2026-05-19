@@ -20,7 +20,7 @@ singleRegionPoissonCoeffs
 {
     dielectricConstant      1.0;             // Dimensionless
 
-    EScheme                 reconstruct;     // Options: reconstruct | faceValue
+    EScheme                 reconstruct;     // Options: reconstruct | grad
 
     PoissonScheme           explicit;        // Here, the only option
 

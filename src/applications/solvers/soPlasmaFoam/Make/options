@@ -1,0 +1,35 @@
+EXE_INC = \
+    -I./gas \
+    -I./dielectric \
+    -I./include \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/lnInclude \
+    -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
+    -I$(LIB_SRC)/OpenFOAM/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/constants/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/electromagnetics/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/bcs/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/genericPlasmaProperties/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/numerics/lnInclude \
+
+EXE_LIBS = \
+    -L$(FOAM_USER_LIBBIN) \
+    -lfiniteVolume \
+    -lfvOptions \
+    -lmeshTools \
+    -ldynamicMesh \
+    -ldynamicFvMesh \
+    -lOpenFOAM \
+    -lSoPLASMAConstants \
+    -lplasmaElectromagnetics \
+    -lplasmaBcs \
+    -lplasmaSpecies \
+    -lplasmaTransport \
+    -lplasmaProperties \
+    -lplasmaNumerics
+
+
+

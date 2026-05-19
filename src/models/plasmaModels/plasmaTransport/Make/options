@@ -16,7 +16,7 @@ EXE_LIBS = \
     -lSoPLASMAConstants \
     -lplasmaElectromagnetics \
     -lplasmaSpecies \
-    -lplasmaPropertyEvaluator \
+    -lplasmaProperties \
     -lplasmaNumerics \
     -lplasmaProfiler
     

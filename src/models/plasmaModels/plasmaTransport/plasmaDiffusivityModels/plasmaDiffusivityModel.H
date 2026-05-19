@@ -203,6 +203,9 @@ public:
 
         //- True if field never changes in time
         bool isConstant() const { return isConstant_; }
+
+        //- Return model type
+        const word& modelType() const { return modelType_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

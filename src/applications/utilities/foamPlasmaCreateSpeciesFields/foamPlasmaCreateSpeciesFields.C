@@ -157,30 +157,30 @@ int main(int argc, char* argv[])
         // Multi-region path
         fileName regionDir = globalConstantDir/gasRegionName;
 
-        if (isFile(regionDir/"plasmaSpecies"))
+        if (isFile(regionDir/"plasmaSpeciesProperties"))
         {
-            plasmaSpeciesPath = regionDir/"plasmaSpecies";
+            plasmaSpeciesPath = regionDir/"plasmaSpeciesProperties";
         }
         else
         {
             FatalErrorInFunction
                 << "Region '" << gasRegionName << "' exists but has no "
-                << "plasmaSpecies file:" << nl
-                << "  " << regionDir/"plasmaSpecies" << nl
+                << "plasmaSpeciesProperties file:" << nl
+                << "  " << regionDir/"plasmaSpeciesProperties" << nl
                 << exit(FatalError);
         }
     }
     else
     {
         // Single-region path
-        if (isFile(runTime.constant()/"plasmaSpecies"))
+        if (isFile(runTime.constant()/"plasmaSpeciesProperties"))
         {
-            plasmaSpeciesPath = runTime.constant()/"plasmaSpecies";
+            plasmaSpeciesPath = runTime.constant()/"plasmaSpeciesProperties";
         }
         else
         {
             FatalErrorInFunction
-                << "No 'constant/plasmaSpecies' file found." << nl 
+                << "No 'constant/plasmaSpeciesProperties' file found." << nl 
                 << exit(FatalError);
         }
     }
@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
     (
         IOobject
         (
-            "plasmaSpecies",
+            "plasmaSpeciesProperties",
             plasmaSpeciesPath.path(),
             runTime,
             IOobject::MUST_READ,

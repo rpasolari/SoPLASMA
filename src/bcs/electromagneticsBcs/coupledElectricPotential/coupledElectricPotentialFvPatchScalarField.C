@@ -4,9 +4,7 @@
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::coupledElectricPotentialFvPatchScalarField,
-    a boundary condition for coupling the electric potential field
-    across neighbouring regions in plasma or electrostatic simulations.
+    Implementation of Foam::coupledElectricPotentialFvPatchScalarField.
 
   Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
@@ -318,18 +316,22 @@ coupledElectricPotentialFvPatchScalarField::epsilon
 ) const
 {
     scalar epsilonR = 1.0;
-
-    if (db().foundObject<electromagneticsModel>("electromagneticsProperties"))
+    
+    if (db().foundObject<IOdictionary>("dielectricProperties"))
     {
-        epsilonR = db().lookupObject<electromagneticsModel>
+        epsilonR = db().lookupObject<IOdictionary>("dielectricProperties")
+            .getOrDefault<scalar>("dielectricConstant", 1.0);
+    }
+    else if (db().time().foundObject<electromagneticsModel>
+    (
+        "electromagneticsProperties"
+    )
+    )
+    {
+        epsilonR = db().time().lookupObject<electromagneticsModel>
         (
             "electromagneticsProperties"
         ).epsilonR();
-    }
-    else if (db().foundObject<IOdictionary>("electricProperties"))
-    {
-        epsilonR = db().lookupObject<IOdictionary>("electricProperties")
-            .getOrDefault<scalar>("dielectricConstant", 1.0);
     }
     else
     {
@@ -338,7 +340,7 @@ coupledElectricPotentialFvPatchScalarField::epsilon
             << db().name() << "'." << nl
             << "Expected either an electromagneticsModel registered as "
             << "'electromagneticsProperties' (gas region) or an "
-            << "'electricProperties' dictionary (dielectric region)." << nl
+            << "'dielectricProperties' dictionary (dielectric region)." << nl
             << exit(FatalError);
     }
 
@@ -352,13 +354,13 @@ coupledElectricPotentialFvPatchScalarField::epsilon
     );
 }
 
-
 void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
         return;
     }
+
     const polyMesh& mesh = patch().boundaryMesh().mesh();
 
     const int oldTag = UPstream::incrMsgType();
@@ -462,7 +464,7 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     
     valueFraction() = epsilonDeltaNbr/(epsilonDeltaNbr + epsilonDelta);
     refValue() = phiCNbr;
-    refGrad() = -(surfCharge + surfChargeNbr)/epsilonPhiP;
+    refGrad() = (surfCharge + surfChargeNbr)/epsilonPhiP;
     source()  = Zero;
 
     if (this->useImplicit())

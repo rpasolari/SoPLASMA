@@ -5,7 +5,7 @@ License
     The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025
+    Copyright (C) 2026
         Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
@@ -31,9 +31,9 @@ Description
     'setDeltaT.H' functionality. It calculates the maximum permissible time
     step based on plasma-specific stability criteria.
 
-    The class reads the 'plasmaTimeControl' dictionary (typically found within
-    system/controlDict) to determine which criteria to apply and their 
-    limiting coefficients. It ultimately sets runTime.deltaT().
+    The class reads the 'plasmaTimeControl' dictionary (found within
+    system/plasmaSimulationControl) to determine which criteria to apply and
+    their limiting coefficients. It ultimately sets runTime.deltaT().
 
     If 'adjustTimeStep' is false, this class performs no action.
 
@@ -100,11 +100,14 @@ private:
             //- Switch to print Species Courant limiting
             Switch printSpeciesCo_;
 
-            //- Maximum allowed Courant number for the species
-            scalar maxSpeciesCo_;
+            //- Maximum allowed convective Courant for the tracked species
+            scalar maxSpeciesConvectiveCo_;
 
-            //- Name of the species to track (default: "e")
-            word speciesName_;
+            //- Maximum allowed diffusive Courant for the tracked species
+            scalar maxSpeciesDiffusiveCo_;
+
+            //- Name of the species to track for Courant limiting (default: "e")
+            word courantSpeciesName_;
 
             //- Switch to limit by Chemistry (Source term)
             Switch limitChemistryCo_;
@@ -115,10 +118,28 @@ private:
             //- Maximum allowed relative change due to chemistry
             scalar maxChemistryCo_;
 
+            //- Switch to limit voltage rise rate
+            Switch limitVoltageRiseRate_;
+
+            //- Switch to print voltage rise rate info
+            Switch printVoltageRiseRate_;
+
+            //- Maximum allowed voltage rise rate [V/s]
+            scalar maxVoltageRiseRate_;
+
+            //- Name of the patch where voltage is applied
+            word voltagePatchName_;
+
+            //- Previous timestep voltage on the applied patch [V]
+            scalar prevPatchVoltage_;
+
         // Private Member Functions
 
             //- Read controls from dictionary
             void read();
+
+            //- Compute average voltage on the applied patch
+            scalar patchVoltageAvg(const plasmaTransport& transport) const;
 
 public:
 
@@ -165,16 +186,22 @@ public:
             return limitSpeciesCo_;
         }
 
-        //- Get the max allowed species Courant number
-        inline scalar maxSpeciesCo() const
+        //- Get the max allowed convective species Courant number
+        inline scalar maxSpeciesConvectiveCo() const
         {
-            return maxSpeciesCo_;
+            return maxSpeciesConvectiveCo_;
+        }
+
+        //- Get the max allowed diffusive species Courant number
+        inline scalar maxSpeciesDiffusiveCo() const
+        {
+            return maxSpeciesDiffusiveCo_;
         }
 
         //- Get the species name used for Courant number limiting
-        inline const word& speciesName() const
+        inline const word& courantSpeciesName() const
         {
-            return speciesName_;
+            return courantSpeciesName_;
         }
 
         //- Is chemistry limiting enabled?
@@ -187,6 +214,24 @@ public:
         inline scalar maxChemistryCo() const
         {
             return maxChemistryCo_;
+        }
+
+        //- Is voltage rise rate limiting enabled?
+        inline bool limitVoltageRiseRate() const
+        {
+            return limitVoltageRiseRate_;
+        }
+
+        //- Get the maximum allowed voltage rise rate [V/s]
+        inline scalar maxVoltageRiseRate() const
+        {
+            return maxVoltageRiseRate_;
+        }
+
+        //- Get the name of the patch where voltage is applied
+        inline const word& voltagePatchName() const
+        {
+            return voltagePatchName_;
         }
 };
 

@@ -185,7 +185,7 @@ public:
             (
                 IOobject
                 (
-                    "electricProperties",
+                    "dielectricProperties",
                     regionMesh_.time().constant(),
                     regionMesh_,
                     IOobject::NO_READ,

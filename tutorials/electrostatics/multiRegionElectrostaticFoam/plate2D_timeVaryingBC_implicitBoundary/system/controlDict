@@ -15,6 +15,11 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 #include "../configuration/config"
 
+libs
+(
+    // "libpetscFoam.so"  // Uncomment this line if you want to use PETSc
+);
+
 application     multiRegionElectrostaticFoam;
 
 startFrom       startTime;

@@ -46,7 +46,7 @@ ePotential
             type            processor;
         }
 
-        rightDielectric_to_leftFluid
+        rightDielectric_to_leftGas
         {
             type            coupledElectricPotential;
             value           $internalField;

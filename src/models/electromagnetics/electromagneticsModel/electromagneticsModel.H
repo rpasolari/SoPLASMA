@@ -195,6 +195,10 @@ public:
         const dimensionedScalar& epsilon() const { return epsilon_; }
         scalar epsilonR() const { return epsilonR_; }
 
+        virtual const word& PoissonScheme() const = 0;
+        virtual label nNonOrthCorr() const = 0;
+        virtual const word& EScheme() const = 0;
+
 
     // Mesh and dictionary access
 

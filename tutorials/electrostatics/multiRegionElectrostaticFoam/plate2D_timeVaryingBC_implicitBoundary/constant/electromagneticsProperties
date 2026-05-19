@@ -21,7 +21,7 @@ multiRegionPoissonCoeffs
 {
     dielectricConstant      $epsilonRleftGas;// Dimensionless
 
-    EScheme                 reconstruct;     // Options: reconstruct | faceValue
+    EScheme                 reconstruct;     // Options: reconstruct | grad
 
     PoissonScheme           explicit;        // Here, the only option
 

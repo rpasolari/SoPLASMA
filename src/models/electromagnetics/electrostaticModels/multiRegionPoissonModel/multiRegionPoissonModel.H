@@ -190,7 +190,16 @@ public:
         }
 
         //- Return the Poisson scheme
-        const word& PoissonScheme() const { return PoissonScheme_; }
+        const word& PoissonScheme() const override { return PoissonScheme_; }
+
+        //- Return true if regions are monolithically coupled
+        bool coupled() const { return coupled_; }
+
+        //- Return number of non-orthogonal corrector passes
+        label nNonOrthCorr() const override { return nNonOrthCorr_; }
+
+        //- Return E-field scheme
+        const word& EScheme() const override { return EScheme_; }
 
     // Dielectric access
     
@@ -217,6 +226,8 @@ public:
         { 
             return dielectric(name).epsilon(); 
         }
+
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

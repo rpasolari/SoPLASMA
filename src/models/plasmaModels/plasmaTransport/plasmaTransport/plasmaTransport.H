@@ -54,14 +54,12 @@ SourceFiles
 #include "regIOobject.H"
 
 #include "plasmaSpecies.H"
+#include "plasmaTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// Forward declarations
-class plasmaTransportModel;
 
 /*---------------------------------------------------------------------------*\
                     Class plasmaTransport Declaration
