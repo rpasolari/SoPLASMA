@@ -206,18 +206,6 @@ public:
         //- Update only the volume charge density (instantaneous)
         void updateChargeDensity();
 
-        //- Update surface charge
-        // void updateSurfaceCharge
-        // (
-        //     const PtrList<surfaceScalarField>& wallFluxes
-        // );
-
-        //- Master update (chargeDensity + surfCharge)
-        // void update
-        // (
-        //     const PtrList<surfaceScalarField>& wallFluxes
-        // );
-
         //- Clamp all number density fields to their minimum values
         void clampNumberDensities();
 
@@ -251,8 +239,6 @@ public:
         inline const List<scalar>& speciesMinNumberDensities() const;
         inline scalar speciesMinNumberDensity(label i) const;
         inline volScalarField& numberDensity(label i);
-        inline const volScalarField& chargeDensity() const;
-        inline const volScalarField& surfCharge() const;
 
         //- Dictionary access
         inline const dictionary& speciesDict(label i) const;

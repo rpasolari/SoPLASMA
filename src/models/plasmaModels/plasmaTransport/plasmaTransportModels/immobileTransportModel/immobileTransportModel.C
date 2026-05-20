@@ -66,6 +66,7 @@ tmp<fvScalarMatrix> immobileTransportModel::nEqn() const
 
 void immobileTransportModel::updateFluxes
 (
+    const fvScalarMatrix& nEqnMatrix,
     surfaceScalarField&,
     surfaceScalarField&,
     surfaceScalarField&

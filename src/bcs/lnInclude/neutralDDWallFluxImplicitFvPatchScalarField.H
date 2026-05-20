@@ -1,1 +1,1 @@
-../plasmaTransportBcs/ddWallFluxImplicit/neutralDDSolidSurfaceFlux/neutralDDWallFluxImplicitFvPatchScalarField.H
+../plasmaTransportBcs/ddWallFluxImplicit/neutralDDWallFluxImplicit/neutralDDWallFluxImplicitFvPatchScalarField.H

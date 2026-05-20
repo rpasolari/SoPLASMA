@@ -75,11 +75,14 @@ private:
     autoPtr<plasmaDiffusivityModel> diffusivityModel_;
     
     //- Configuration settings
-    word advection_;
     word fluxScheme_;
-    bool isExplicit_;
 
     // Cached fluxes
+
+        // Cached convective flux surface field (phi = Z*mu*phiE)
+        mutable autoPtr<surfaceScalarField> cachedPhi_;
+    
+    // Fluxes
 
         //- Convective particle flux [1/s]
         mutable surfaceScalarField convectiveFlux_;
@@ -96,8 +99,18 @@ private:
     //- Construct mobility and diffusivity models
     void constructModels();
 
-    //- Allocate the three cached flux fields
+    //- Allocate the flux fields
     void initFluxFields();
+
+    //- Split SG flux into convective and diffusive components
+    void splitSGFlux
+    (
+        const surfaceScalarField& phi,
+        const volScalarField& D,
+        const volScalarField& n,
+        surfaceScalarField& convFlux,
+        surfaceScalarField& diffFlux
+    ) const;
 
 public:
 
@@ -131,6 +144,7 @@ public:
         //- Update convective, diffusive, and total particle fluxes
         virtual void updateFluxes
         (
+            const fvScalarMatrix& nEqnMatrix,
             surfaceScalarField& convectiveFlux,
             surfaceScalarField& diffusiveFlux,
             surfaceScalarField& particleFlux
@@ -149,6 +163,24 @@ public:
         virtual tmp<volScalarField> diffusiveChargeSource() const override;
 
     // Access
+
+        //- Return the convective flux surface field
+        const surfaceScalarField& convectiveFlux() const
+        {
+            return convectiveFlux_;
+        }
+
+        //- Return the diffusive flux surface field
+        const surfaceScalarField& diffusiveFlux() const
+        {
+            return diffusiveFlux_;
+        }
+
+        //- Return the total flux surface field
+        const surfaceScalarField& particleFlux() const
+        {
+            return particleFlux_;
+        }
 
         //- Return the mobility model
         const plasmaMobilityModel& mobility() const

@@ -2,20 +2,14 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/OpenFOAM/lnInclude \
-    -I../plasmaTransportBcs/plasmaWallBC \
+    -I$(LIB_SRC)/OSspecific/POSIX/lnInclude \
     -I$(FOAM_PLASMA_SRC)/constants/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/electromagnetics/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
-    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/genericPlasmaProperties/lnInclude
 
-LIB_LIBS = \
-    -L$(FOAM_USER_LIBBIN) \
+EXE_LIBS = \
     -lfiniteVolume \
-    -lmeshTools \
     -lOpenFOAM \
-    -lSoPLASMAConstants \
-    -lplasmaElectromagnetics \
-    -lplasmaSpecies \
-    -lplasmaTransport \
-    -lplasmaProperties
+    -lmeshTools \
+    -lplasmaTransport

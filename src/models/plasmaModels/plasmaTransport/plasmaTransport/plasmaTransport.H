@@ -121,10 +121,13 @@ public:
     // Member functions
 
         //- Correct all transport models
-        void correct();
+        void correctTransportModels();
 
         //- Solve all species transport equations
         void solve();
+
+        //- Update surface charge
+        void updateSurfaceCharge();
 
         //- Return the LHS matrix for a specific species
         tmp<fvScalarMatrix> transportMatrix(const label i);

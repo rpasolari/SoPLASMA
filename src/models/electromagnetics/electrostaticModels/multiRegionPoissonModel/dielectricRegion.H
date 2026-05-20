@@ -168,7 +168,7 @@ public:
                 regionDict_.getOrDefault<word>("EScheme", "reconstruct")
             )
         {
-            epsilon_ = epsilonR_ * constant::plasma::epsilon0;
+            epsilon_ = dimensionedScalar("epsilon", epsilonR_ * constant::plasma::epsilon0);
 
             if (EScheme_ != "grad" && EScheme_ != "reconstruct")
             {

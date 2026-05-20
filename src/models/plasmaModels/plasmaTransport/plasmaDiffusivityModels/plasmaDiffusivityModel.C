@@ -48,7 +48,7 @@ plasmaDiffusivityModel::plasmaDiffusivityModel
             dict_,
             mesh_,
             "D_" + species.speciesName(specieIndex),
-            dimensionSet(-1, 0, 2, 0, 0, 1, 0)
+            dimensionSet(0, 2, -1, 0, 0, 0, 0)
         )
     ),
     D_
@@ -59,13 +59,13 @@ plasmaDiffusivityModel::plasmaDiffusivityModel
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         mesh,
         dimensionedScalar
         (
             "zero",
-            dimensionSet(-1, 0, 2, 0, 0, 1, 0),
+            dimensionSet(0, 2, -1, 0, 0, 0, 0),
             0.0
         )
     )

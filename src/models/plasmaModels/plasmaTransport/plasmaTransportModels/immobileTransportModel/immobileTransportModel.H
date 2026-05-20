@@ -97,6 +97,7 @@ public:
         //- No fluxes for immobile species — FatalError if called
         virtual void updateFluxes
         (
+            const fvScalarMatrix& nEqnMatrix,
             surfaceScalarField& convectiveFlux,
             surfaceScalarField& diffusiveFlux,
             surfaceScalarField& particleFlux

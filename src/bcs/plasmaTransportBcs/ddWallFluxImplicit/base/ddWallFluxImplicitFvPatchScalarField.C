@@ -76,7 +76,7 @@ ddWallFluxImplicitFvPatchScalarField::ddWallFluxImplicitFvPatchScalarField
     const dictionary& dict
 )
 :
-    fvPatchScalarField(p, iF),
+    fvPatchScalarField(p, iF, dict),
     TName_("none"),
     TValue_("T", dimTemperature, 300.0)
 {

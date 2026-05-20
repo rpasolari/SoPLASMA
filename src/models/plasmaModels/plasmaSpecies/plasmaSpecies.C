@@ -319,18 +319,6 @@ void Foam::plasmaSpecies::updateChargeDensity()
     }
 }
 
-// void plasmaSpecies::update()
-// {
-//     chargeDensity_ == dimensionedScalar(chargeDensity_.dimensions(), 0.0);
-
-//     forAll(chargedSpeciesIDs_, i)
-//     {
-//         const label id = chargedSpeciesIDs_[i];
-        
-//         chargeDensity_ += numberDensities_[id] * speciesCharges_[id];
-//     }
-// }
-
 void plasmaSpecies::clampNumberDensities()
 {
     forAll(numberDensities_, i)

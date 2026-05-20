@@ -1,3 +1,0 @@
-plasmaProfiler.C
-
-LIB = $(FOAM_USER_LIBBIN)/libplasmaProfiler

@@ -148,6 +148,7 @@ public:
         //- Update the fluxes in place (1/s)
         virtual void updateFluxes
         (
+            const fvScalarMatrix& nEqnMatrix,
             surfaceScalarField& convectiveFlux,
             surfaceScalarField& diffusiveFlux,
             surfaceScalarField& particleFlux

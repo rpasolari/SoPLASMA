@@ -55,6 +55,7 @@ SourceFiles
 #include "plasmaSpecies.H"
 #include "plasmaTransport.H"
 #include "driftDiffusion.H"
+#include "plasmaWallBC.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -67,7 +68,8 @@ namespace Foam
 
 class ddWallFluxImplicitFvPatchScalarField
 :
-    public fvPatchScalarField
+    public fvPatchScalarField,
+    public plasmaWallBC
 {
 protected:
 
@@ -187,7 +189,7 @@ public:
             virtual tmp<Field<scalar>> gradientBoundaryCoeffs() const;
 
             //- Returns the enableSurfaceCharging flag
-            virtual bool enableSurfaceCharging() const
+            virtual bool enableSurfaceCharging() const override
             {
                 return false; 
             }

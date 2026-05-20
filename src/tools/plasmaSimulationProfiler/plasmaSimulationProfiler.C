@@ -1,17 +1,17 @@
 /*---------------------------------------------------------------------------*\
-  File: plasmaProfiler.C
+  File: plasmaSimulationProfiler.C
   Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::plasmaProfiler.
+    Implementation of Foam::plasmaSimulationProfiler.
 
   Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-#include "plasmaProfiler.H"
+#include "plasmaSimulationProfiler.H"
 #include "IOstreams.H"
 #include <iomanip>
 #include <sstream>
@@ -21,16 +21,16 @@
 namespace Foam
 {
     // Initialize static members
-    std::map<plasmaProfiler::ProfKey, double> plasmaProfiler::cumulativeTimes_;
-    std::map<plasmaProfiler::ProfKey, double> plasmaProfiler::startTimes_;
-    cpuTime plasmaProfiler::timer_;
+    std::map<plasmaSimulationProfiler::ProfKey, double> plasmaSimulationProfiler::cumulativeTimes_;
+    std::map<plasmaSimulationProfiler::ProfKey, double> plasmaSimulationProfiler::startTimes_;
+    cpuTime plasmaSimulationProfiler::timer_;
 
-    void plasmaProfiler::start(const std::string& main, const std::string& sub)
+    void plasmaSimulationProfiler::start(const std::string& main, const std::string& sub)
     {
         startTimes_[{main, sub}] = timer_.elapsedCpuTime();
     }
 
-    void plasmaProfiler::stop(const std::string& main, const std::string& sub)
+    void plasmaSimulationProfiler::stop(const std::string& main, const std::string& sub)
     {
         ProfKey key{main, sub};
         if (startTimes_.count(key))
@@ -40,7 +40,7 @@ namespace Foam
         }
     }
 
-    void Foam::plasmaProfiler::report()
+    void Foam::plasmaSimulationProfiler::report()
     {
         if (Pstream::master())
         {
@@ -99,7 +99,7 @@ namespace Foam
         }
     }
 
-    void plasmaProfiler::reset()
+    void plasmaSimulationProfiler::reset()
     {
         cumulativeTimes_.clear();
         startTimes_.clear();

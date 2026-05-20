@@ -16,7 +16,6 @@
 
 #include "driftDiffusion.H"
 #include "ScharfetterGummel.H"
-#include "fvcScharfetterGummel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -157,11 +156,10 @@ driftDiffusion::driftDiffusion
 )
 :
     plasmaTransportModel(modelName, dict, mesh, species, specieIndex),
-    advection_(dict.lookupOrDefault<word>("advection", "implicit")),
     fluxScheme_(dict.lookupOrDefault<word>("fluxScheme", "standard")),
-    isExplicit_(advection_ == "explicit"),
     mobilityModel_(nullptr),
     diffusivityModel_(nullptr),
+    cachedPhi_(),
     convectiveFlux_
     (
         IOobject
@@ -170,7 +168,8 @@ driftDiffusion::driftDiffusion
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::NO_WRITE,
+            IOobject::NO_REGISTER
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
@@ -183,7 +182,8 @@ driftDiffusion::driftDiffusion
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::NO_WRITE,
+            IOobject::NO_REGISTER
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
@@ -196,7 +196,8 @@ driftDiffusion::driftDiffusion
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::NO_WRITE,
+            IOobject::NO_REGISTER
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
@@ -211,31 +212,74 @@ driftDiffusion::driftDiffusion
             << exit(FatalIOError);
     }
 
-    if (advection_ == "explicit")
-    {
-        isExplicit_ = true;
-    }
-    else if (advection_ != "implicit")
-    {
-        FatalIOErrorInFunction(dict_)
-            << "Species '" << species_.speciesName(specieIndex_)
-            << "': unknown advection '" << advection_ << "'." << nl
-            << "Valid options: (implicit | explicit)" << nl
-            << exit(FatalIOError);
-    }
-
-    if (fluxScheme_ == "ScharfetterGummel" && isExplicit_)
-    {
-        WarningInFunction
-            << "Species '" << species_.speciesName(specieIndex_)
-            << "': Scharfetter-Gummel requires implicit advection." << nl
-            << "Forcing implicit mode." << endl;
-
-        isExplicit_ = false;
-        advection_  = "implicit";
-    }
-
     constructModels();
+}
+
+void driftDiffusion::splitSGFlux
+(
+    const surfaceScalarField& phi,
+    const volScalarField& D,
+    const volScalarField& n,
+    surfaceScalarField& convFlux,
+    surfaceScalarField& diffFlux
+) const
+{
+    auto Bern = [](scalar x) -> scalar
+    {
+        const scalar ax = mag(x);
+        if (ax < 1e-4)
+        {
+            return 1.0 - 0.5*x + (x*x)/12.0 - pow4(x)/720.0;;
+        }
+        if (x > 200.0)  return 0.0;
+        if (x < -200.0) return -x;
+        return x / (Foam::exp(x) - 1.0);
+    };
+
+    const surfaceScalarField Df = fvc::interpolate(D);
+
+    const scalarField diffCond = Df.primitiveField()
+                                * mesh_.magSf().primitiveField()
+                                * mesh_.deltaCoeffs().primitiveField();
+
+    const scalarField& phiI = phi.primitiveField();
+    const scalarField& nI = n.primitiveField();
+    const labelUList& own = mesh_.owner();
+    const labelUList& nei = mesh_.neighbour();
+
+    scalarField& convI = convFlux.primitiveFieldRef();
+    scalarField& diffI = diffFlux.primitiveFieldRef();
+
+    forAll(phiI, fi)
+    {
+        convI[fi] = phiI[fi] >= 0
+            ? phiI[fi] * nI[own[fi]]
+            : phiI[fi] * nI[nei[fi]];
+
+        const scalar absPe = mag(phiI[fi]) / (diffCond[fi] + VSMALL);
+        diffI[fi] = diffCond[fi] * Bern(absPe)
+                  * (nI[own[fi]] - nI[nei[fi]]);
+    }
+
+    forAll(phi.boundaryField(), patchi)
+    {
+        const scalarField& phiBp  = phi.boundaryField()[patchi];
+        const scalarField& nBp    = n.boundaryField()[patchi];
+        const labelUList&  fc     = mesh_.boundary()[patchi].faceCells();
+        scalarField& convBp       = convFlux.boundaryFieldRef()[patchi];
+        scalarField& diffBp       = diffFlux.boundaryFieldRef()[patchi];
+        const scalarField& partBp = particleFlux_.boundaryField()[patchi];
+
+        // Upwind: interior cell when phi >= 0, face value from BC when phi < 0
+        forAll(phiBp, fi)
+        {
+            convBp[fi] = phiBp[fi] >= 0
+                ? phiBp[fi] * nI[fc[fi]]
+                : phiBp[fi] * nBp[fi];
+        }
+
+        diffBp = partBp - convBp;
+    }
 }
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
@@ -244,6 +288,8 @@ void driftDiffusion::correct()
 {
     mobilityModel_->correct();
     diffusivityModel_->correct();
+
+    cachedPhi_.clear();
 }
 
 tmp<fvScalarMatrix> driftDiffusion::nEqn() const
@@ -251,38 +297,29 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
     volScalarField& n = species_.numberDensity(specieIndex_);
     const volScalarField& D = diffusivityModel_->D();
 
-    tmp<surfaceScalarField> tPhi = convectivePhi();
-    const surfaceScalarField& phi = tPhi();
+    cachedPhi_.reset(new surfaceScalarField(convectivePhi()()));
+    const surfaceScalarField& phi = *cachedPhi_;
 
     tmp<fvScalarMatrix> tEqn = fvm::ddt(n);
 
     if (fluxScheme_ == "ScharfetterGummel")
     {
-        tmp<fvScalarMatrix> tSG = fvm::ScharfetterGummel(n, phi, D);
+        fvScalarMatrix sgMat(fvm::ScharfetterGummel(n, phi, D));
 
-        particleFlux_    = tSG().flux();
-        convectiveFlux_  = phi * fvc::interpolate(n);
-        diffusiveFlux_   = particleFlux_ - convectiveFlux_;
+        particleFlux_ = sgMat.flux();
+        splitSGFlux(phi, D, n, convectiveFlux_, diffusiveFlux_);
 
-        tEqn.ref() += tSG;
+        tEqn.ref() += sgMat;
     }
     else
     {
-        if (isExplicit_)
-        {
-            convectiveFlux_ = phi * fvc::interpolate(n);
-            tEqn.ref() += fvc::div(phi, n);
-        }
-        else
-        {
-            tmp<fvScalarMatrix> tDrift = fvm::div(phi, n);
-            convectiveFlux_ = tDrift().flux();
-            tEqn.ref() += tDrift;
-        }
+        fvScalarMatrix convMat(fvm::div(phi, n));
+        convectiveFlux_ = convMat.flux();
+        tEqn.ref() += convMat;
 
-        tmp<fvScalarMatrix> tDiff = fvm::laplacian(D, n);
-        diffusiveFlux_ = -tDiff().flux();
-        tEqn.ref() -= tDiff;
+        fvScalarMatrix diffMat(fvm::laplacian(D, n));
+        diffusiveFlux_ = -diffMat.flux();
+        tEqn.ref() -= diffMat;
 
         particleFlux_ = convectiveFlux_ + diffusiveFlux_;
     }
@@ -292,14 +329,37 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
 
 void driftDiffusion::updateFluxes
 (
+    const fvScalarMatrix& nEqnMatrix,
     surfaceScalarField& convectiveFlux, 
     surfaceScalarField& diffusiveFlux, 
     surfaceScalarField& particleFlux
 ) const
 {
+    if (!cachedPhi_.valid())
+        FatalErrorInFunction
+            << "updateFluxes() called before nEqn() — no cached phi." << nl
+            << exit(FatalError);
+
+    const volScalarField& n = species_.numberDensity(specieIndex_);
+    const volScalarField& D = diffusivityModel_->D();
+    const surfaceScalarField& phi = *cachedPhi_;
+
+    particleFlux_ = nEqnMatrix.flux();
+
+    if (fluxScheme_ == "ScharfetterGummel")
+    {
+        splitSGFlux(phi, D, n, convectiveFlux_, diffusiveFlux_);
+    }
+    else
+    {
+        fvScalarMatrix convMat(fvm::div(phi, n));
+        convectiveFlux_ = convMat.flux();
+        diffusiveFlux_  = particleFlux_ - convectiveFlux_;
+    }
+
     convectiveFlux = convectiveFlux_;
-    diffusiveFlux = diffusiveFlux_;
-    particleFlux = particleFlux_;
+    diffusiveFlux  = diffusiveFlux_;
+    particleFlux   = particleFlux_;
 }
 
 void driftDiffusion::updateWallFlux(surfaceScalarField& wallFlux) const
@@ -324,7 +384,6 @@ tmp<volScalarField> driftDiffusion::electricalConductivity() const
 
     return qmag * mu * n;
 }
-
 
 tmp<volScalarField> driftDiffusion::diffusiveChargeSource() const
 {

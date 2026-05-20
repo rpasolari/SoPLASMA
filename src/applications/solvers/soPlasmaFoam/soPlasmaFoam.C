@@ -92,6 +92,12 @@ int main(int argc, char *argv[])
 
     //- Create the timeControl manager and set initial time-step
     plasmaTimeControl timeControl(runTime, gasMesh());
+
+//     Info << "Registry objects:" << endl;
+// forAllConstIters(gasMesh().thisDb(), iter)
+// {
+//     Info << "  " << iter()->type() << "  " << iter()->name() << endl;
+// }
     timeControl.setInitialDeltaT(transport);
 
     #include "reportSimulationSummary.H"
@@ -110,9 +116,23 @@ int main(int argc, char *argv[])
 
         while (pimple.loop())
         {
-            em->solve();
+            if (em->PoissonScheme() == "semiImplicit")
+            {
+                const volScalarField sigma   = transport.electricalConductivity();
+                const volScalarField diffSrc = transport.diffusiveChargeSource();
 
+                em->solve(sigma, diffSrc);
 
+                transport.solve();
+
+                species.updateChargeDensity();
+            }
+            else
+            {
+                transport.solve();
+                species.updateChargeDensity();
+                em->solve();
+            }
         }
         
     

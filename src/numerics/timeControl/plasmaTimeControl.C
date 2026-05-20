@@ -46,6 +46,8 @@ plasmaTimeControl::plasmaTimeControl(Time& runTime, const fvMesh& mesh)
     prevPatchVoltage_(0.0)
 {
     read();
+
+    Info << "Plasma time control succesfully constructed." << nl << endl;
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -162,6 +164,8 @@ scalar plasmaTimeControl::patchVoltageAvg
 
 void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
 {
+    read();
+
     const scalar currentDeltaT = runTime_.deltaTValue();
     const scalar eps0 = constant::plasma::epsilon0.value();
     scalar newDeltaT = maxDeltaT_;
@@ -260,22 +264,22 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     }
 
     // Voltage rise rate
-if (limitVoltageRiseRate_ || printVoltageRiseRate_)
-{
-    const scalar currentVoltage = patchVoltageAvg(transport);
-    const scalar dV = mag(currentVoltage - prevPatchVoltage_);
-    voltageRiseRate = dV / (runTime_.deltaT0Value() + VSMALL);
-
-    if (limitVoltageRiseRate_)
+    if (limitVoltageRiseRate_ || printVoltageRiseRate_)
     {
-        const scalar dtLimit =
-            maxVoltageRiseRate_ / (voltageRiseRate + VSMALL);
+        const scalar currentVoltage = patchVoltageAvg(transport);
+        const scalar dV = mag(currentVoltage - prevPatchVoltage_);
+        voltageRiseRate = dV / (runTime_.deltaT0Value() + VSMALL);
 
-        newDeltaT = min(newDeltaT, dtLimit);
+        if (limitVoltageRiseRate_)
+        {
+            const scalar dtLimit =
+                maxVoltageRiseRate_ / (voltageRiseRate + VSMALL);
+
+            newDeltaT = min(newDeltaT, dtLimit);
+        }
+
+        prevPatchVoltage_ = currentVoltage;
     }
-
-    prevPatchVoltage_ = currentVoltage;
-}
 
     // Apply and clamp
     if (adjustTimeStep_)
@@ -485,10 +489,11 @@ void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
 
     // Reduction and setting
     reduce(newDeltaT, minOp<scalar>());
-    if (newDeltaT < currentDeltaT)
+    if (newDeltaT > currentDeltaT)
     {
-        runTime_.setDeltaT(newDeltaT);
-    }    
+        newDeltaT = min(newDeltaT, currentDeltaT * 1.2);
+    }
+    runTime_.setDeltaT(newDeltaT);   
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -383,7 +383,7 @@ multiRegionPoissonModel::multiRegionPoissonModel
     const dictionary& coeffs(subDict(coeffsName));
 
     epsilonR_ = coeffs.get<scalar>("dielectricConstant");
-    epsilon_ = epsilonR_ * constant::plasma::epsilon0;
+    epsilon_ = dimensionedScalar("epsilon", epsilonR_ * constant::plasma::epsilon0);
 
     EScheme_ = coeffs.getOrDefault<word>("EScheme", "reconstruct");
     if (EScheme_ != "grad" && EScheme_ != "reconstruct")
@@ -593,7 +593,7 @@ tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonEquation
     const volScalarField& diffusiveChargeSource
 ) const
 {
-    const scalar deltaT = mesh_.time().deltaTValue();
+    const dimensionedScalar deltaT = mesh_.time().deltaT();
 
     tmp<fvScalarMatrix> tEqn = fvm::laplacian
     (
@@ -601,7 +601,7 @@ tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonEquation
         ePotential_
     );
 
-    tEqn.ref() == -chargeDensity_ - deltaT * diffusiveChargeSource;
+    tEqn.ref() == -chargeDensity_.oldTime() - deltaT * diffusiveChargeSource;
 
     return tEqn;
 }

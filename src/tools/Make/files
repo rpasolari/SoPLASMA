@@ -1,0 +1,4 @@
+plasmaSimulationProfiler/plasmaSimulationProfiler.C
+plasmaSimulationDiagnostics/plasmaSimulationDiagnostics.C
+
+LIB = $(FOAM_USER_LIBBIN)/libplasmaTools

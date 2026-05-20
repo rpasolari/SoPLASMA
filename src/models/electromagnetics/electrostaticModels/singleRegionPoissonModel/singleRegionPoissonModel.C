@@ -120,7 +120,8 @@ singleRegionPoissonModel::singleRegionPoissonModel
     const dictionary& coeffs(subDict(coeffsName));
 
     epsilonR_ = coeffs.getOrDefault<scalar>("dielectricConstant", 1.0);
-    epsilon_ = epsilonR_ * constant::plasma::epsilon0;
+    epsilon_ = dimensionedScalar
+                            ("epsilon", epsilonR_ * constant::plasma::epsilon0);
 
     EScheme_ = coeffs.getOrDefault<word>("EScheme", "reconstruct");
     if (EScheme_ != "grad" && EScheme_ != "reconstruct")
@@ -219,7 +220,7 @@ tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonEquation
     const volScalarField& diffusiveChargeSource
 ) const
 {
-    const scalar deltaT = mesh_.time().deltaTValue();
+    const dimensionedScalar deltaT = mesh_.time().deltaT();
 
     tmp<fvScalarMatrix> tEqn = fvm::laplacian
     (
@@ -227,7 +228,7 @@ tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonEquation
         ePotential_
     );
 
-    tEqn.ref() == -chargeDensity_ - deltaT * diffusiveChargeSource;
+    tEqn.ref() == -chargeDensity_.oldTime() - deltaT * diffusiveChargeSource;
 
     return tEqn;
 }
