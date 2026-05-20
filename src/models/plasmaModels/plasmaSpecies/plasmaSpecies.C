@@ -318,6 +318,7 @@ void Foam::plasmaSpecies::updateChargeDensity()
         em_.chargeDensity() += numberDensities_[id] * speciesCharges_[id];
     }
 
+    em_.chargeDensity().correctBoundaryConditions();
     Info << "Charge density updated." << endl;
 }
 

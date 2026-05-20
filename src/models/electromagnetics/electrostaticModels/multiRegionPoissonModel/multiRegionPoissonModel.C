@@ -612,7 +612,7 @@ tmp<fvScalarMatrix> multiRegionPoissonModel::PoissonEquation
         ePotential_
     );
 
-    tEqn.ref() == -chargeDensity_.oldTime() - deltaT * diffusiveChargeSource;
+    tEqn.ref() == -chargeDensity_ - deltaT * diffusiveChargeSource;
 
     return tEqn;
 }

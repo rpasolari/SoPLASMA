@@ -304,6 +304,7 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
 
     if (fluxScheme_ == "ScharfetterGummel")
     {
+        Info << "SG is used " << endl;
         fvScalarMatrix sgMat(fvm::ScharfetterGummel(n, phi, D));
 
         particleFlux_ = sgMat.flux();
@@ -313,6 +314,11 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
     }
     else
     {
+<<<<<<< Updated upstream
+        Info << "SG is used " << endl;
+=======
+        Info << "Standard scheme is used " << endl;
+>>>>>>> Stashed changes
         fvScalarMatrix convMat(fvm::div(phi, n));
         convectiveFlux_ = convMat.flux();
         tEqn.ref() += convMat;
