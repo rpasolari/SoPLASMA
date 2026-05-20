@@ -213,18 +213,22 @@ ddWallFluxImplicitFvPatchScalarField::valueInternalCoeffs
 
     const driftDiffusion& ddModel = refCast<const driftDiffusion>(baseModel);
 
+    //--------------------------
     // Access the patch mobility and electric field
     const scalarField& muf = ddModel.mobility().muPatch(p.index());
-    const fvPatchField<vector>& Ef = 
-                                p.lookupPatchField<volVectorField, vector>("E");
+    // const fvPatchField<vector>& Ef = 
+    //                             p.lookupPatchField<volVectorField, vector>("E");
+// In ddWallFluxImplicit::valueInternalCoeffs — replace E lookup with phiE
+    // Use phiE directly — exact face-normal E, consistent with fvm::div(phi,n)
+    // Use phiE directly — exact face-normal E, consistent with fvm::div(phi,n)
+    const surfaceScalarField& phiE =
+        p.boundaryMesh().mesh().lookupObject<surfaceScalarField>("phiE");
 
-    const scalarField uDrift_n = Z * (muf * Ef) & nf;
+    const scalarField Ef_n(phiE.boundaryField()[p.index()] / p.magSf());
 
-    // Implicit drift flux: upwind coeff = 1 if drift toward wall, else 0
-    return tmp<Field<scalar>>
-    (
-        new scalarField(pos(uDrift_n))
-    );
+    const scalarField uDrift_n(Z * muf * Ef_n);
+
+    return tmp<Field<scalar>>(new scalarField(pos(uDrift_n)));
 }
 
 tmp<Field<scalar>>

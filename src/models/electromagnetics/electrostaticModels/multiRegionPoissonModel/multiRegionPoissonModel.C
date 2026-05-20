@@ -45,10 +45,21 @@ void multiRegionPoissonModel::updateDerivedFields()
     {
         E_ = -fvc::grad(ePotential_);
     }
-    E_.correctBoundaryConditions();
+    // E_.correctBoundaryConditions();
+forAll(E_.boundaryField(), patchi)
+{
+    const scalarField& phiEp  = phiE_.boundaryField()[patchi];
+    const vectorField& Sfp    = mesh_.Sf().boundaryField()[patchi];
+    const scalarField& magSfp = mesh_.magSf().boundaryField()[patchi];
+
+    // E_face = (phiE / magSf) * nf
+    // phiE/magSf = -snGrad(ePotential) = E_n (normal component, signed)
+    E_.boundaryFieldRef()[patchi] = (phiEp / magSfp) * (Sfp / magSfp);
+}
+
 
     Emag_ = mag(E_);
-    Emag_.correctBoundaryConditions();
+    // Emag_.correctBoundaryConditions();
 
     if (backgroundDensityFieldPtr_)
     {
@@ -76,7 +87,7 @@ void multiRegionPoissonModel::updateDerivedFields()
                 )
             );
     }
-    reducedE_.correctBoundaryConditions();
+    // reducedE_.correctBoundaryConditions();
 
     for (dielectricRegion& reg : dielectrics_)
     {

@@ -1,6 +1,0 @@
-timeControl/plasmaTimeControl.C
-
-schemes/fvm/ScharfetterGummel/ScharfetterGummel.C
-schemes/fvc/ScharfetterGummel/fvcScharfetterGummel.C
-
-LIB = $(FOAM_USER_LIBBIN)/libplasmaNumerics

@@ -13,7 +13,6 @@
 
 #include "plasmaTransport.H"
 #include "plasmaTransportModel.H"
-#include "plasmaSimulationProfiler.H"
 #include "plasmaWallBC.H"
 
 
@@ -349,6 +348,222 @@ void plasmaTransport::solve()
 
     Info << "Transport finished" << endl;
 
+// ════════════════════════════════════════════════════════════════════════
+    // DEBUG DIAGNOSTICS
+    // ════════════════════════════════════════════════════════════════════════
+    {
+        Pout.precision(4);
+        Pout << scientific;
+
+        const scalar kB      = 1.380649e-23;
+        const scalar pi_v    = constant::mathematical::pi;
+        const scalar vth4_e  = 0.25*Foam::sqrt(8.0*kB*11600.0/(pi_v*9.109e-31));
+        const scalar vth4_pi = 0.25*Foam::sqrt(8.0*kB*300.0  /(pi_v*4.789e-26));
+
+        const volScalarField& muE_vol  =
+            mesh_.lookupObject<volScalarField>("mu_" + species_.speciesName(eIdx));
+        const volScalarField& DE_vol   =
+            mesh_.lookupObject<volScalarField>("D_"  + species_.speciesName(eIdx));
+        const volScalarField& muP_vol  =
+            mesh_.lookupObject<volScalarField>("mu_" + species_.speciesName(pIdx));
+        const volScalarField& DP_vol   =
+            mesh_.lookupObject<volScalarField>("D_"  + species_.speciesName(pIdx));
+        const volScalarField&    redE  = species_.em().reducedE();
+        const volScalarField&    Emag  = species_.em().Emag();
+        const surfaceScalarField& phiE = species_.em().phiE();
+
+        // ════════════════════════════════════════════════════════════════
+        // PART 1 — Interior cell at x≈5e-6, y≈2.75e-5
+        // ════════════════════════════════════════════════════════════════
+        {
+            const point tgt(5e-6, 2.75e-5, 5e-4);
+            label bestC = -1;
+            scalar bestD = GREAT;
+            forAll(mesh_.C(), ci)
+            {
+                scalar d = mag(mesh_.C()[ci] - tgt);
+                if (d < bestD) { bestD = d; bestC = ci; }
+            }
+
+            if (bestC >= 0 && bestD < 5e-5)
+            {
+                const label ci = bestC;
+
+                const scalar ne_c  = ne[ci];
+                const scalar ni_c  = ni[ci];
+                const scalar nn_c  = nn[ci];
+                const scalar muE_c = muE_vol[ci];
+                const scalar DE_c  = DE_vol[ci];
+                const scalar muP_c = muP_vol[ci];
+                const scalar DP_c  = DP_vol[ci];
+                const scalar EN_c  = redE[ci];
+                const scalar Em_c  = Emag[ci];
+
+                // Chemistry at cell
+                const scalar al_c   = alpha[ci];
+                const scalar ionF_c = ionizationFlux[ci];
+                const scalar Siz_c  = S_iz[ci];
+                const scalar katt_c = k_att[ci];
+                const scalar kei_c  = k_ei[ci];
+                const scalar kii_v  = k_ii.value();
+
+                // Net source terms per species
+                const scalar Se_net = Siz_c - katt_c*N_val*ne_c - kei_c*ni_c*ne_c;
+                const scalar Si_net = Siz_c - kei_c*ne_c*ni_c - kii_v*nn_c*ni_c;
+                const scalar Sn_net = katt_c*N_val*ne_c - kii_v*ni_c*nn_c;
+
+                // Matrix diagonal and source (includes ddt + chemistry)
+                const scalar diagE  = eqns[eIdx]->D()()[ci];
+                const scalar srcE   = eqns[eIdx]->source()[ci];
+                const scalar diagPI = eqns[pIdx]->D()()[ci];
+                const scalar srcPI  = eqns[pIdx]->source()[ci];
+                const scalar diagNI = eqns[nIdx]->D()()[ci];
+                const scalar srcNI  = eqns[nIdx]->source()[ci];
+
+                // Reconstructed electron fluxes (from first updateFluxes, used for ionization)
+                const vector dVec_c = driftVec[ci];
+                const vector pVec_c = particleVec[ci];
+                const vector dDir_c = driftDir[ci];
+
+                Pout
+                    << nl
+                    << "╔══════════════════════════════════════════════════════════╗" << nl
+                    << "║  CELL DIAG  x≈5e-6  y≈2.75e-5                          ║" << nl
+                    << "║  ci=" << ci << "  dist=" << bestD << "  Cc=" << mesh_.C()[ci] << nl
+                    << "╠══ E / TRANSPORT ══════════════════════════════════════════╣" << nl
+                    << "║  |E|=" << Em_c << "  E/N=" << EN_c << nl
+                    << "║  mu_e=" << muE_c << "  D_e=" << DE_c << nl
+                    << "║  mu_pi=" << muP_c << "  D_pi=" << DP_c << nl
+                    << "║  |ud_e|=" << muE_c*Em_c << "  |ud_pi|=" << muP_c*Em_c << "  [m/s]" << nl
+                    << "╠══ DENSITIES [m^-3] ═══════════════════════════════════════╣" << nl
+                    << "║  ne=" << ne_c << "  ni=" << ni_c << "  nn=" << nn_c << nl
+                    << "╠══ ELECTRON FLUXES (pre-solve, used for S_iz) ══════════════╣" << nl
+                    << "║  driftVec:    " << dVec_c << "  [m^-2 s^-1]" << nl
+                    << "║  particleVec: " << pVec_c << "  [m^-2 s^-1]" << nl
+                    << "║  driftDir:    " << dDir_c << nl
+                    << "║  ionizFlux:   " << ionF_c << "  [m^-2 s^-1]" << nl
+                    << "╠══ CHEMISTRY [m^-3 s^-1] ══════════════════════════════════╣" << nl
+                    << "║  alpha=" << al_c << "  [m^-1]" << nl
+                    << "║  S_iz=" << Siz_c << nl
+                    << "║  k_att*N=" << katt_c*N_val << "  k_ei=" << kei_c << "  k_ii=" << kii_v << nl
+                    << "║  e:  S_iz=" << Siz_c << "  -att=" << katt_c*N_val*ne_c
+                    <<               "  -ei="  << kei_c*ni_c*ne_c << "  net=" << Se_net << nl
+                    << "║  pi: S_iz=" << Siz_c << "  -ei="  << kei_c*ne_c*ni_c
+                    <<               "  -ii="  << kii_v*nn_c*ni_c << "  net=" << Si_net << nl
+                    << "║  nn: +att=" << katt_c*N_val*ne_c
+                    <<               "  -ii="  << kii_v*ni_c*nn_c << "  net=" << Sn_net << nl
+                    << "╠══ MATRIX (diag / RHS source) ═════════════════════════════╣" << nl
+                    << "║  e:  D=" << diagE  << "  src=" << srcE  << nl
+                    << "║  pi: D=" << diagPI << "  src=" << srcPI << nl
+                    << "║  nn: D=" << diagNI << "  src=" << srcNI << nl
+                    << "╚══════════════════════════════════════════════════════════╝" << nl;
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // PARTS 2 & 3 — Boundary face diagnostics
+        // ════════════════════════════════════════════════════════════════
+
+auto faceDiag = [&]
+(
+    const point& tgt,
+    const word& diagLabel,
+    const word& patchName,
+    const scalar maxDist
+)
+{
+    forAll(mesh_.boundary(), patchi)
+    {
+        const fvPatch& p = mesh_.boundary()[patchi];
+        if (p.name() != patchName) continue;
+        if (p.size() == 0) continue;
+
+                label bestF = -1;
+                scalar bestD = GREAT;
+                forAll(p, facei)
+                {
+                    const scalar d = mag(p.Cf()[facei] - tgt);
+                    if (d < bestD) { bestD = d; bestF = facei; }
+                }
+                if (bestF < 0 || bestD > maxDist) continue;
+
+                const label fi    = bestF;
+                const label celli = p.faceCells()[fi];
+
+                const scalar magSf = mesh_.magSf().boundaryField()[patchi][fi];
+                const vector nf    = mesh_.Sf().boundaryField()[patchi][fi] / magSf;
+                const scalar phiEf = phiE.boundaryField()[patchi][fi];
+                const scalar Ef_n  = phiEf / magSf;
+
+                const scalar EN_f  = redE.boundaryField()[patchi][fi];
+                const scalar EN_c  = redE.internalField()[celli];
+                const scalar muE_f = muE_vol.boundaryField()[patchi][fi];
+                const scalar DE_f  = DE_vol.boundaryField()[patchi][fi];
+                const scalar muP_f = muP_vol.boundaryField()[patchi][fi];
+                const scalar DP_f  = DP_vol.boundaryField()[patchi][fi];
+
+                const scalar ne_c  = ne.internalField()[celli];
+                const scalar ni_c  = ni.internalField()[celli];
+                const scalar nn_c  = nn.internalField()[celli];
+                const scalar nf_e  = ne.boundaryField()[patchi][fi];
+                const scalar nf_pi = ni.boundaryField()[patchi][fi];
+
+                const scalar udE   = (-1.0)*muE_f*Ef_n;
+                const scalar udPi  = (+1.0)*muP_f*Ef_n;
+                const bool eDtW    = (udE  > 0.0);
+                const bool piDtW   = (udPi > 0.0);
+
+                const scalar thE   = vth4_e  * ne_c * magSf;
+                const scalar thPi  = vth4_pi * ni_c * magSf;
+
+                const scalar convE  = convectiveFlux_[eIdx].boundaryField()[patchi][fi];
+                const scalar diffE  = diffusiveFlux_[eIdx].boundaryField()[patchi][fi];
+                const scalar totE   = particleFlux_[eIdx].boundaryField()[patchi][fi];
+                const scalar convPi = convectiveFlux_[pIdx].boundaryField()[patchi][fi];
+                const scalar diffPi = diffusiveFlux_[pIdx].boundaryField()[patchi][fi];
+                const scalar totPi  = particleFlux_[pIdx].boundaryField()[patchi][fi];
+
+                const scalar expE  = eDtW  ? -(thE  + mag(udE) *ne_c*magSf) : -thE;
+                const scalar expPi = piDtW ? -(thPi + mag(udPi)*ni_c*magSf) : -thPi;
+
+                Pout
+                    << nl
+                    << "╔══════════════════════════════════════════════════════════╗" << nl
+                    << "║  FACE DIAG  " << diagLabel << nl
+                    << "║  patch=" << p.name() << "  fi=" << fi
+                    << "  cell=" << celli << "  dist=" << bestD << nl
+                    << "║  Cf=" << p.Cf()[fi] << "  nf=" << nf << "  |Sf|=" << magSf << nl
+                    << "╠══ E ══════════════════════════════════════════════════════╣" << nl
+                    << "║  phiE=" << phiEf << "  Ef_n=" << Ef_n << "  [V/m]" << nl
+                    << "║  E/N face=" << EN_f << "  E/N cell=" << EN_c << "  [Vm^2]" << nl
+                    << "╠══ TRANSPORT ═══════════════════════════════════════════════╣" << nl
+                    << "║  mu_e=" << muE_f << "  D_e=" << DE_f << nl
+                    << "║  mu_pi=" << muP_f << "  D_pi=" << DP_f << nl
+                    << "╠══ DENSITIES [m^-3] ════════════════════════════════════════╣" << nl
+                    << "║  ne  cell=" << ne_c  << "  face=" << nf_e  << nl
+                    << "║  ni  cell=" << ni_c  << "  face=" << nf_pi << nl
+                    << "║  nn  cell=" << nn_c << nl
+                    << "╠══ DRIFT ════════════════════════════════════════════════════╣" << nl
+                    << "║  ud_e=" << udE  << "  → " << (eDtW  ? "TOWARD" : "AWAY") << nl
+                    << "║  ud_pi=" << udPi << "  → " << (piDtW ? "TOWARD" : "AWAY") << nl
+                    << "╠══ THERMAL & EXPECTED [#/s] ════════════════════════════════╣" << nl
+                    << "║  vth4_e=" << vth4_e << "  vth4_pi=" << vth4_pi << "  [m/s]" << nl
+                    << "║  therm_e=" << thE  << "  therm_pi=" << thPi << nl
+                    << "║  exp_e="  << expE  << "  (" << (eDtW  ? "th+drift" : "th only") << ")" << nl
+                    << "║  exp_pi=" << expPi << "  (" << (piDtW ? "th+drift" : "th only") << ")" << nl
+                    << "╠══ MATRIX FLUXES [#/s] ═════════════════════════════════════╣" << nl
+                    << "║  e:  conv=" << convE  << "  diff=" << diffE  << "  tot=" << totE  << nl
+                    << "║  pi: conv=" << convPi << "  diff=" << diffPi << "  tot=" << totPi << nl
+                    << "╚══════════════════════════════════════════════════════════╝" << nl;
+            }
+        };
+
+faceDiag(point(1.5e-5, 0.0,     5e-4), "DIELECTRIC   x=1.5e-5 y=0",      "gas_to_dielectric", 1e-4);
+faceDiag(point(5e-7,   2.75e-5, 5e-4), "HV_ELECTRODE x=5e-7  y=2.75e-5", "HV_electrode",      1e-4);
+    }
+    // ════════════════════════════════════════════════════════════════════════
+    // END DEBUG
+    // ════════════════════════════════════════════════════════════════════════
 
     // ── 10. Update surface charge from post-solve consistent fluxes ───────────
     updateSurfaceCharge();

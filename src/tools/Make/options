@@ -6,10 +6,9 @@ EXE_INC = \
     -I$(FOAM_PLASMA_SRC)/constants/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/electromagnetics/lnInclude \
     -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude \
-    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
+    -I$(FOAM_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude
 
 EXE_LIBS = \
     -lfiniteVolume \
     -lOpenFOAM \
-    -lmeshTools \
-    -lplasmaTransport
+    -lmeshTools

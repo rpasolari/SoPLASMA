@@ -1,0 +1,4 @@
+fvm/ScharfetterGummel/ScharfetterGummel.C
+fvc/ScharfetterGummel/fvcScharfetterGummel.C
+
+LIB = $(FOAM_USER_LIBBIN)/libplasmaSchemes

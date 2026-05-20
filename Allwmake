@@ -20,9 +20,12 @@ echo "-------------------------------------"
 echo ""
 
 wmake libso src/constants
-wmake libso src/numerics
+wmake libso src/numerics/schemes
 ./src/models/Allwmake
+wmake libso src/numerics/controls
 ./src/bcs/Allwmake
+wmake libso src/tools
+
 
 # Executables
 echo ""

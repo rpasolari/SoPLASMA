@@ -44,13 +44,13 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 
-#include "plasmaTransport.H"
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
+// Forward declaration
+class plasmaTransport;
 /*---------------------------------------------------------------------------*\
                  Class plasmaSimulationDiagnostics Declaration
 \*---------------------------------------------------------------------------*/
