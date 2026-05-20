@@ -17,13 +17,6 @@
 const std::string HL(72, '*');
 const std::string sl(72, '-');
 
-auto field = [](const std::string& lbl, const std::string& val, int w=28)
-{
-    std::string p = lbl + ":";
-    while (static_cast<int>(p.size()) < w) p += ' ';
-    return p + val;
-};
-
 auto fieldPair = [](
     const std::string& l1, const std::string& v1,
     const std::string& l2, const std::string& v2,
@@ -127,7 +120,7 @@ const std::string hdr =
     + col("minN [1/m3]", 13)
     + col("Transport", 17)
     + col("Flux scheme", 20)
-    + col("mu / D", 20);
+    + col("mu / D", 30);
 
 Info<< hdr.c_str() << nl
     << "  " << sl.c_str() << nl;
@@ -169,7 +162,7 @@ forAll(species.speciesNames(), i)
         + col(Foam::name(minN),        13)
         + col(tm.type(),               17)
         + col(scheme,                  20)
-        + col(muD,                     20);
+        + col(muD,                     30);
 
     Info<< row.c_str() << nl;
 }

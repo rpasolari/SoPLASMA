@@ -28,9 +28,9 @@ Description
     Class for calculating and reporting runtime diagnostics in plasma
     simulations.
 
-    This class reads the 'plasmaDiagnostics' dictionary to determine which
-    fields (e.g., species number densities, electric field, surface charge)
-    should have their minimum and maximum values reported to the console
+    This class reads the 'plasmaSimulationDiagnostics' dictionary to determine
+    which fields (e.g., species number densities, electric field, surface
+    charge) should have their minimum and maximum values reported to the console
     at each time step.
 
 SourceFiles
@@ -44,12 +44,12 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 
+#include "plasmaTransport.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-class plasmaTransport;
 
 /*---------------------------------------------------------------------------*\
                  Class plasmaSimulationDiagnostics Declaration
@@ -60,13 +60,13 @@ class plasmaSimulationDiagnostics
 private:
 // Private data
 
-        //- Reference to the Time object (used for dictionary lookup)
+        //- Reference to the Time object
         const Time& runTime_;
 
         //- Reference to the plasma transport model
         const plasmaTransport& transport_;
 
-        //- Dictionary to hold control parameters
+        //- Dictionary of control parameters
         dictionary dict_;
 
     // Diagnostic switches
@@ -98,8 +98,7 @@ public:
 
     // Member Functions
 
-        //- Report the requested diagnostics to the console
-        //  (Will call read() internally to allow runtime modification)
+        //- Report the requested diagnostics
         void report();
 
     // Accessors (Getters)

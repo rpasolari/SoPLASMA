@@ -58,6 +58,7 @@ Author
 #include "plasmaSpecies.H"
 #include "plasmaTransport.H"
 #include "driftDiffusion.H"
+#include "plasmaSimulationDiagnostics.H"
 
 int main(int argc, char *argv[])
 {
@@ -92,13 +93,17 @@ int main(int argc, char *argv[])
 
     //- Create the timeControl manager and set initial time-step
     plasmaTimeControl timeControl(runTime, gasMesh());
+    timeControl.setInitialDeltaT(transport);
+
+    //- Create the plasmaSimulationDiagnostics manager
+    plasmaSimulationDiagnostics diagnostics(runTime, transport);
+
 
 //     Info << "Registry objects:" << endl;
 // forAllConstIters(gasMesh().thisDb(), iter)
 // {
 //     Info << "  " << iter()->type() << "  " << iter()->name() << endl;
 // }
-    timeControl.setInitialDeltaT(transport);
 
     #include "reportSimulationSummary.H"
 
@@ -118,10 +123,11 @@ int main(int argc, char *argv[])
         {
             if (em->PoissonScheme() == "semiImplicit")
             {
-                const volScalarField sigma   = transport.electricalConductivity();
-                const volScalarField diffSrc = transport.diffusiveChargeSource();
-
-                em->solve(sigma, diffSrc);
+                em->solve
+                (
+                    transport.electricalConductivity(), 
+                    transport.diffusiveChargeSource()
+                );
 
                 transport.solve();
 
@@ -135,7 +141,8 @@ int main(int argc, char *argv[])
             }
         }
         
-    
+        diagnostics.report();
+
         runTime.write();
         runTime.printExecutionTime(Info);
     }

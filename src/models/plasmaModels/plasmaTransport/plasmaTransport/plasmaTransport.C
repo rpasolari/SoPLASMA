@@ -13,7 +13,7 @@
 
 #include "plasmaTransport.H"
 #include "plasmaTransportModel.H"
-#include "plasmaProfiler.H"
+#include "plasmaSimulationProfiler.H"
 #include "plasmaWallBC.H"
 
 

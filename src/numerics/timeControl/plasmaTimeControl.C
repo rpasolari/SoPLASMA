@@ -159,7 +159,16 @@ scalar plasmaTimeControl::patchVoltageAvg
     }
 
     const scalarField& phiPatch = phi.boundaryField()[patchi];
-    return phiPatch.empty() ? 0.0 : gAverage(phiPatch);
+
+    // Compute local contributions (zero on ranks with no faces on this patch)
+    scalar localSum   = phiPatch.empty() ? 0.0 : sum(phiPatch);
+    label  localCount = phiPatch.size();
+
+    // All ranks participate in both reductions
+    reduce(localSum,   sumOp<scalar>());
+    reduce(localCount, sumOp<label>());
+
+    return localCount > 0 ? localSum / scalar(localCount) : 0.0;
 }
 
 void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)

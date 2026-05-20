@@ -36,7 +36,7 @@ plasmaSpecies::plasmaSpecies
         (
             "plasmaSpeciesProperties",
             mesh.time().constant(),
-            mesh,
+            mesh.time(),
             IOobject::MUST_READ,
             IOobject::NO_WRITE
         )
@@ -317,6 +317,8 @@ void Foam::plasmaSpecies::updateChargeDensity()
         
         em_.chargeDensity() += numberDensities_[id] * speciesCharges_[id];
     }
+
+    Info << "Charge density updated." << endl;
 }
 
 void plasmaSpecies::clampNumberDensities()
@@ -325,6 +327,8 @@ void plasmaSpecies::clampNumberDensities()
     {
         clampNumberDensity(i);
     }
+
+    Info << "Number densities clamped." << endl;
 }
 
 void plasmaSpecies::clampNumberDensity(const label i)
