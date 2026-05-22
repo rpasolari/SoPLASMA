@@ -98,8 +98,7 @@ protected:
     //- Total particle surface flux [1/s]
     PtrList<surfaceScalarField> particleFlux_;
 
-    //- Total wall flux [1/m2s/s]
-    PtrList<surfaceScalarField> wallFlux_;
+    volScalarField k_eff_;
 
 public:
 
@@ -170,10 +169,8 @@ public:
         inline const surfaceScalarField& diffusiveFlux(const label i) const;
         inline PtrList<surfaceScalarField>& diffusiveFlux();
         inline const PtrList<surfaceScalarField>& diffusiveFlux() const;
-        inline surfaceScalarField& wallFlux(const label i);
-        inline const surfaceScalarField& wallFlux(const label i) const;
-        inline const PtrList<surfaceScalarField>& wallFlux() const;
-        inline PtrList<surfaceScalarField>& wallFlux();
+
+        inline const volScalarField& k_eff() const { return k_eff_; };
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

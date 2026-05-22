@@ -20,9 +20,3 @@ variables
 # Ignore vscode files
 .vscode
 
-# Ignore temporary solvers
-/src/applications/solvers/driftDiffusionFoam
-/src/applications/solvers/mmsFoam
-/src/applications/solvers/mmsTimeFoam
-/src/applications/solvers/simpletransport1DFoam
-/src/applications/solvers/transport1DFoam

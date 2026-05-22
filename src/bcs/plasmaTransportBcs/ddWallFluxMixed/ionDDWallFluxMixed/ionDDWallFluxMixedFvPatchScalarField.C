@@ -62,7 +62,7 @@ ionDDWallFluxMixedFvPatchScalarField
 )
 :
     ddWallFluxMixedFvPatchScalarField(p, iF),
-    enableSurfaceCharging_(true)
+    enableSurfaceCharging_(false)
 {}
 
 // Dictionary Constructor
@@ -75,8 +75,8 @@ ionDDWallFluxMixedFvPatchScalarField
 )
 :
     ddWallFluxMixedFvPatchScalarField(p, iF, dict),
-    enableSurfaceCharging_(dict.lookupOrDefault<bool>
-        ("enableSurfaceCharging", true))
+    enableSurfaceCharging_
+            (dict.lookupOrDefault<bool>("enableSurfaceCharging", false))
 {}
 
 // Mapping Constructor

@@ -319,6 +319,7 @@ void Foam::plasmaSpecies::updateChargeDensity()
     }
 
     em_.chargeDensity().correctBoundaryConditions();
+
     Info << "Charge density updated." << endl;
 }
 
@@ -327,9 +328,10 @@ void plasmaSpecies::clampNumberDensities()
     forAll(numberDensities_, i)
     {
         clampNumberDensity(i);
+        numberDensities_[i].correctBoundaryConditions();
     }
 
-    Info << "Number densities clamped." << endl;
+    Info << "Species' number densities clamped." << endl;
 }
 
 void plasmaSpecies::clampNumberDensity(const label i)
@@ -344,6 +346,8 @@ void plasmaSpecies::clampNumberDensity(const label i)
             speciesMinNumberDensities_[i]
         );
         n = Foam::max(n, nMin);
+
+        n.correctBoundaryConditions();
     }
 }
 

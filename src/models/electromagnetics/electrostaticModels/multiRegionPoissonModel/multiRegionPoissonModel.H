@@ -159,21 +159,6 @@ public:
             const volScalarField& diffusiveChargeSource
         ) override;
 
-    // Matrix access
-
-        //- Return the LHS Poisson matrix: fvm::laplacian(ε, φ) (explicit)
-        virtual tmp<fvScalarMatrix> PoissonLHSMatrix() const override;
-
-        //- Return the Poisson equation (explicit Poisson)
-        virtual tmp<fvScalarMatrix> PoissonEquation() const override;
-
-        //- Return the semi-implicit Poisson equation (semi-implicit Poisson)
-        virtual tmp<fvScalarMatrix> PoissonEquation
-        (
-            const volScalarField& electricalConductivity,
-            const volScalarField& diffusiveChargeSource
-        ) const override;
-
     // Configuration
 
         //- Set uniform background density for reducedE

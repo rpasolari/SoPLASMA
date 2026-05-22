@@ -21,7 +21,7 @@ License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    foamPlasmaCreateSpeciesFields
+    plasmaCreateSpeciesFields
 
 Description
     Utility to generate template number-density fields (n_speciesName) in the
@@ -43,11 +43,11 @@ Usage
     \b plasmaDielectricFoam [OPTIONS]
 
     Example:
-        foamPlasmaCreateSpeciesFields -case plasmaCase
+        plasmaCreateSpeciesFields -case plasmaCase
 
         or 
 
-        mpirun -np 4 foamPlasmaCreateFields -parallel
+        mpirun -np 4 plasmaCreateFields -parallel
 
 Author
     Rention Pasolari

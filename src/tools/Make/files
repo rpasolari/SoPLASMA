@@ -1,4 +1,6 @@
-plasmaSimulationProfiler/plasmaSimulationProfiler.C
-plasmaSimulationDiagnostics/plasmaSimulationDiagnostics.C
+controls/timeControl/plasmaTimeControl.C
+
+diagnostics/plasmaSimulationProfiler/plasmaSimulationProfiler.C
+diagnostics/plasmaSimulationDiagnostics/plasmaSimulationDiagnostics.C
 
 LIB = $(FOAM_USER_LIBBIN)/libplasmaTools

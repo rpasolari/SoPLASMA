@@ -132,27 +132,42 @@ namespace fvm
         fvm.upper() = -coeffN;
         fvm.negSumDiag();
 
-        // Boundaries
-        forAll(rho.boundaryField(), patchi)
-        {
-            const fvPatchField<Type>& patchRho = rho.boundaryField()[patchi];
+// Boundaries 
+forAll(rho.boundaryField(), patchi)
+{
+    const fvPatchField<Type>& ptf = rho.boundaryField()[patchi];
+    const scalarField& patchPhi   = phi.boundaryField()[patchi];
 
-            const scalarField& patchPhi = phi.boundaryField()[patchi];
-            const scalarField& patchDiffCond = diffCond.boundaryField()[patchi];
+    scalarField patchDiffCond =
+          Df.boundaryField()[patchi]
+        * mesh.magSf().boundaryField()[patchi]
+        * mesh.deltaCoeffs().boundaryField()[patchi];
 
-            tmp<Field<Type>> tValInt = patchPhi 
-                                       * patchRho.valueInternalCoeffs(patchPhi);
-            tmp<Field<Type>> tValBnd = -patchPhi 
-                                       * patchRho.valueBoundaryCoeffs(patchPhi);  
+    scalarField patchPe = patchPhi / (patchDiffCond + VSMALL);
 
-            tmp<Field<Type>> tGradInt = patchDiffCond 
-                                            * patchRho.gradientInternalCoeffs();
-            tmp<Field<Type>> tGradBnd = -patchDiffCond 
-                                            * patchRho.gradientBoundaryCoeffs();
+    scalarField pCoeffP(ptf.size()), pCoeffB(ptf.size());
+    forAll(patchPe, facei)
+    {
+        pCoeffP[facei] = patchDiffCond[facei] * Bern(-patchPe[facei]);
+        pCoeffB[facei] = patchDiffCond[facei] * Bern( patchPe[facei]);
+    }
 
-            fvm.internalCoeffs()[patchi] = tValInt() - tGradInt();
-            fvm.boundaryCoeffs()[patchi] = tValBnd() - tGradBnd();
-        }
+    if (ptf.coupled())
+    {
+        // Processor/cyclic: fvMatrix multiplies boundaryCoeffs by rho_N automatically
+        fvm.internalCoeffs()[patchi] = pCoeffP;
+        fvm.boundaryCoeffs()[patchi] = pCoeffB;
+    }
+    else
+    {
+        // Physical boundary: get alpha, beta from BC
+        tmp<Field<Type>> tAlpha = ptf.valueInternalCoeffs(patchPhi);
+        tmp<Field<Type>> tBeta  = ptf.valueBoundaryCoeffs(patchPhi);
+
+        fvm.internalCoeffs()[patchi] = pCoeffP - pCoeffB * tAlpha();
+        fvm.boundaryCoeffs()[patchi] =           pCoeffB * tBeta();
+    }
+}
 
         return tfvm;
     }

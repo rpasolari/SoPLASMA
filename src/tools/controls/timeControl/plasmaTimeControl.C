@@ -182,8 +182,8 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     scalar maxSigma = 0.0;
     scalar maxConvFluxRate  = 0.0;
     scalar maxDiffFluxRate  = 0.0;
-    scalar meanConvFluxRate  = 0.0;
-    scalar meanDiffFluxRate  = 0.0;
+    // scalar meanConvFluxRate  = 0.0;
+    // scalar meanDiffFluxRate  = 0.0;
     scalar maxKeff = 0.0;
     scalar voltageRiseRate  = 0.0;
 
@@ -257,32 +257,30 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     // Chemistry Limit
     if (limitChemistryCo_ || printChemistryCo_)
     {
-        // const volScalarField& keff = transport.k_eff();
-        // maxKeff = gMax(mag(keff)().primitiveField());
+        const volScalarField& keff = transport.k_eff();
+        maxKeff = gMax(mag(keff)().primitiveField());
         
-        // scalar chemistryLimit = maxChemistryCo_ / (maxKeff + VSMALL);
-
-        // if (limitChemistryCo_)
-        // {
-        //     newDeltaT = min
-        //     (
-        //         newDeltaT,
-        //         maxChemistryCo_ / (maxKeff + VSMALL)
-        //     );
-        // }
+        if (limitChemistryCo_)
+        {
+            newDeltaT = min
+            (
+                newDeltaT,
+                maxChemistryCo_ / (maxKeff + VSMALL)
+            );
+        }
     }
 
     // Voltage rise rate
     if (limitVoltageRiseRate_ || printVoltageRiseRate_)
     {
         const scalar currentVoltage = patchVoltageAvg(transport);
-        const scalar dV = mag(currentVoltage - prevPatchVoltage_);
+        const scalar dV = currentVoltage - prevPatchVoltage_;
         voltageRiseRate = dV / (runTime_.deltaT0Value() + VSMALL);
 
         if (limitVoltageRiseRate_)
         {
             const scalar dtLimit =
-                maxVoltageRiseRate_ / (voltageRiseRate + VSMALL);
+                maxVoltageRiseRate_ / (mag(voltageRiseRate) + VSMALL);
 
             newDeltaT = min(newDeltaT, dtLimit);
         }
@@ -314,6 +312,7 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         bool   limited,
         scalar limitVal,
         bool   isBinding,
+        const std::string& maxLabel = "max",
         int    lw = 26) -> std::string
     {
         std::string line = "  " + label + ":";
@@ -323,7 +322,8 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
         if (limited)
         {
             while (static_cast<int>(line.size()) < lw + 14) line += ' ';
-            line += "[ max: " + std::string(Foam::name(limitVal).c_str()) + " ]";
+            line += "[ " + maxLabel + ": "
+                  + std::string(Foam::name(limitVal).c_str()) + " ]";
         }
 
         if (isBinding) line += "  <--";
@@ -337,16 +337,13 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     if (limitDielectricRelaxationRatio_ || printDielectricRelaxationRatio_)
     {
         const scalar val = (actualDeltaT * maxSigma) / eps0;
+        const bool lim  = limitDielectricRelaxationRatio_ && adjustTimeStep_;
         const bool binding =
-            limitDielectricRelaxationRatio_
-        && (actualDeltaT * maxSigma) / eps0 >= maxDielectricRelaxationRatio_ * 0.99;
+            lim && val >= maxDielectricRelaxationRatio_ * 0.99;
 
-        Info<< "  " << fmtLine
-            (
+        Info<< "  " << fmtLine(
                 "Diel. relax. ratio",
-                val,
-                limitDielectricRelaxationRatio_,
-                maxDielectricRelaxationRatio_,
+                val, lim, maxDielectricRelaxationRatio_,
                 binding
             ).c_str() << nl;
     }
@@ -355,25 +352,20 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     {
         const scalar convVal = maxConvFluxRate * actualDeltaT;
         const scalar diffVal = maxDiffFluxRate * actualDeltaT;
-        const bool convBinding =
-            limitSpeciesCo_ && convVal >= maxSpeciesConvectiveCo_ * 0.99;
-        const bool diffBinding =
-            limitSpeciesCo_ && diffVal >= maxSpeciesDiffusiveCo_ * 0.99;
+        const bool lim = limitSpeciesCo_ && adjustTimeStep_;
+        const bool convBinding = lim && convVal >= 
+                                                maxSpeciesConvectiveCo_ * 0.99;
+        const bool diffBinding = lim && diffVal >= 
+                                                 maxSpeciesDiffusiveCo_ * 0.99;
 
-        Info<< "  " << fmtLine
-            (
+        Info<< "  " << fmtLine(
                 "Co_conv (" + courantSpeciesName_ + ")",
-                convVal,
-                limitSpeciesCo_,
-                maxSpeciesConvectiveCo_,
+                convVal, lim, maxSpeciesConvectiveCo_,
                 convBinding
             ).c_str() << nl
-            << "  " << fmtLine
-            (
+            << "  " << fmtLine(
                 "Co_diff (" + courantSpeciesName_ + ")",
-                diffVal,
-                limitSpeciesCo_,
-                maxSpeciesDiffusiveCo_,
+                diffVal, lim, maxSpeciesDiffusiveCo_,
                 diffBinding
             ).c_str() << nl;
     }
@@ -381,14 +373,12 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     if (limitChemistryCo_ || printChemistryCo_)
     {
         const scalar val = maxKeff * actualDeltaT;
-        const bool binding = limitChemistryCo_ && val >= maxChemistryCo_ * 0.99;
+        const bool lim  = limitChemistryCo_ && adjustTimeStep_;
+        const bool binding = lim && val >= maxChemistryCo_ * 0.99;
 
-        Info<< "  " << fmtLine
-            (
+        Info<< "  " << fmtLine(
                 "Co_chem",
-                val,
-                limitChemistryCo_,
-                maxChemistryCo_,
+                val, lim, maxChemistryCo_,
                 binding
             ).c_str() << nl;
     }
@@ -396,17 +386,14 @@ void plasmaTimeControl::adjustDeltaT(const plasmaTransport& transport)
     if (limitVoltageRiseRate_ || printVoltageRiseRate_)
     {
         const scalar dVPerStep = voltageRiseRate * actualDeltaT;
+        const bool lim  = limitVoltageRiseRate_ && adjustTimeStep_;
         const bool binding =
-            limitVoltageRiseRate_
-        && dVPerStep >= maxVoltageRiseRate_ * 0.99;
+            lim && mag(dVPerStep) >= maxVoltageRiseRate_ * 0.99;
 
-        Info<< "  " << fmtLine
-            (
+        Info<< "  " << fmtLine(
                 "dV/step [V]",
-                dVPerStep,
-                limitVoltageRiseRate_,
-                maxVoltageRiseRate_,
-                binding
+                dVPerStep, lim, maxVoltageRiseRate_,
+                binding, "abs max"
             ).c_str() << nl;
     }
 
@@ -481,13 +468,13 @@ void plasmaTimeControl::setInitialDeltaT(const plasmaTransport& transport)
     // Chemistry Courant Limit
     if (limitChemistryCo_)
     {
-        // const volScalarField& keff = transport.k_eff();
-        // const scalar maxKeff = gMax(mag(keff)().primitiveField());
-        // newDeltaT = min
-        // (
-        //     newDeltaT,
-        //     maxChemistryCo_ / (maxKeff + VSMALL)
-        // );
+        const volScalarField& keff = transport.k_eff();
+        const scalar maxKeff = gMax(mag(keff)().primitiveField());
+        newDeltaT = min
+        (
+            newDeltaT,
+            maxChemistryCo_ / (maxKeff + VSMALL)
+        );
     }
 
     // Voltage rise rate

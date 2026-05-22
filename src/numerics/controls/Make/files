@@ -1,3 +1,0 @@
-timeControl/plasmaTimeControl.C
-
-LIB = $(FOAM_USER_LIBBIN)/libplasmaControls

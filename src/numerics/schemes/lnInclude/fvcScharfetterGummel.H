@@ -1,1 +1,0 @@
-../fvc/ScharfetterGummel/fvcScharfetterGummel.H

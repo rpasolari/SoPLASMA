@@ -6,7 +6,7 @@
   Description:
     Implementation of Foam::driftDiffusion.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -156,9 +156,9 @@ driftDiffusion::driftDiffusion
 )
 :
     plasmaTransportModel(modelName, dict, mesh, species, specieIndex),
-    fluxScheme_(dict.lookupOrDefault<word>("fluxScheme", "standard")),
     mobilityModel_(nullptr),
     diffusivityModel_(nullptr),
+    fluxScheme_(dict.lookupOrDefault<word>("fluxScheme", "standard")),
     cachedPhi_(),
     convectiveFlux_
     (
@@ -270,7 +270,6 @@ void driftDiffusion::splitSGFlux
         scalarField& diffBp       = diffFlux.boundaryFieldRef()[patchi];
         const scalarField& partBp = particleFlux_.boundaryField()[patchi];
 
-        // Upwind: interior cell when phi >= 0, face value from BC when phi < 0
         forAll(phiBp, fi)
         {
             convBp[fi] = phiBp[fi] >= 0
@@ -304,7 +303,7 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
 
     if (fluxScheme_ == "ScharfetterGummel")
     {
-        Info << "SG is used " << endl;
+        Info << "Discretizing transport with SG scheme..." << endl;
         fvScalarMatrix sgMat(fvm::ScharfetterGummel(n, phi, D));
 
         particleFlux_ = sgMat.flux();
@@ -314,11 +313,7 @@ tmp<fvScalarMatrix> driftDiffusion::nEqn() const
     }
     else
     {
-<<<<<<< Updated upstream
-        Info << "SG is used " << endl;
-=======
-        Info << "Standard scheme is used " << endl;
->>>>>>> Stashed changes
+        Info << "Discretizing transport with standard schemes..." << endl;
         fvScalarMatrix convMat(fvm::div(phi, n));
         convectiveFlux_ = convMat.flux();
         tEqn.ref() += convMat;
@@ -366,20 +361,6 @@ void driftDiffusion::updateFluxes
     convectiveFlux = convectiveFlux_;
     diffusiveFlux  = diffusiveFlux_;
     particleFlux   = particleFlux_;
-}
-
-void driftDiffusion::updateWallFlux(surfaceScalarField& wallFlux) const
-{
-    wallFlux = dimensionedScalar("zero", particleFlux_.dimensions(), 0.0);
-
-    forAll(wallFlux.boundaryField(), patchi)
-    {
-        if (!wallFlux.boundaryField()[patchi].coupled())
-        {
-            wallFlux.boundaryFieldRef()[patchi] =
-                particleFlux_.boundaryField()[patchi];
-        }
-    }
 }
 
 tmp<volScalarField> driftDiffusion::electricalConductivity() const

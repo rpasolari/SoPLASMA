@@ -166,21 +166,6 @@ public:
             const volScalarField& diffusiveChargeSource
         ) = 0;
 
-    // Matrix access
-    
-        //- Return the LHS Poisson matrix: fvm::laplacian(ε, φ) (explicit)
-        virtual tmp<fvScalarMatrix> PoissonLHSMatrix() const = 0;
-
-        //- Return the Poisson equation (explicit Poisson)
-        virtual tmp<fvScalarMatrix> PoissonEquation() const = 0;
-
-        //- Return the semi-implicit Poisson equation (semi-implicit Poisson)
-        virtual tmp<fvScalarMatrix> PoissonEquation
-        (
-            const volScalarField& electricalConductivity,
-            const volScalarField& diffusiveChargeSource
-        ) const = 0;
-
     // Field access
     
         const volScalarField& ePotential() const { return ePotential_; }

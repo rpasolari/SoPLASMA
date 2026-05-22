@@ -149,41 +149,15 @@ singleRegionPoissonModel::singleRegionPoissonModel
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
+//- Explicit Poisson branch
 void singleRegionPoissonModel::solve()
 {
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
-        fvScalarMatrix ePotentialEqn(PoissonEquation());
-
-        if (nonOrth < nNonOrthCorr_)
-        {
-            ePotentialEqn.relax();
-        }
-
-        ePotentialEqn.solve();
-    }
-
-    updateDerivedFields();
-}
-
-
-void singleRegionPoissonModel::solve
-(
-    const volScalarField& electricalConductivity,
-    const volScalarField& diffusiveChargeSource
-)
-{
-    if (PoissonScheme_ == "explicit")
-    {
-        this->solve();
-        return;
-    }
-
-    for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
-    {
         fvScalarMatrix ePotentialEqn
         (
-            PoissonEquation(electricalConductivity, diffusiveChargeSource)
+            fvm::laplacian(epsilon_, ePotential_)
+         == -chargeDensity_
         );
 
         if (nonOrth < nNonOrthCorr_)
@@ -197,40 +171,43 @@ void singleRegionPoissonModel::solve
     updateDerivedFields();
 }
 
-
-tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonLHSMatrix() const
-{
-    return fvm::laplacian(epsilon_, ePotential_);
-}
-
-
-tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonEquation() const
-{
-    tmp<fvScalarMatrix> tEqn = PoissonLHSMatrix();
-
-    tEqn.ref() == -chargeDensity_;
-
-    return tEqn;
-}
-
-
-tmp<fvScalarMatrix> singleRegionPoissonModel::PoissonEquation
+//- Semi-implicit Poisson branch
+void singleRegionPoissonModel::solve
 (
     const volScalarField& electricalConductivity,
     const volScalarField& diffusiveChargeSource
-) const
+)
 {
+    if (PoissonScheme_ == "explicit")
+    {
+        this->solve();
+        return;
+    }
+
     const dimensionedScalar deltaT = mesh_.time().deltaT();
 
-    tmp<fvScalarMatrix> tEqn = fvm::laplacian
-    (
-        epsilon_ + deltaT * electricalConductivity,
-        ePotential_
-    );
+    for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
+    {
+        fvScalarMatrix ePotentialEqn
+        (
+            fvm::laplacian
+            (
+                epsilon_ + deltaT * electricalConductivity,
+                ePotential_
+            )
+         == -chargeDensity_
+            - deltaT * diffusiveChargeSource
+        );
 
-    tEqn.ref() == -chargeDensity_.oldTime() - deltaT * diffusiveChargeSource;
+        if (nonOrth < nNonOrthCorr_)
+        {
+            ePotentialEqn.relax();
+        }
 
-    return tEqn;
+        ePotentialEqn.solve();
+    }
+
+    updateDerivedFields();
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

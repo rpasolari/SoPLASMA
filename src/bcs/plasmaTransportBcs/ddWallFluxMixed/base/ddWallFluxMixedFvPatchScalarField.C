@@ -229,15 +229,18 @@ void ddWallFluxMixedFvPatchScalarField::updateCoeffs()
 
     // Access the patch mobility, diffusivity and electric field
     const scalarField& muf = ddModel.mobility().muPatch(p.index());
-    const scalarField& Df  = ddModel.diffusivity().DPatch(p.index());
-    const fvPatchField<vector>& Ef = 
-                                p.lookupPatchField<volVectorField, vector>("E");
+    const scalarField& Df = ddModel.diffusivity().DPatch(p.index());
+    const surfaceScalarField& phiE =
+            p.boundaryMesh().mesh().lookupObject<surfaceScalarField>("phiE");
+
+    const scalarField& phiEp = phiE.boundaryField()[p.index()];
+    const scalarField Ef(phiEp / p.magSf());
 
     // Physics Calculations
     word scheme = ddModel.fluxScheme();
-    const scalarField uDrift_n = Z * (muf * Ef) & nf;
-    const tmp<scalarField> tUEff = this->calcEffectiveWallVelocity
-                                                               (m, T, uDrift_n);
+    const scalarField uDrift_n(Z * muf * Ef);
+    const tmp<scalarField> tUEff = 
+        this->calcEffectiveWallVelocity(m, T, uDrift_n);
     const tmp<scalarField> tUAbs = this->calcAbsorptionVelocity(m, T, uDrift_n);
     const scalarField& uEff = tUEff();
     const scalarField& uAbs = tUAbs();

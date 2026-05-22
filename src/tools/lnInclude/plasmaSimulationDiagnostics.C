@@ -1,1 +1,1 @@
-../plasmaSimulationDiagnostics/plasmaSimulationDiagnostics.C
+../diagnostics/plasmaSimulationDiagnostics/plasmaSimulationDiagnostics.C

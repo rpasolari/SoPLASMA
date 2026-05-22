@@ -1,1 +1,1 @@
-../plasmaSimulationProfiler/plasmaSimulationProfiler.H
+../diagnostics/plasmaSimulationProfiler/plasmaSimulationProfiler.H

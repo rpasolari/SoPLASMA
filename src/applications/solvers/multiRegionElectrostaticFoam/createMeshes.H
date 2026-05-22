@@ -47,8 +47,5 @@ if (rp.found("dielectric"))
     dielectricNames = rp["dielectric"];
 }
 
-const label nTotalRegions = 
-    (gasNames.empty() ? 1 : gasNames.size()) + dielectricNames.size();
-
 #include "createGasMesh.H"
 #include "createDielectricMeshes.H"

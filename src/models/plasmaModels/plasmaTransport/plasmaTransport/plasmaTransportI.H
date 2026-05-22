@@ -127,30 +127,6 @@ Foam::plasmaTransport::diffusiveFlux() const
     return diffusiveFlux_;
 }
 
-inline Foam::surfaceScalarField&
-Foam::plasmaTransport::wallFlux(const Foam::label i)
-{
-    return wallFlux_[i];
-}
-
-inline const Foam::surfaceScalarField&
-Foam::plasmaTransport::wallFlux(const Foam::label i) const
-{
-    return wallFlux_[i];
-}
-
-inline Foam::PtrList<Foam::surfaceScalarField>&
-Foam::plasmaTransport::wallFlux()
-{
-    return wallFlux_;
-}
-
-inline const Foam::PtrList<Foam::surfaceScalarField>&
-Foam::plasmaTransport::wallFlux() const
-{
-    return wallFlux_;
-}
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

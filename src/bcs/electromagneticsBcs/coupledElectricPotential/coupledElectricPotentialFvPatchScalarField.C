@@ -303,9 +303,6 @@ void coupledElectricPotentialFvPatchScalarField::rmap
 )
 {
     mixedFvPatchScalarField::rmap(ptf, addr);
-
-    const coupledElectricPotentialFvPatchScalarField& tiptf =
-        refCast<const coupledElectricPotentialFvPatchScalarField>(ptf);
 }
 
 
@@ -361,11 +358,8 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
         return;
     }
 
-    const polyMesh& mesh = patch().boundaryMesh().mesh();
-
     const int oldTag = UPstream::incrMsgType();
 
-    const label patchi = patch().index();
     const mappedPatchBase& mpp =
         mappedPatchFieldBase<scalar>::mapper
         (

@@ -68,8 +68,7 @@ electromagneticsModel::electromagneticsModel
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        mesh,
-        dimensionedVector("zero", dimensionSet(1, 1, -3, 0, 0, -1, 0), vector::zero)
+        -fvc::grad(ePotential_)
     ),
     Emag_
     (

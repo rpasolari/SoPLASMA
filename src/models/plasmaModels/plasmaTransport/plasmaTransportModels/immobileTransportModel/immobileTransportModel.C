@@ -6,7 +6,7 @@
   Description:
     Implementation of Foam::immobileTransportModel.
 
-  Copyright (C) 2025 Rention Pasolari
+  Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
@@ -76,19 +76,6 @@ void immobileTransportModel::updateFluxes
         << "updateFluxes() called for immobile species '"
         << species_.speciesName(specieIndex_) << "'." << nl
         << "Immobile species have no particle flux." << nl
-        << "This is a logic error in plasmaTransport." << nl
-        << abort(FatalError);
-}
-
-void immobileTransportModel::updateWallFlux
-(
-    surfaceScalarField&
-) const
-{
-    FatalErrorInFunction
-        << "updateWallFlux() called for immobile species '"
-        << species_.speciesName(specieIndex_) << "'." << nl
-        << "Immobile species have no wall flux." << nl
         << "This is a logic error in plasmaTransport." << nl
         << abort(FatalError);
 }

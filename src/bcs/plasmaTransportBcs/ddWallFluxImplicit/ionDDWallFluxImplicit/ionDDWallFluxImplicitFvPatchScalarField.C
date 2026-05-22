@@ -56,7 +56,7 @@ ionDDWallFluxImplicitFvPatchScalarField
 )
 :
     ddWallFluxImplicitFvPatchScalarField(p, iF),
-    enableSurfaceCharging_(true)
+    enableSurfaceCharging_(false)
 {}
 
 // Dictionary Constructor
@@ -69,8 +69,8 @@ ionDDWallFluxImplicitFvPatchScalarField
 )
 :
     ddWallFluxImplicitFvPatchScalarField(p, iF, dict),
-    enableSurfaceCharging_(dict.lookupOrDefault<bool>
-        ("enableSurfaceCharging", true))
+    enableSurfaceCharging_
+            (dict.lookupOrDefault<bool>("enableSurfaceCharging", false))
 {}
 
 // Mapping Constructor

@@ -98,13 +98,6 @@ int main(int argc, char *argv[])
     //- Create the plasmaSimulationDiagnostics manager
     plasmaSimulationDiagnostics diagnostics(runTime, transport);
 
-
-//     Info << "Registry objects:" << endl;
-// forAllConstIters(gasMesh().thisDb(), iter)
-// {
-//     Info << "  " << iter()->type() << "  " << iter()->name() << endl;
-// }
-
     #include "reportSimulationSummary.H"
 
     runTime.writeNow();
@@ -119,24 +112,44 @@ int main(int argc, char *argv[])
 
         timeControl.adjustDeltaT(transport);
 
-        while (pimple.loop())
+        // Semi-implicit Poisson branch
+        if (em->PoissonScheme() == "semiImplicit")
         {
-            if (em->PoissonScheme() == "semiImplicit")
+            while (pimple.loop())
             {
+                // Solve electromagnetics
                 em->solve
                 (
                     transport.electricalConductivity(), 
                     transport.diffusiveChargeSource()
                 );
 
+                // Solve transport equations
                 transport.solve();
 
-                species.updateChargeDensity();
+                if (pimple.finalIter())
+                {
+                    // Update charge density
+                    species.updateChargeDensity();
+
+                    // Update surface charge
+                    transport.updateSurfaceCharge();
+                }
             }
-            else
+        }
+        else //Explicit Poisson branch
+        {
+            while (pimple.loop())
             {
+                // Solve transport equations
                 transport.solve();
+
+                // Update charge density
                 species.updateChargeDensity();
+
+                // Update surface charge
+                transport.updateSurfaceCharge();
+
                 em->solve();
             }
         }

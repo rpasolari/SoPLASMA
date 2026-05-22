@@ -5,7 +5,7 @@ License
     The SoPLASMA is not part of OpenFOAM but is developed using the
     OpenFOAM framework and linked against OpenFOAM libraries.
 
-    Copyright (C) 2025
+    Copyright (C) 2026
         Rention Pasolari
 
     This program is free software: you can redistribute it and/or modify it
@@ -148,12 +148,6 @@ public:
             surfaceScalarField& convectiveFlux,
             surfaceScalarField& diffusiveFlux,
             surfaceScalarField& particleFlux
-        ) const override;
-
-        //- Update wall flux from boundary faces of total flux
-        virtual void updateWallFlux
-        (
-            surfaceScalarField& wallFlux
         ) const override;
 
         //- Return electrical conductivity [S/m]

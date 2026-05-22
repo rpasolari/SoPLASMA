@@ -211,22 +211,19 @@ ddWallFluxImplicitFvPatchScalarField::valueInternalCoeffs
             << exit(FatalError);
     }
 
+    // Access the patch mobility, diffusivity and electric field
     const driftDiffusion& ddModel = refCast<const driftDiffusion>(baseModel);
 
-    //--------------------------
-    // Access the patch mobility and electric field
     const scalarField& muf = ddModel.mobility().muPatch(p.index());
-    // const fvPatchField<vector>& Ef = 
-    //                             p.lookupPatchField<volVectorField, vector>("E");
-// In ddWallFluxImplicit::valueInternalCoeffs — replace E lookup with phiE
-    // Use phiE directly — exact face-normal E, consistent with fvm::div(phi,n)
-    // Use phiE directly — exact face-normal E, consistent with fvm::div(phi,n)
     const surfaceScalarField& phiE =
-        p.boundaryMesh().mesh().lookupObject<surfaceScalarField>("phiE");
+            p.boundaryMesh().mesh().lookupObject<surfaceScalarField>("phiE");
 
-    const scalarField Ef_n(phiE.boundaryField()[p.index()] / p.magSf());
+    const scalarField& phiEp = phiE.boundaryField()[p.index()];
+    const scalarField Ef(phiEp / p.magSf());
 
-    const scalarField uDrift_n(Z * muf * Ef_n);
+    // Physics Calculations
+    word scheme = ddModel.fluxScheme();
+    const scalarField uDrift_n(Z * muf * Ef);
 
     return tmp<Field<scalar>>(new scalarField(pos(uDrift_n)));
 }

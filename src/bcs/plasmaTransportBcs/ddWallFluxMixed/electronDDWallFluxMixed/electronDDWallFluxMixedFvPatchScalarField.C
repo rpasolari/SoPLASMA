@@ -87,7 +87,7 @@ electronDDWallFluxMixedFvPatchScalarField
 )
 :
     ddWallFluxMixedFvPatchScalarField(p, iF),
-    enableSurfaceCharging_(true),
+    enableSurfaceCharging_(false),
     includeDriftFlux_(false),
     enableSEE_(false),
     defaultSEEC_(0.0),
@@ -106,8 +106,8 @@ electronDDWallFluxMixedFvPatchScalarField
 )
 :
     ddWallFluxMixedFvPatchScalarField(p, iF, dict),
-    enableSurfaceCharging_(dict.lookupOrDefault<bool>
-                                               ("enableSurfaceCharging", true)),
+    enableSurfaceCharging_
+            (dict.lookupOrDefault<bool>("enableSurfaceCharging", false)),
     includeDriftFlux_(dict.lookupOrDefault<bool>("includeDriftFlux", false)),
     enableSEE_(dict.lookupOrDefault<bool>("enableSEE", false)),
     defaultSEEC_(dict.lookupOrDefault<scalar>("defaultSEEC", 0.05)),
