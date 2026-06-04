@@ -137,9 +137,6 @@ public:
         //- Return total diffusive charge source [C/m^3/s]
         tmp<volScalarField> diffusiveChargeSource() const;
 
-        //- Return the per-species advective flux [m3/s]
-        tmp<surfaceScalarField> advectiveFlux(const label i) const;
-
         virtual bool writeData(Ostream& os) const;
 
     // Access

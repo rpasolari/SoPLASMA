@@ -59,6 +59,7 @@ Author
 #include "plasmaTransport.H"
 #include "driftDiffusion.H"
 #include "plasmaSimulationDiagnostics.H"
+#include "plasmaSimulationProfiler.H"
 
 int main(int argc, char *argv[])
 {
@@ -109,6 +110,7 @@ int main(int argc, char *argv[])
         ++runTime;
 
         Info << "Time = " << runTime.timeName() << nl << endl;
+        gasMesh().update();
 
         timeControl.adjustDeltaT(transport);
 

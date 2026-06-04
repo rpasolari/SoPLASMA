@@ -18,6 +18,7 @@
 
 // Remove these headers later
 #include "interpolationTable.H"
+#include "plasmaSimulationProfiler.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -191,12 +192,13 @@ plasmaTransport::plasmaTransport
 
 void plasmaTransport::correctTransportModels()
 {
+
     // Update transport coefficients for all models
     for (label i = 0; i < species_.nSpecies(); ++i)
     {
         transportModels_[i].correct();
     }
-
+    
     Info << "Transport models corrected." << endl;
 }
 
@@ -204,9 +206,13 @@ void plasmaTransport::correctTransportModels()
 void plasmaTransport::solve()
 {
     // ── 1. Update transport coefficients ──────────────────────────────────────
+    // plasmaSimulationProfiler::start("correctTransportModels");
     correctTransportModels();
+    // plasmaSimulationProfiler::stop("correctTransportModels");
 
     // ── 2. Species and fields ─────────────────────────────────────────────────
+    // plasmaSimulationProfiler::start("Chemistry");
+
     const label eIdx = species_.electronSpeciesID();
     const label iIdx = species_.speciesID("pIon");
 
@@ -216,74 +222,125 @@ void plasmaTransport::solve()
     // Calculate Electric field magnitude
     const volScalarField& Emag = species_.em().Emag();
 
-    // Protection against division by zero
-    volScalarField safeEmag = max
+    // alphaEff field (one allocation, reused)
+    volScalarField alphaEff
     (
-        Emag, 
-        dimensionedScalar("minE", Emag.dimensions(), 1.0)
+        IOobject("alphaEff", mesh_.time().timeName(), mesh_,
+                IOobject::NO_READ, IOobject::NO_WRITE),
+        mesh_,
+        dimensionedScalar("zero", dimensionSet(0, -1, 0, 0, 0, 0, 0), 0.0)
     );
 
-    // Ionization coefficient (alpha) calculation
-    dimensionedScalar E_const("E_const", Emag.dimensions(), 2.73e7);
-    dimensionedScalar E_pow_const("Ep", pow(Emag.dimensions(), 3), 4.3666e26);
-    dimensionedScalar aScale("as", dimensionSet(0, -1, 0, 0, 0, 0, 0), 1.0);
+    // constants as plain scalars — no dimensioned temporaries
+    const scalar E_const = 2.73e7;
+    const scalar E_pow   = 4.3666e26;
+    const scalar eta     = 340.75;
 
-    volScalarField alpha = 
-        (1.1944e6 + E_pow_const / pow(safeEmag, 3)) 
-      * exp(-E_const / safeEmag)
-      * aScale;
-    
-    alpha.correctBoundaryConditions();
+    scalarField& a = alphaEff.primitiveFieldRef();
+    const scalarField& E = Emag.primitiveField();
 
-    // Source term assembly
-    dimensionedScalar eta("eta", alpha.dimensions(), 340.75);
-    volScalarField alphaEff = alpha - eta;
-
-    List<autoPtr<fvScalarMatrix>> eqns(species_.nSpecies());
-    for (label i = 0; i < species_.nSpecies(); ++i)
-        eqns[i].reset(transportModels_[i].nEqn().ptr());
-
-    for (const label i : species_.mobileSpeciesIDs())
+    forAll(a, c)
     {
-        transportModels_[i].updateFluxes
-        (
-            *eqns[i],
-            convectiveFlux_[i],
-            diffusiveFlux_[i],
-            particleFlux_[i]
-        );
+        const scalar Ec = max(E[c], 1.0);              // safeEmag inline
+        const scalar inv = 1.0/Ec;
+        a[c] = (1.1944e6 + E_pow*inv*inv*inv)          // pow(.,3) -> mult
+            * Foam::exp(-E_const*inv)
+            - eta;
     }
+    alphaEff.correctBoundaryConditions();
 
-    const volVectorField driftFlux = fvc::reconstruct(convectiveFlux_[eIdx]);
 
-    volScalarField explicitSource_ = alphaEff * mag(driftFlux);
+    // plasmaSimulationProfiler::stop("Chemistry");
+
+
+
+
+
+
+
+
+    // ── 4. Build equations for ALL species ────────────────────────────────
+    List<autoPtr<fvScalarMatrix>> eqns(species_.nSpecies());
+
+    for (label i = 0; i < species_.nSpecies(); ++i)
+    {
+        eqns[i].reset(transportModels_[i].nEqn().ptr());
+    }
     
-    k_eff_ = explicitSource_ / species_.numberDensity(eIdx);
+
+//    const volVectorField driftFlux = fvc::reconstruct(convectiveFlux_[eIdx]);
+
+//    volScalarField explicitSource_ = alphaEff * mag(driftFlux);
+    
+//    k_eff_ = explicitSource_ / species_.numberDensity(eIdx);
+//    k_eff_.correctBoundaryConditions();
+
+    volScalarField explicitSource
+    (
+        IOobject
+        (
+            "explicitSource",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("zero", dimensionSet(0, -3, -1, 0, 0, 0, 0), 0.0)
+    );
+
+    {
+        const scalar mu_ref = 2.398;   // mobility prefactor
+        const scalar mu_exp = -0.26;   // mobility exponent
+
+        scalarField& src      = explicitSource.primitiveFieldRef();
+        scalarField& keff      = k_eff_.primitiveFieldRef();
+        const scalarField& aEff = alphaEff.primitiveField();
+        const scalarField& E    = Emag.primitiveField();
+        const scalarField& neI  = ne.primitiveField();
+
+        forAll(src, c)
+        {
+            const scalar Ec = max(E[c], 1.0);
+            const scalar mu = mu_ref * Foam::pow(Ec, mu_exp);  // fractional pow
+            keff[c] = aEff[c] * mu * Ec;
+            src[c]  = keff[c] * neI[c];
+        }
+    }
     k_eff_.correctBoundaryConditions();
-
-// const volScalarField mu_e
-// (
-//     dimensionedScalar("mu_ref", dimensionSet(-1, 0, 2, 0, 0, 1, 0), 2.398)
-//   * pow(safeEmag / dimensionedScalar("E_ref", dimensionSet(1, 1, -3, 0, 0, -1, 0), 1.0), scalar(-0.26))
-// );
-
-// const volScalarField veMag = mu_e * safeEmag;
-//     k_eff_ = alphaEff * veMag;
-//     k_eff_.correctBoundaryConditions();
-//     volScalarField explicitSource_ = k_eff_ * species_.numberDensity(eIdx);
 
 
     // Solve Continuity Equations
-    *eqns[eIdx] -= explicitSource_;
-    *eqns[iIdx] -= explicitSource_;
+    *eqns[eIdx] -= explicitSource;
+    *eqns[iIdx] -= explicitSource;
+    
 
+    // plasmaSimulationProfiler::start("Solve equations transport");
     eqns[iIdx]->solve();
     eqns[eIdx]->solve();
+    // plasmaSimulationProfiler::stop("Solve equations transport");
 
+    // plasmaSimulationProfiler::start("Correct b.c. equations transport");
     ne.correctBoundaryConditions();
     ni.correctBoundaryConditions();
+    // plasmaSimulationProfiler::stop("Correct b.c. equations transport");
+    
 
+    // plasmaSimulationProfiler::start("Clamp number densities");
     species_.clampNumberDensities();
+    // plasmaSimulationProfiler::stop("Clamp number densities");
+
+    // ── 5. Update fluxes for mobile species ───────────────────────────────
+    // for (const label i : species_.mobileSpeciesIDs())
+    // {
+    //     transportModels_[i].updateFluxes
+    //     (
+    //         *eqns[i],
+    //         convectiveFlux_[i],
+    //         diffusiveFlux_[i],
+    //         particleFlux_[i]
+    //     );
+    // }
 }
 
 // // Solve for SDBD
@@ -494,8 +551,7 @@ tmp<volScalarField> plasmaTransport::electricalConductivity() const
     // Get reference
     volScalarField& sigma = tSigma.ref();
 
-    const label nSpecies = species_.nSpecies();
-    for (label i = 0; i < nSpecies; ++i)
+    for (const label i : species_.mobileSpeciesIDs())
     {
         sigma.ref() += transportModels_[i].electricalConductivity();
     }
@@ -530,8 +586,7 @@ tmp<volScalarField> plasmaTransport::diffusiveChargeSource() const
     // Get reference
     volScalarField& rhoDiff = tRhoDiff.ref();
 
-    const label nSpecies = species_.nSpecies();
-    for (label i = 0; i < nSpecies; ++i)
+    for (const label i : species_.mobileSpeciesIDs())
     {
         rhoDiff.ref() += transportModels_[i].diffusiveChargeSource();
     }

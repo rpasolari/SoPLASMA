@@ -306,11 +306,7 @@ void coupledElectricPotentialFvPatchScalarField::rmap
 }
 
 
-tmp<scalarField>
-coupledElectricPotentialFvPatchScalarField::epsilon
-(
-    const scalarField& phiP
-) const
+scalar coupledElectricPotentialFvPatchScalarField::epsilon() const
 {
     scalar epsilonR = 1.0;
     
@@ -341,14 +337,7 @@ coupledElectricPotentialFvPatchScalarField::epsilon
             << exit(FatalError);
     }
 
-    return tmp<scalarField>
-    (
-        new scalarField
-        (
-            phiP.size(),
-            epsilonR * constant::plasma::epsilon0.value()
-        )
-    );
+    return epsilonR * constant::plasma::epsilon0.value();
 }
 
 void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
@@ -370,8 +359,8 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     const scalarField phiC(patchInternalField());
     const scalarField& phiP = *this;
 
-    const scalarField epsilonPhiP(epsilon(phiP));
-    const scalarField epsilonDelta(epsilonPhiP*patch().deltaCoeffs());
+    const scalar epsilonPhiP = epsilon();
+    const scalarField epsilonDelta(epsilonPhiP * patch().deltaCoeffs());
 
     scalarField phiCNbr;
     scalarField phiPNbr;
@@ -392,7 +381,8 @@ void coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 
         phiCNbr = nbrField.patchInternalField();
         phiPNbr = nbrField;
-        epsilonDeltaNbr = nbrField.epsilon(nbrField)*nbrPatch.deltaCoeffs();
+        const scalar epsilonNbr = nbrField.epsilon();
+        epsilonDeltaNbr = epsilonNbr * nbrPatch.deltaCoeffs();
     }
     else
     {
@@ -732,16 +722,11 @@ beta() const
     scalarField phiCNbr(nbrField.patchInternalField());
     mpp.distribute(phiCNbr);
 
-    scalarField epsilonDeltaNbr
-    (
-        nbrField.epsilon(phiCNbr) * nbrPatch.deltaCoeffs()
-    );
+    scalarField epsilonDeltaNbr(nbrField.epsilon() * nbrPatch.deltaCoeffs());
     mpp.distribute(epsilonDeltaNbr);
 
-    scalarField epsilonDelta
-    (
-        epsilon(*this)() * patch().deltaCoeffs()
-    );
+    scalarField epsilonDelta(epsilon() * patch().deltaCoeffs());
+
     return (epsilonDeltaNbr + epsilonDelta);
 }
 

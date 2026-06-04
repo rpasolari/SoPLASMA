@@ -14,6 +14,7 @@
 #include "addToRunTimeSelectionTable.H"
 
 #include "singleRegionPoissonModel.H"
+#include "plasmaSimulationProfiler.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -34,8 +35,11 @@ addToRunTimeSelectionTable
 
 void singleRegionPoissonModel::updateDerivedFields()
 {
+    // plasmaSimulationProfiler::start("phiECalc_");
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
+    // plasmaSimulationProfiler::stop("phiECalc_");
 
+    // plasmaSimulationProfiler::start("ECalc");
     if (EScheme_ == "reconstruct")
     {
         E_ = fvc::reconstruct(phiE_);
@@ -44,38 +48,28 @@ void singleRegionPoissonModel::updateDerivedFields()
     {
         E_ = -fvc::grad(ePotential_);
     }
-    E_.correctBoundaryConditions();
+    // plasmaSimulationProfiler::stop("ECalc");
 
+    // plasmaSimulationProfiler::start("EBoundaryConditions");
+    E_.correctBoundaryConditions();
+    // plasmaSimulationProfiler::stop("EBoundaryConditions");
+
+    // plasmaSimulationProfiler::start("EMag");
     Emag_ = mag(E_);
     Emag_.correctBoundaryConditions();
+    // plasmaSimulationProfiler::stop("EMag");
 
+    // plasmaSimulationProfiler::start("reducedE");
     if (backgroundDensityFieldPtr_)
     {
-        reducedE_ = Emag_ /
-            (
-                *backgroundDensityFieldPtr_
-              + dimensionedScalar
-                (
-                    "s",
-                    backgroundDensityUniform_.dimensions(),
-                    SMALL
-                )
-            );
+        reducedE_ = Emag_ / *backgroundDensityFieldPtr_;
     }
     else
     {
-        reducedE_ = Emag_ /
-            (
-                backgroundDensityUniform_
-              + dimensionedScalar
-                (
-                    "s",
-                    backgroundDensityUniform_.dimensions(),
-                    SMALL
-                )
-            );
+        reducedE_ = Emag_ / backgroundDensityUniform_;
     }
     reducedE_.correctBoundaryConditions();
+    // plasmaSimulationProfiler::stop("reducedE");
 }
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -154,21 +148,26 @@ void singleRegionPoissonModel::solve()
 {
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
+        // plasmaSimulationProfiler::start("ePotentialEqnBuild");
         fvScalarMatrix ePotentialEqn
         (
             fvm::laplacian(epsilon_, ePotential_)
          == -chargeDensity_
         );
+        // plasmaSimulationProfiler::stop("ePotentialEqnBuild");
 
         if (nonOrth < nNonOrthCorr_)
         {
             ePotentialEqn.relax();
         }
-
+        // plasmaSimulationProfiler::start("ePotentialEqnSolve");
         ePotentialEqn.solve();
+        // plasmaSimulationProfiler::stop("ePotentialEqnSolve");
     }
 
+    // plasmaSimulationProfiler::start("emupdateDerivedFields");
     updateDerivedFields();
+    // plasmaSimulationProfiler::stop("emupdateDerivedFields");
 }
 
 //- Semi-implicit Poisson branch
@@ -186,17 +185,18 @@ void singleRegionPoissonModel::solve
 
     const dimensionedScalar deltaT = mesh_.time().deltaT();
 
+    const volScalarField effEps(epsilon_ + deltaT * electricalConductivity);
+    const volScalarField rhsSource(-chargeDensity_ - deltaT * diffusiveChargeSource);
+
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
         fvScalarMatrix ePotentialEqn
         (
             fvm::laplacian
             (
-                epsilon_ + deltaT * electricalConductivity,
-                ePotential_
+                effEps, ePotential_
             )
-         == -chargeDensity_
-            - deltaT * diffusiveChargeSource
+         == rhsSource
         );
 
         if (nonOrth < nNonOrthCorr_)

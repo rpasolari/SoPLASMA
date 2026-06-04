@@ -166,7 +166,6 @@ void ddWallFluxMixedFvPatchScalarField::updateCoeffs()
     }
 
     // Access the normal vector and delta coeffs
-    const vectorField nf = p.nf();
     const scalarField& delta = p.deltaCoeffs();
 
     // Determine species name (e.g., n_e -> e)
@@ -176,26 +175,6 @@ void ddWallFluxMixedFvPatchScalarField::updateCoeffs()
     {
         speciesName.erase(0, 2);
     }
-
-    // Lookup Temperature (T)
-    tmp<scalarField> tT;
-    if (TName_ == "none")
-    {
-        tT = tmp<scalarField>::New(p.size(), TValue_.value());
-    }
-    else if (db().foundObject<volScalarField>(TName_))
-    {
-        tT = p.lookupPatchField<volScalarField, scalar>(TName_);
-    }
-    else
-    {
-        FatalErrorInFunction
-            << "Temperature field '" << TName_ << "' not found in registry." 
-            << nl << "Either set TName to 'none' and provide a constant TValue,"
-            << " or ensure the field exists in the mesh registry." << nl
-            << exit(FatalError);
-    }
-    const scalarField& T = tT();
 
     // Lookup Transport Registry and Species Data
     if (!db().foundObject<plasmaTransport>("plasmaTransport"))
@@ -234,14 +213,38 @@ void ddWallFluxMixedFvPatchScalarField::updateCoeffs()
             p.boundaryMesh().mesh().lookupObject<surfaceScalarField>("phiE");
 
     const scalarField& phiEp = phiE.boundaryField()[p.index()];
-    const scalarField Ef(phiEp / p.magSf());
+    const scalarField uDrift_n(Z * muf * (phiEp / p.magSf()));
 
     // Physics Calculations
-    word scheme = ddModel.fluxScheme();
-    const scalarField uDrift_n(Z * muf * Ef);
-    const tmp<scalarField> tUEff = 
-        this->calcEffectiveWallVelocity(m, T, uDrift_n);
-    const tmp<scalarField> tUAbs = this->calcAbsorptionVelocity(m, T, uDrift_n);
+    tmp<scalarField> tUEff;
+    tmp<scalarField> tUAbs;
+
+    if (TName_ == "none")
+    {
+        const scalarField Tconst(p.size(), TValue_.value());
+        
+        tUEff = this->calcEffectiveWallVelocity(m, Tconst, uDrift_n);
+        tUAbs = this->calcAbsorptionVelocity(m, Tconst, uDrift_n);
+    }
+    else
+    {
+        const auto* TPtr = db().findObject<volScalarField>(TName_);
+
+        if (!TPtr)
+        {
+            FatalErrorInFunction
+                << "Temperature field '" << TName_ << "' not found in registry." << nl
+                << "Either set T to a constant scalar value (e.g., T 300;)," << nl
+                << "or ensure the volScalarField exists in the mesh registry." << nl
+                << exit(FatalError);
+        }
+
+        const scalarField& TField = TPtr->boundaryField()[p.index()];
+
+        tUEff = this->calcEffectiveWallVelocity(m, TField, uDrift_n);
+        tUAbs = this->calcAbsorptionVelocity(m, TField, uDrift_n);
+    }
+
     const scalarField& uEff = tUEff();
     const scalarField& uAbs = tUAbs();
 
@@ -252,11 +255,12 @@ void ddWallFluxMixedFvPatchScalarField::updateCoeffs()
     scalarField& f = this->valueFraction();
 
     // Set the D/Δ 
-    scalarField D_delta = Df * delta;
+    const scalarField D_delta(Df * delta);
+    const word scheme = ddModel.fluxScheme();
 
     if (scheme == "ScharfetterGummel")
     {
-        auto Bern = [](scalar x) -> scalar
+        const auto Bern = [](scalar x) -> scalar
         {
             const scalar ax = mag(x);
             if (ax < 1e-4) return 1.0 - 0.5*x + (x*x)/12.0;

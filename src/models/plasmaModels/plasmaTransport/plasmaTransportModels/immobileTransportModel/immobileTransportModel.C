@@ -82,22 +82,24 @@ void immobileTransportModel::updateFluxes
 
 tmp<volScalarField> immobileTransportModel::electricalConductivity() const
 {
-    return tmp<volScalarField>::New
-    (
-        IOobject("sigma0", mesh_.time().timeName(), mesh_),
-        mesh_,
-        dimensionedScalar("0", dimensionSet(-1, -3, 3, 0, 0, 2, 0), 0.0)
-    );
+    FatalErrorInFunction
+        << "electricalConductivity() called for immobile species '"
+        << species_.speciesName(specieIndex_) << "'." << nl
+        << "Immobile species have zero conductivity and should be "
+        << "skipped by the caller (use mobileSpeciesIDs/chargedSpeciesIDs)." << nl
+        << abort(FatalError);
+    return nullptr; 
 }
 
 tmp<volScalarField> immobileTransportModel::diffusiveChargeSource() const
 {
-    return tmp<volScalarField>::New
-    (
-        IOobject("diffSrc0", mesh_.time().timeName(), mesh_),
-        mesh_,
-        dimensionedScalar("0", dimensionSet(0, -3, 0, 0, 0, 1, 0), 0.0)
-    );
+    FatalErrorInFunction
+        << "diffusiveChargeSource() called for immobile species '"
+        << species_.speciesName(specieIndex_) << "'." << nl
+        << "Immobile species have zero diffusive charge source and should be "
+        << "skipped by the caller (use mobileSpeciesIDs/chargedSpeciesIDs)." << nl
+        << abort(FatalError);
+    return nullptr; 
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

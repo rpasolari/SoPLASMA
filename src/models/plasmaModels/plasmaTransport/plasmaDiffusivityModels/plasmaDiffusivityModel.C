@@ -70,15 +70,6 @@ plasmaDiffusivityModel::plasmaDiffusivityModel
         )
     )
 {
-    evaluator_ = plasmaPropertyEvaluator::New
-    (
-        modelType_,
-        dict_,
-        mesh_,
-        "D_" + species_.speciesName(specieIndex_),
-        D_.dimensions()
-    );
-
     isUniform_ = evaluator_->isUniform();
     isConstant_ = evaluator_->isConstant();
 

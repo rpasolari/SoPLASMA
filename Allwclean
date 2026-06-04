@@ -19,6 +19,7 @@ echo "Cleaning Libraries..."
 echo "-------------------------------------"
 echo ""
 
+wclean libso src/profilers
 wclean src/constants
 wclean libso src/numerics
 ./src/models/Allwclean

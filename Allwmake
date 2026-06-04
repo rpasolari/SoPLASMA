@@ -19,6 +19,7 @@ echo "Building Libraries..."
 echo "-------------------------------------"
 echo ""
 
+wmake libso src/profilers
 wmake libso src/constants
 wmake libso src/numerics
 ./src/models/Allwmake

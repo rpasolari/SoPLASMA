@@ -279,7 +279,12 @@ public:
         {
             if (!field.boundaryField()[patchi].coupled())
             {
-                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+                scalarField& pField = field.boundaryFieldRef()[patchi];
+                const scalarField& pVar = var.boundaryField()[patchi];   // reuse, no re-fetch
+                forAll(pField, i)
+                {
+                    pField[i] = table_.interpolateValue(pVar[i]);
+                }
             }
         }
 
@@ -422,7 +427,13 @@ public:
         {
             if (!field.boundaryField()[patchi].coupled())
             {
-                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+                scalarField& pField = field.boundaryFieldRef()[patchi];
+                const scalarField& pX = X.boundaryField()[patchi];       // reuse
+                const scalarField& pY = Y.boundaryField()[patchi];       // reuse
+                forAll(pField, i)
+                {
+                    pField[i] = table_(pX[i], pY[i]);
+                }
             }
         }
 
@@ -568,7 +579,8 @@ public:
         {
             if (!field.boundaryField()[patchi].coupled())
             {
-                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+                field.boundaryFieldRef()[patchi] =
+                    amplitude_ * pow(max(var.boundaryField()[patchi], SMALL), exponent_);
             }
         }
 
@@ -691,7 +703,8 @@ public:
         {
             if (!field.boundaryField()[patchi].coupled())
             {
-                evaluatePatch(field.boundaryFieldRef()[patchi], patchi);
+                field.boundaryFieldRef()[patchi] =
+                    functionPtr_->value(var.boundaryField()[patchi]);
             }
         }
 

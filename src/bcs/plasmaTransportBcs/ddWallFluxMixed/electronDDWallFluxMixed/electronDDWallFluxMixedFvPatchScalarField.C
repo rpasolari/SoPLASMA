@@ -33,7 +33,7 @@ makePatchTypeField
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
 tmp<scalarField> 
-               electronDDWallFluxMixedFvPatchScalarField::calcAbsorptionVelocity
+electronDDWallFluxMixedFvPatchScalarField::calcAbsorptionVelocity
 (
     const dimensionedScalar& m,
     const scalarField& T,
@@ -53,7 +53,7 @@ tmp<scalarField>
 }
 
 tmp<scalarField> 
-            electronDDWallFluxMixedFvPatchScalarField::calcEffectiveWallVelocity
+electronDDWallFluxMixedFvPatchScalarField::calcEffectiveWallVelocity
 (
     const dimensionedScalar& m,
     const scalarField& T,

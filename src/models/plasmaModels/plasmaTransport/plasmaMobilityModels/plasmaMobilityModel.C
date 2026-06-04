@@ -70,15 +70,6 @@ plasmaMobilityModel::plasmaMobilityModel
         )
     )
 {
-    evaluator_ = plasmaPropertyEvaluator::New
-    (
-        modelType_,
-        dict_,
-        mesh_,
-        "mu_" + species_.speciesName(specieIndex_),
-        mu_.dimensions()
-    );
-
     isUniform_ = evaluator_->isUniform();
     isConstant_ = evaluator_->isConstant();
 

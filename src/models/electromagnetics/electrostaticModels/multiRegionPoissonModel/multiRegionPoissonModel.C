@@ -52,29 +52,11 @@ void multiRegionPoissonModel::updateDerivedFields()
 
     if (backgroundDensityFieldPtr_)
     {
-        reducedE_ = Emag_ /
-            (
-                *backgroundDensityFieldPtr_
-              + dimensionedScalar
-                (
-                    "s",
-                    backgroundDensityUniform_.dimensions(),
-                    SMALL
-                )
-            );
+        reducedE_ = Emag_ / *backgroundDensityFieldPtr_;
     }
     else
     {
-        reducedE_ = Emag_ /
-            (
-                backgroundDensityUniform_
-              + dimensionedScalar
-                (
-                    "s",
-                    backgroundDensityUniform_.dimensions(),
-                    SMALL
-                )
-            );
+        reducedE_ = Emag_ / backgroundDensityUniform_;
     }
     reducedE_.correctBoundaryConditions();
 
@@ -139,16 +121,15 @@ void multiRegionPoissonModel::solveCoupled
     //     reg.ePotential().correctBoundaryConditions();
     // }
 
+    const volScalarField effEps(epsilon_ + deltaT * electricalConductivity);
+    const volScalarField rhsSource(-chargeDensity_ - deltaT * diffusiveChargeSource);
+
+
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
         fvScalarMatrix gasEqn
         (
-            fvm::laplacian
-            (
-                epsilon_ + deltaT * electricalConductivity,
-                ePotential_
-            )
-         == -chargeDensity_ - deltaT * diffusiveChargeSource
+            fvm::laplacian(effEps, ePotential_) == rhsSource
         );
 
         fvMatrixAssemblyPtr_->addFvMatrix(gasEqn);
@@ -273,6 +254,10 @@ void multiRegionPoissonModel::solveSegregated
 
     const dimensionedScalar deltaT = mesh_.time().deltaT();
 
+    const volScalarField effEps(epsilon_ + deltaT * electricalConductivity);
+    const volScalarField rhsSource(-chargeDensity_ - deltaT * diffusiveChargeSource);
+
+
     for (int iter = 1; iter <= maxNonCoupledIterations_; ++iter)
     {
         if (maxNonCoupledIterations_ > 1)
@@ -287,12 +272,7 @@ void multiRegionPoissonModel::solveSegregated
         {
             fvScalarMatrix gasEqn
             (
-                fvm::laplacian
-                (
-                    epsilon_ + deltaT * electricalConductivity,
-                    ePotential_
-                )
-             == -chargeDensity_ - deltaT * diffusiveChargeSource
+                fvm::laplacian(effEps, ePotential_) == rhsSource
             );
 
             if (nonOrth < nNonOrthCorr_)
