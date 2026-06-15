@@ -172,7 +172,7 @@ Therefore, even if you have installed the official petsc4Foam, you must use the 
 ### 1. Go to petsc4Foam ThirdParty directory (SoPLASMA)
 
 ```bash
-cd $FOAM_PLASMA_THIRD_PARTY/petsc4Foam
+cd $So_PLASMA_THIRD_PARTY/petsc4Foam
 ```
 
 ### 2. Build petsc4foam
