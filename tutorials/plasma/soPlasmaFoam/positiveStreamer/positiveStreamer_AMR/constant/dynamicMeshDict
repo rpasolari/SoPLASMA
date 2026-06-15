@@ -1,0 +1,60 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2012                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * /
+
+
+dynamicFvMesh                   adaptiveFvMesh;
+refiner                         polyRefiner;
+
+balance                         yes;
+allowableImbalance              0.1;
+loadPolicy                      cellCount;
+minCellsPerProc                 5;
+balanceInterval                 80;
+
+refineInterval                  10;
+unrefineInterval                100;
+maxRefinement                   3;
+
+errorEstimator                  fieldValue;
+fieldName                       alphaDx;
+
+lowerRefineLevel                0.5;
+upperRefineLevel                1e10;
+unrefineLevel                   0.1;
+upperUnrefineLevel              1e10;
+
+nRefinementBufferLayers         10;
+nUnrefinementBufferLayers       4;
+protectedPatches ();
+
+maxCells                        800000;
+expireSampledSurfacesOnLB       false;
+dumpLevel                       yes;
+
+correctFluxes
+(
+    ( phiE none )
+    ( particleFlux_e none )
+    ( dd_particleFlux_e none )
+    ( convectiveFlux_e none )
+    ( dd_convectiveFlux_e none )
+    ( diffusiveFlux_e none )
+    ( dd_diffusiveFlux_e none )
+);
+
+
+
+// ************************************************************************* //

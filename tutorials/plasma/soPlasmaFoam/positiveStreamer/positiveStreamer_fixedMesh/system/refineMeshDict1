@@ -1,0 +1,37 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      refineMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+set streamerRegion_refine_1;
+
+coordinateSystem global;
+globalCoeffs
+{
+    tan1         (1 0 0); // Radial direction (x)
+    tan2      (0 1 0); // Axial direction (y)
+}
+
+directions      (tan1 tan2);
+
+useHexTopology  no;
+
+geometricCut    false;
+
+writeMesh       no;
+
+applyMaxCellLimit no;
+
+
+// ************************************************************************* //

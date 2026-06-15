@@ -1,7 +1,7 @@
 # plate2D_surfCharge_timeVaryingBC_implicitBoundary
 
 **Solver:** `multiRegionElectrostaticFoam`  
-**Case:** 2D two-region plate with time-varying Dirichlet boundary,implicit interface coupling and surfCharge
+**Case:** 2D two-region plate with time-varying Dirichlet boundary,implicit interface coupling and surfCharge  
 **Author:** Rention Pasolari  
 **Toolkit:** SoPLASMA  
 **License:** GPLv3  

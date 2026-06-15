@@ -1,0 +1,151 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "../configuration/config"
+
+solvers
+{
+    ePotential
+    {
+        solver                     petsc;
+        implicitRegionCoupling     false;
+
+        petsc
+        {
+            options
+            {
+                ksp_type  cg;
+                pc_type  hypre;
+                mat_type  aij;
+            }
+            caching
+            {
+                matrix
+                {
+                    update $ePotentialMatrixCacheUpdate;
+                }
+
+                preconditioner
+                {
+                    update $ePotentialPreconditionerCacheUpdate;
+                }
+            }
+        }
+        tolerance       $ePotentialTolerance;
+        relTol          $ePotentialRelTolerance;
+        maxIter         2000;
+    }
+    ePotentialFinal
+    {
+        $ePotential;
+        relTol          0;
+    }
+
+    n_e
+    {
+        solver                         petsc;
+        implicitRegionCoupling         false;
+        petsc
+        {
+            options
+            {
+                ksp_type  cg;
+                pc_type  hypre;
+                mat_type  aij;
+            }
+            caching
+            {
+                matrix
+                {
+                    update $neMatrixCacheUpdate;
+                }
+
+                preconditioner
+                {
+                    update $nePreconditionerCacheUpdate;
+                }
+            }
+        }
+        tolerance       $neTolerance;
+        relTol          $neRelTolerance;
+        maxIter         2000;
+    }
+    n_eFinal
+    {
+        $n_e;
+        relTol          0;
+    }
+
+    n_pIon
+    {
+        solver                         petsc;
+        implicitRegionCoupling         false;
+        petsc
+        {
+            options
+            {
+                ksp_type  cg;
+                pc_type  hypre;
+                mat_type  aij;
+            }
+            caching
+            {
+                matrix
+                {
+                    update $npIonMatrixCacheUpdate;
+                }
+
+                preconditioner
+                {
+                    update $npIonPreconditionerCacheUpdate;
+                }
+            }
+        }
+        tolerance       $npIonTolerance;
+        relTol          $npIonRelTolerance;
+        maxIter         2000;
+    }
+    n_pIonFinal
+    {
+        $n_pIon;
+        relTol          0;
+    }
+
+}
+
+PIMPLE
+{
+    nOuterCorrectors    $nOuterCorrectors;
+    residualControl
+    {
+        ePotential
+        {
+            tolerance   $ePotentialTolerancePIMPLE;
+            relTol      0;
+        }
+        n_e
+        {
+            tolerance   $neTolerancePIMPLE;
+            relTol      0;
+        }
+        n_pIon
+        {
+            tolerance   $npIonTolerancePIMPLE;
+            relTol      0;
+        }
+    }
+
+}
+// ************************************************************************* //

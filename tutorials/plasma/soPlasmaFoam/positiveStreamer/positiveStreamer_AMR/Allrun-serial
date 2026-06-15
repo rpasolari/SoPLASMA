@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+configFile="configuration/config"
+
+# -----------------------------------------------------------------------------
+cd ${0%/*} || exit 1
+
+./Allclean
+
+# Create ParaView placeholder
+touch "case.foam"
+
+# Source run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# ----------------------------------------------------------------------------
+mkdir -p constant
+
+blockMesh
+
+topoSet -dict system/topoSetDict1
+refineMesh -dict system/refineMeshDict1 -overwrite
+topoSet -dict system/topoSetDict2
+refineMesh -dict system/refineMeshDict2 -overwrite
+
+extrudeMesh
+
+# ----------------------------------------------------------------------------
+if [ -f "$configFile" ]; then
+    # Extract the value assigned to matrixSolver, removing quotes and semicolons
+    solverType=$(grep "matrixSolver" "$configFile" | awk '{print $2}' | tr -d '";')
+
+    case "$solverType" in
+        "petsc")
+            echo "--> Detected Solver: PETSc"
+            cp system/fvSolution-petsc system/fvSolution 2>/dev/null || echo "Warning: fvSolution-petsc missing!"
+            ;;
+        "foam")
+            echo "--> Detected Solver: OpenFOAM Native"
+            cp system/fvSolution-foam system/fvSolution 2>/dev/null || echo "Warning: fvSolution-foam missing!"
+            ;;
+        *)
+            echo "Error: Unknown or missing matrixSolver type '$solverType' in $configFile"
+            exit 1
+            ;;
+    esac
+else
+    echo "Error: Configuration file missing at $configFile"
+    exit 1
+fi
+
+# -----------------------------------------------------------------------------
+cp -r 0.orig/* 0/
+
+# Create logs folder
+mkdir -p logs
+
+plasmaCreateSpeciesFields
+
+cp etc/changeDictionary system/changeDictionaryDict
+changeDictionary
+
+# -----------------------------------------------------------------------------
+python initGaussianSeed.py
+
+runApplication $(getApplication)
+
+reconstructPar -newTimes > log.reconst 2>&1
+

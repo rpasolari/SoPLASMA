@@ -1,0 +1,68 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+|  Master Simulation Configuration: Physical, Numerical & Solver Parameters   |
+\*---------------------------------------------------------------------------*/
+
+//- Physical Constants & Plasma Parameters
+appliedVoltage                      18.75e3;    // [V]
+
+//- Global Numerical Schemes (Macros for fvSchemes)
+driftDiffusionFluxScheme            standard;
+ddtSchemes                          backward;
+gradSchemes                         leastSquares;
+
+//- Species-Specific Schemes
+electronDriftDivScheme                  Gauss ROUNDF;
+electronDiffusionLaplacianScheme        Gauss harmonic corrected 0.33;
+ePotentialLaplacianScheme               Gauss linear corrected 0.33;
+electronMobilityInterpolationScheme     harmonic;
+electronDiffusivityInterpolationScheme  harmonic;
+ePotentialSnGradScheme                  corrected 0.33;
+snGradSpeciesScheme                     corrected 0.33;
+
+//- Matrix Solver & PETSc Settings
+matrixSolver                        "foam";
+nNonOrthogonalCorrectors            0;
+nOuterCorrectors                    1;
+ePotentialTolerancePIMPLE           1e-10;
+neTolerancePIMPLE                   1e-10;
+npIonTolerancePIMPLE                1e-10;
+
+ePotentialMatrixCacheUpdate         always;
+ePotentialPreconditionerCacheUpdate always;
+ePotentialTolerance                 1e-10;
+ePotentialRelTolerance              0.0;
+
+neMatrixCacheUpdate                 always;
+nePreconditionerCacheUpdate         always;
+neTolerance                         1e-10;
+neRelTolerance                      0.0;
+
+npIonMatrixCacheUpdate              always;
+npIonPreconditionerCacheUpdate      always;
+npIonTolerance                      1e-10;
+npIonRelTolerance                   0.0;
+
+//- Solution Control
+poissonSolver                       explicit;
+adjustTimeStep                      false;
+limitDielectricRelaxationRatio      false;
+printDielectricRelaxationRatio      true;
+maxDielectricRelaxationRatio        5;
+limitSpeciesCo                      false;
+printSpeciesCo                      true;
+maxSpeciesCo                        1;
+limitChemistryCo                    false;
+printChemistryCo                    true;
+maxChemistryCo                      0.9;
+limitVoltageRiseRate                false;
+printVoltageRiseRate                true;
+maxVoltageRiseRate                  1;
+
+//- Runtime & Parallelization
+endTime                             16e-9;
+deltaT                              1e-12;
+writeControl                        runTime;
+writeInterval                       4e-9;
+numberOfSubdomains                  8;
+
+// ************************************************************************* //

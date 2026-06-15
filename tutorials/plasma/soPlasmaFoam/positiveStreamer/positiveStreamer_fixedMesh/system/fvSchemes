@@ -1,0 +1,63 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "../configuration/config"
+
+ddtSchemes
+{
+    default                         $ddtSchemes;
+}
+
+gradSchemes
+{
+    default                         $gradSchemes;
+}
+
+divSchemes
+{
+    div(phi_e,n_e)                  $electronDriftDivScheme;
+}
+
+laplacianSchemes
+{
+    laplacian(D_e,n_e)              $electronDiffusionLaplacianScheme;
+
+    laplacian((epsilon+(deltaT*electricalConductivity)),ePotential)  $ePotentialLaplacianScheme;
+    laplacian(epsilon,ePotential)                                    $ePotentialLaplacianScheme;
+}
+
+interpolationSchemes
+{
+    interpolate(n_e)                linear;
+
+    interpolate(mu_e)               $electronMobilityInterpolationScheme; 
+    interpolate(D_e)                $electronDiffusivityInterpolationScheme;
+}
+
+snGradSchemes
+{
+    snGrad(n_e)                     $snGradSpeciesScheme;
+    snGrad(ePotential)              $ePotentialSnGradScheme;
+}
+
+fluxRequired
+{
+    default         no;
+    n_e             ;
+    n_pIon          ;
+    n_nIon          ;
+    ePotential      ;
+}
+// ************************************************************************* //

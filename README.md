@@ -17,7 +17,7 @@ The project is currently in its **initial development phase**. Functionality, st
 This project is distributed under the terms of the **GNU General Public License v3.0 (GPLv3)**.  
 For full license details, see the [LICENSE](LICENSE) file.
 
-© 2025 Rention Pasolari
+© 2026 Rention Pasolari
 
 This software is not part of OpenFOAM, but it is developed using the OpenFOAM framework and linked against OpenFOAM libraries (v2412).
 
@@ -36,9 +36,9 @@ The toolkit includes a number of additional components that may be required depe
 - **Crucial dependencies** needed for building the core functionality.
 - **Optional dependencies** that enable extended features. 
 - **Tutorial-specific tools** required only for certain example cases.  
-- **External libraries**, such as **petsc4foam** *(see [`docs/petsc4foam.md`](docs/petsc4foam.md))*
+- **External libraries**, such as **petsc4foam** *(see [`docs/getting_started/petsc4foam.md`](docs/getting_started/petsc4foam.md))*
 
-For a complete and recommended overview of all dependencies, see **[`docs/dependencies.md`](docs/dependencies.md)**.
+For a complete and recommended overview of all dependencies, see **[`docs/getting_started/dependencies.md`](docs/getting_started/dependencies.md)**.
 
 ## Tested Platforms
 
@@ -57,7 +57,7 @@ Additional Linux distributions and OpenFOAM (OpenCFD Ltd.) versions may work, bu
 
 ## 1. Install Required Dependencies
 
-Before installing OpenFOAM and the SoPLASMA, make sure all required dependencies are installed. Refer to **[`docs/dependencies.md`](docs/dependencies.md)** and install all packages marked as *required*.
+Before installing OpenFOAM and the SoPLASMA, make sure all required dependencies are installed. Refer to **[`docs/getting_started/dependencies.md`](docs/getting_started/dependencies.md)** and install all packages marked as *required*.
 
 
 ## 2. Install OpenFOAM v2412 (required)
@@ -220,8 +220,10 @@ If the compilation finishes without errors, the installation is complete.
 ⚠️ **IMPORTANT:** Some ThirdParty packages included with the SoPLASMA (but not required as prerequisites) may fail to build (for example, **petsc4foam**). To install these optional components, refer to the corresponding instructions in the `docs/` directory.
 
 
+## Contributors
 
-##	Contributions
+**Rention Pasolari** <r.pasolari@gmail.com>  
+Software architecture, implementation, testing, validation, documentation, maintenance
 
-All development and maintenance are currently handled by:
-**Rention Pasolari <r.pasolari@gmail.com>**  
+**Konstantinos Kourtzanidis** <kkourtza@gmail.com>  
+Conceptual design, physical modeling, debugging, testing, validation, scientific supervision

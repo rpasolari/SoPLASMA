@@ -1,0 +1,39 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    constant;
+    object      plasmaProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "../configuration/config"
+
+plasmaTimeControl
+{
+    adjustTimeStep                  $adjustTimeStep;
+
+    limitDielectricRelaxationRatio  $limitDielectricRelaxationRatio;
+    printDielectricRelaxationRatio  $printDielectricRelaxationRatio;
+    maxDielectricRelaxationRatio    $maxDielectricRelaxationRatio;
+    
+    limitSpeciesCo                  $limitSpeciesCo;
+    printSpeciesCo                  $printSpeciesCo;
+    maxSpeciesConvectiveCo          $maxSpeciesCo;
+    maxSpeciesDiffusiveCo           $maxSpeciesCo;
+    
+    limitChemistryCo                $limitChemistryCo;
+    printChemistryCo                $printChemistryCo;
+    maxChemistryCo                  $maxChemistryCo;
+
+    limitVoltageRiseRate            $limitVoltageRiseRate;
+    printVoltageRiseRate            $printVoltageRiseRate;
+    maxVoltageRiseRate              $maxVoltageRiseRate;
+    voltagePatchName                "active_electrode";
+}

@@ -1,7 +1,7 @@
 # plate2D_timeVaryingBC
 
 **Solver:** `singleRegionElectrostaticFoam`  
-**Case:** 2D plate with time-varying Dirichlet boundary condition  
+**Case:** 2D plate with time-varying Dirichlet boundary condition    
 **Author:** Rention Pasolari  
 **Toolkit:** SoPLASMA  
 **License:** GPLv3  

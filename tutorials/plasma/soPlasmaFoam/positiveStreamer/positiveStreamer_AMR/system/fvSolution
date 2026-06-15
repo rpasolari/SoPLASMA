@@ -1,0 +1,89 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "../configuration/config"
+
+solvers
+{
+    ePotential
+    {
+        solver          GAMG;
+	    smoother        GaussSeidel;
+        tolerance       $ePotentialTolerance;
+        relTol          0;
+        maxIter         2000;
+    }
+    ePotentialFinal
+    {
+        $ePotential;
+        relTol          0;
+    }
+
+    n_e
+    {
+        solver          PBiCGStab;
+        smoother        GaussSeidel;
+	    preconditioner  DILU;
+        tolerance       $neTolerance;
+        relTol          0;
+        maxIter         2000;
+    }
+    n_eFinal
+    {
+        $n_e;
+        relTol          0;
+    }
+
+    n_pIon
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+	    preconditioner  DIC;
+        tolerance       $npIonTolerance;
+        relTol          0;
+        maxIter         2000;
+    }
+    n_pIonFinal
+    {
+        $n_pIon;
+        relTol          0;
+    }
+}
+
+PIMPLE
+{
+    nOuterCorrectors    $nOuterCorrectors;
+    residualControl
+    {
+        ePotential
+        {
+            tolerance   $ePotentialTolerancePIMPLE;
+            relTol      0;
+        }
+        n_e
+        {
+            tolerance   $neTolerancePIMPLE;
+            relTol      0;
+        }
+        n_pIon
+        {
+            tolerance   $npIonTolerancePIMPLE;
+            relTol      0;
+        }
+    }
+
+}
+
+// ************************************************************************* //

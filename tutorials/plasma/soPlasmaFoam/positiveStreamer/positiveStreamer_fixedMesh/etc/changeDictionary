@@ -1,0 +1,194 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ePotential
+{
+    internalField   uniform 0;
+
+    boundaryField
+    {
+        ".*"
+        {
+            type            zeroGradient;
+        }
+
+        axis 
+        {
+            type            empty;
+        }
+
+        wedge_0 
+        {
+            type            wedge;
+        }
+
+        wedge_1 
+        {
+            type            wedge;
+        }
+
+        grounded_electrode
+        {
+            type            fixedValue;
+            value           uniform 0;
+        }
+
+        active_electrode
+        {
+            type            fixedValue;
+            value           uniform $appliedVoltage;
+        }
+
+        "procBoundary.*"
+        {
+            type            processor;
+        }
+    }
+}
+
+surfCharge
+{
+    internalField   uniform 0;
+
+    boundaryField
+    {
+        ".*"
+        {
+            type            fixedValue;
+            value           uniform 0;
+        }
+
+        axis 
+        {
+            type            empty;
+        }
+
+        wedge_0 
+        {
+            type            wedge;
+        }
+
+        wedge_1 
+        {
+            type            wedge;
+        }
+
+        "procBoundary.*"
+        {
+            type            processor;
+            value           uniform 0;
+        }
+    }
+}
+
+n_e
+{
+    internalField   uniform 1e13;
+
+    boundaryField
+    {
+        ".*"
+        {
+            type            zeroGradient;
+        }
+        axis 
+        {
+            type            empty;
+        }
+
+        wedge_0 
+        {
+            type            wedge;
+        }
+
+        wedge_1 
+        {
+            type            wedge;
+        }
+
+        grounded_electrode
+        {
+            type            zeroGradient;
+        }
+
+        active_electrode
+        {
+            type            zeroGradient;
+        }
+
+        far
+        {
+            type            inletOutlet;
+            phi             particleFlux_e;
+            inletValue      uniform 1e13;
+            value  $internalField;
+        }
+
+        "procBoundary.*"
+        {
+            type            processor;
+        }
+    }
+}
+
+n_pIon
+{
+    internalField   uniform 1e13;
+
+    boundaryField
+    {
+        ".*"
+        {
+            type            zeroGradient;
+        }
+
+        axis 
+        {
+            type            empty;
+        }
+
+        wedge_0 
+        {
+            type            wedge;
+        }
+
+        wedge_1 
+        {
+            type            wedge;
+        }
+
+        grounded_electrode
+        {
+            type            zeroGradient;
+        }
+
+        active_electrode
+        {
+            type            zeroGradient;
+        }
+
+        far
+        {
+            type            zeroGradient;
+        }
+
+        "procBoundary.*"
+        {
+            type            processor;
+        }
+    }
+}
+

@@ -1,0 +1,103 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+mergeType points;
+scale   1.0;
+
+vertices
+(
+    // Front plane (z = 0)
+    (0.0000 0.0000 0.0000) // 0
+    (0.0125 0.0000 0.0000) // 1
+    (0.0125 0.0125 0.0000) // 2
+    (0.0000 0.0125 0.0000) // 3
+
+    // Back plane (z = 0.001)
+    (0.0000 0.0000 0.0001) // 4
+    (0.0125 0.0000 0.0001) // 5
+    (0.0125 0.0125 0.0001) // 6
+    (0.0000 0.0125 0.0001) // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) 
+    (130 130 1) 
+    simpleGrading (1 1 1)
+);
+
+edges ();
+
+boundary
+(
+    // The "axis" is now just a flat side wall
+    axis
+    {
+        type empty; // Or symmetryPlane if appropriate
+        faces
+        (
+            (0 3 7 4)
+        );
+    }
+
+    grounded_electrode
+    {
+        type patch;
+        faces
+        (
+            (0 4 5 1)
+        );
+    }
+
+    active_electrode
+    {
+        type patch;
+        faces
+        (
+            (3 2 6 7)
+        );
+    }
+
+    far
+    {
+        type patch;
+        faces
+        (
+            (1 5 6 2)
+        );
+    }
+
+    // Standard 2D faces must be 'empty'
+    wedge_0
+    {
+        type empty;
+        faces
+        (
+            (0 1 2 3) // Front
+        );
+    }
+
+    wedge_1
+    {
+        type empty;
+        faces
+        (
+            (4 7 6 5) // Back
+        );
+    }
+);
+
+mergePatchPairs ();

@@ -1,0 +1,69 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      plasmaSpeciesProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * /
+#include "../configuration/config"
+
+activeSpecies (e pIon);
+
+backgroundGas
+{
+  name  "Air";
+  numberDensity   2.4463e25;
+  energy
+  {
+    solve   false;
+    T       300;
+  }
+}
+
+speciesProperties
+{
+  e
+  {
+    transportModel            driftDiffusion;
+    charge                    -1;
+    mass                      9.109e-31;
+    minNumberDensity          1e5;
+
+    driftDiffusionCoeffs
+    {
+      fluxScheme                $driftDiffusionFluxScheme;
+
+      mobility
+      {
+        type                    powerLaw;
+        lookupVariable          E;
+        amplitude               2.398; 
+        exponent                -0.26;
+      }
+
+      diffusivity
+      {
+        type                    powerLaw;
+        lookupVariable          E;
+        amplitude               4.3628e-3;  
+        exponent                0.22;
+      }
+    }
+  }
+
+  pIon
+  {
+    transportModel            immobile;
+    charge                    +1;
+    mass                      1.67e-26;
+    minNumberDensity          1e5;
+  }
+}

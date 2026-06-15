@@ -67,7 +67,7 @@ Some utilities and post-processing scripts in the `SoPLASMA` rely on a small set
 | **pandas**     | Data handling for analysis     | 2.3.3          |
 | **gmsh**       | Mesh generation for specific tutorials | 4.15.0 |
 
-These packages are listed in the file: [`docs/python_dependencies.txt`](./python_dependencies.txt)
+These packages are listed in the file: [`docs/getting_started/python_dependencies.txt`](./python_dependencies.txt)
 
 ### Installing the Python Dependencies
 
@@ -88,4 +88,4 @@ conda install --file docs/python_dependencies.txt
 ## 5. Notes
 
 - Optional dependencies should only be installed if you need the corresponding features.  
-- PETSc and petsc4Foam require correct linking with your OpenFOAM installation; see [`docs/petsc4foam.md`](./petsc4foam.md) for details.
+- PETSc and petsc4Foam require correct linking with your OpenFOAM installation; see [`docs/getting_started/petsc4foam.md`](./petsc4foam.md) for details.
