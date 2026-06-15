@@ -35,11 +35,11 @@ addToRunTimeSelectionTable
 
 void singleRegionPoissonModel::updateDerivedFields()
 {
-    // plasmaSimulationProfiler::start("phiECalc_");
+    plasmaSimulationProfiler::start("Electromagnetics", "Calc phiE");
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
-    // plasmaSimulationProfiler::stop("phiECalc_");
+    plasmaSimulationProfiler::stop("Electromagnetics", "Calc phiE");
 
-    // plasmaSimulationProfiler::start("ECalc");
+    plasmaSimulationProfiler::start("Electromagnetics", "Calc E");
     if (EScheme_ == "reconstruct")
     {
         E_ = fvc::reconstruct(phiE_);
@@ -48,18 +48,20 @@ void singleRegionPoissonModel::updateDerivedFields()
     {
         E_ = -fvc::grad(ePotential_);
     }
-    // plasmaSimulationProfiler::stop("ECalc");
+    plasmaSimulationProfiler::stop("Electromagnetics", "Calc E");
 
-    // plasmaSimulationProfiler::start("EBoundaryConditions");
+    plasmaSimulationProfiler::start("Electromagnetics", "Correct E boundary conditions");
     E_.correctBoundaryConditions();
-    // plasmaSimulationProfiler::stop("EBoundaryConditions");
+    plasmaSimulationProfiler::stop("Electromagnetics", "Correct E boundary conditions");
 
-    // plasmaSimulationProfiler::start("EMag");
+
+    plasmaSimulationProfiler::start("Electromagnetics", "Calc Emag");
     Emag_ = mag(E_);
     Emag_.correctBoundaryConditions();
-    // plasmaSimulationProfiler::stop("EMag");
+    plasmaSimulationProfiler::stop("Electromagnetics", "Calc Emag");
 
-    // plasmaSimulationProfiler::start("reducedE");
+
+    plasmaSimulationProfiler::start("Electromagnetics", "Calc reducedE");
     if (backgroundDensityFieldPtr_)
     {
         reducedE_ = Emag_ / *backgroundDensityFieldPtr_;
@@ -69,7 +71,8 @@ void singleRegionPoissonModel::updateDerivedFields()
         reducedE_ = Emag_ / backgroundDensityUniform_;
     }
     reducedE_.correctBoundaryConditions();
-    // plasmaSimulationProfiler::stop("reducedE");
+    plasmaSimulationProfiler::stop("Electromagnetics", "Calc reducedE");
+
 }
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -148,21 +151,21 @@ void singleRegionPoissonModel::solve()
 {
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
-        // plasmaSimulationProfiler::start("ePotentialEqnBuild");
+        plasmaSimulationProfiler::start("Electromagnetics", "Build ePotentialEqn");
         fvScalarMatrix ePotentialEqn
         (
             fvm::laplacian(epsilon_, ePotential_)
          == -chargeDensity_
         );
-        // plasmaSimulationProfiler::stop("ePotentialEqnBuild");
+        plasmaSimulationProfiler::stop("Electromagnetics", "Build ePotentialEqn");
 
         if (nonOrth < nNonOrthCorr_)
         {
             ePotentialEqn.relax();
         }
-        // plasmaSimulationProfiler::start("ePotentialEqnSolve");
+        plasmaSimulationProfiler::start("Electromagnetics", "Solve ePotentialEqn");
         ePotentialEqn.solve();
-        // plasmaSimulationProfiler::stop("ePotentialEqnSolve");
+        plasmaSimulationProfiler::stop("Electromagnetics", "Solve ePotentialEqn");
     }
 
     // plasmaSimulationProfiler::start("emupdateDerivedFields");

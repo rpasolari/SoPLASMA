@@ -99,6 +99,8 @@ protected:
     PtrList<surfaceScalarField> particleFlux_;
 
     volScalarField k_eff_;
+    volScalarField alpha_;
+     volScalarField alphaDx_;
 
 public:
 
@@ -168,6 +170,7 @@ public:
         inline const PtrList<surfaceScalarField>& diffusiveFlux() const;
 
         inline const volScalarField& k_eff() const { return k_eff_; };
+        const volScalarField& alpha() const noexcept { return alpha_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

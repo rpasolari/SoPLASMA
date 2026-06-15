@@ -2,6 +2,33 @@
 cd "${0%/*}" || exit                                # Run from this directory
 . "${WM_PROJECT_DIR:?}"/wmake/scripts/AllwmakeParseArguments
 
+#------------------------------------------------------------------------------
+
+foamv=${WM_PROJECT_VERSION}
+curr_branch=$(git branch --show-current)
+if [[ $curr_branch == "master" || $curr_branch == "v2212" ]]; then
+# Switch branches if necessary
+if [[ $foamv =~ ^v([0-9]{4})$ ]]; then
+    ver=${BASH_REMATCH[1]}
+    if [ "${ver}" -eq "2106" ]; then
+        echo "OpenFOAM-v${ver} detected, this version is not supported."
+        exit 1
+    else if [ "${ver}" -gt "2106" ]; then
+        echo "OpenFOAM-v${ver} detected, checking out the v2212 branch (Take care that this is successful)"
+        git checkout v2212
+    else
+        echo "OpenFOAM-v${ver} detected, checking out the master branch (Take care that this is successful)"
+        git checkout master
+    fi
+    fi
+else
+    echo "${WM_PROJECT}-${foamv} is not supported, this toolkit only works with OpenCFD's releases of OpenFOAM."
+    exit 1
+fi
+fi
+
+#------------------------------------------------------------------------------
+
 wmake src/lagrangian
 wmake src/loadPolicies
 wmake src/cpuLoad
@@ -11,4 +38,5 @@ wmake src/dynamicFvMesh
 wmake src/functionObjects
 
 wmake applications/utilities/updateMesh
+wmake applications/solvers/combustion/reactingDyMFoam
 # -----------------------------------------------------------------------------

@@ -113,7 +113,33 @@ plasmaTransport::plasmaTransport
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
-    )
+    ),
+    alpha_
+    (
+        IOobject
+        (
+            "alpha",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE       // switch to AUTO_WRITE if you want it in output for paraview
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, -1, 0, 0, 0, 0, 0), 0.0)
+    ),
+    alphaDx_
+    (
+        IOobject
+        (
+            "alphaDx",
+            mesh.time().timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimless, 0.0)
+)
 {
     constructTransportModels();
 
@@ -206,12 +232,12 @@ void plasmaTransport::correctTransportModels()
 void plasmaTransport::solve()
 {
     // ── 1. Update transport coefficients ──────────────────────────────────────
-    // plasmaSimulationProfiler::start("correctTransportModels");
+    plasmaSimulationProfiler::start("Plasma Transport", "correctTransportModels");
     correctTransportModels();
-    // plasmaSimulationProfiler::stop("correctTransportModels");
+    plasmaSimulationProfiler::stop("Plasma Transport", "correctTransportModels");
 
     // ── 2. Species and fields ─────────────────────────────────────────────────
-    // plasmaSimulationProfiler::start("Chemistry");
+    plasmaSimulationProfiler::start("Plasma Transport", "chemistry");
 
     const label eIdx = species_.electronSpeciesID();
     const label iIdx = species_.speciesID("pIon");
@@ -234,31 +260,58 @@ void plasmaTransport::solve()
     // constants as plain scalars — no dimensioned temporaries
     const scalar E_const = 2.73e7;
     const scalar E_pow   = 4.3666e26;
-    const scalar eta     = 340.75;
 
-    scalarField& a = alphaEff.primitiveFieldRef();
+    scalarField& a = alpha_.primitiveFieldRef();
     const scalarField& E = Emag.primitiveField();
 
     forAll(a, c)
     {
-        const scalar Ec = max(E[c], 1.0);              // safeEmag inline
+        const scalar Ec  = max(E[c], 1.0);              // safeEmag inline
         const scalar inv = 1.0/Ec;
-        a[c] = (1.1944e6 + E_pow*inv*inv*inv)          // pow(.,3) -> mult
-            * Foam::exp(-E_const*inv)
-            - eta;
+        a[c] = (1.1944e6 + E_pow*inv*inv*inv)            // pow(.,3) -> mult
+             * Foam::exp(-E_const*inv);
+        // NOTE: no "- eta" here; α stored plain so AMR can use it
     }
-    alphaEff.correctBoundaryConditions();
+    alpha_.correctBoundaryConditions();
+    // Update alpha*Dx for diagnostics / ParaView
+    {
+        const labelListList& cellPts = mesh().cellPoints();
+        const pointField& pts = mesh().points();
+        const Vector<label> gd = mesh().geometricD();
+        const vector mask
+        (
+            gd.x() == 1 ? 1.0 : 0.0,
+            gd.y() == 1 ? 1.0 : 0.0,
+            gd.z() == 1 ? 1.0 : 0.0
+        );
+
+        scalarField& ad = alphaDx_.primitiveFieldRef();
+        forAll(ad, c)
+        {
+            const labelList& cp = cellPts[c];
+            scalar dMax = 0.0;
+            forAll(cp, i)
+            {
+                for (label j = i + 1; j < cp.size(); ++j)
+                {
+                    const vector d = cmptMultiply(pts[cp[i]] - pts[cp[j]], mask);
+                    dMax = max(dMax, magSqr(d));
+                }
+            }
+            ad[c] = a[c] * Foam::sqrt(dMax);
+        }
+        alphaDx_.correctBoundaryConditions();
+    }
+
+    plasmaSimulationProfiler::stop("Plasma Transport", "chemistry");
 
 
-    // plasmaSimulationProfiler::stop("Chemistry");
 
 
 
 
 
-
-
-
+    plasmaSimulationProfiler::start("Plasma Transport", "buildEquations");
     // ── 4. Build equations for ALL species ────────────────────────────────
     List<autoPtr<fvScalarMatrix>> eqns(species_.nSpecies());
 
@@ -266,6 +319,7 @@ void plasmaTransport::solve()
     {
         eqns[i].reset(transportModels_[i].nEqn().ptr());
     }
+    plasmaSimulationProfiler::stop("Plasma Transport", "buildEquations");
     
 
 //    const volVectorField driftFlux = fvc::reconstruct(convectiveFlux_[eIdx]);
@@ -290,26 +344,28 @@ void plasmaTransport::solve()
     );
 
     {
-        const scalar mu_ref = 2.398;   // mobility prefactor
-        const scalar mu_exp = -0.26;   // mobility exponent
+        const scalar mu_ref = 2.398;
+        const scalar mu_exp = -0.26;
+        const scalar eta    = 340.75;   // moved here
 
-        scalarField& src      = explicitSource.primitiveFieldRef();
-        scalarField& keff      = k_eff_.primitiveFieldRef();
-        const scalarField& aEff = alphaEff.primitiveField();
+        scalarField& src        = explicitSource.primitiveFieldRef();
+        scalarField& keff       = k_eff_.primitiveFieldRef();
+        const scalarField& aRaw = alpha_.primitiveField();     // α (no η)
         const scalarField& E    = Emag.primitiveField();
         const scalarField& neI  = ne.primitiveField();
 
         forAll(src, c)
         {
-            const scalar Ec = max(E[c], 1.0);
-            const scalar mu = mu_ref * Foam::pow(Ec, mu_exp);  // fractional pow
-            keff[c] = aEff[c] * mu * Ec;
+            const scalar Ec   = max(E[c], 1.0);
+            const scalar mu   = mu_ref * Foam::pow(Ec, mu_exp);
+            const scalar aEff = aRaw[c] - eta;                  // ᾱ = α − η
+            keff[c] = aEff * mu * Ec;
             src[c]  = keff[c] * neI[c];
         }
     }
     k_eff_.correctBoundaryConditions();
 
-
+    plasmaSimulationProfiler::start("Plasma Transport", "solveEquations");
     // Solve Continuity Equations
     *eqns[eIdx] -= explicitSource;
     *eqns[iIdx] -= explicitSource;
@@ -341,6 +397,7 @@ void plasmaTransport::solve()
     //         particleFlux_[i]
     //     );
     // }
+    plasmaSimulationProfiler::stop("Plasma Transport", "solveEquations");
 }
 
 // // Solve for SDBD

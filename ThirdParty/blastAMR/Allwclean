@@ -3,14 +3,7 @@ cd "${0%/*}" || exit                                # Run from this directory
 
 #------------------------------------------------------------------------------
 
-wclean src/lagrangian
-wclean src/loadPolicies
-wclean src/cpuLoad
-wclean src/functionObjects
+wclean -all src
+wclean -all applications
 
-wclean src/errorEstimators
-wclean src/dynamicMesh
-wclean src/dynamicFvMesh
-
-wclean applications/utilities/updateMesh
 # -----------------------------------------------------------------------------

@@ -1,0 +1,104 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2012                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    object          dynamicMeshDict;
+}
+
+dynamicFvMesh   adaptiveFvMesh;
+
+refiner         polyRefiner;
+
+errorEstimator  gradientRange; // or, coded
+
+// These three keywords are needed if gradientRange is selected
+
+gradField   T;
+refineThreshold 0.5;
+unrefineThreshold 0.4;
+
+// these two keywords are equivalent if "coded" is selected instead
+
+name            gradientRange;
+code            #{
+    Info<< "---->! custom error estimator !<----" << endl;
+    error_ = 0.0;
+    /*
+        End result must be (error_ is a volScalarField):
+        - error_ == 1  if the cell needs to be refined
+        - error_ == 0  if the cell is to be left alone
+        - error_ == -1 if the vertices of the cell are to be unrefined
+    */
+
+    const word gradField(dict().lookup("gradField"));
+    const auto& T = mesh_.lookupObject<volScalarField>(gradField);
+    const scalar refineThreshold(dict().lookupOrDefault("refineThreshold", 0.5));
+    const scalar unrefineThreshold(dict().lookupOrDefault("unrefineThreshold", 0.4));
+    Info << "refineThreshold = " << refineThreshold << endl;
+    Info << "unrefineThreshold = " << unrefineThreshold << endl;
+    error_ == mag(fvc::grad(T)) / dimensionedScalar(T.dimensions()/dimLength,1.0);
+
+    /*
+        Here is the deal:
+        - T Gradient is not recomputed if already available - !!
+        - T will form a diffusive interface, 50% and up of the maxGrad are refined
+          40%-50% are left alone, and less than 40% are unrefined
+        - Not well tested, so play with the values.
+    */
+
+    scalar maxGradT = gMax(error_);
+    scalar minGradT = gMin(error_);
+
+    lowerRefine_ = minGradT + refineThreshold*(maxGradT-minGradT);
+    upperRefine_ =  GREAT;
+    lowerUnrefine_ = minGradT + unrefineThreshold*(maxGradT-minGradT);
+    upperUnrefine_ =  GREAT;
+    // This converts error_ to the right values (-1, 0, 1) based on the
+    // settings lowerRefine_ ... etc
+    if (scale) normalize(error_);
+    // error_.correctBoundaryConditions() is called after this code in case you
+    // need to manipulate boundary values
+    Info<< "---->! end    error estimator !<----" << endl;
+#};
+
+balance         yes;
+
+allowableBalance 0.1;
+
+refineInterval  100;
+
+unrefineInterval 300;
+
+maxRefinement   2;
+
+nBufferLayers   3;
+
+nRefinementBufferLayers 3;
+
+nUnrefinementBufferLayers 6;
+
+lowerRefineLevel 310;
+
+upperRefineLevel 1110;
+
+unrefineLevel   300;
+
+upperUnrefineLevel 1410;
+
+dumpLevel       no;
+
+refineProbes    no;
+
+correctFluxes   ( ( phi_0_0 none ) ( phi_0 none ) ( phi none ) );
+
+
+// ************************************************************************* //

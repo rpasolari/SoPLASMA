@@ -1,0 +1,44 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2012                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      meshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+surfaceFile "meshSurfaceEdges.stl";
+
+minCellSize 0.05;
+maxCellSize 0.55;
+
+//boundaryCellSize ddd;
+
+renameBoundary
+{
+    defaultName		fixedWalls;
+    defaultType		wall;
+
+    newPatchNames
+    {
+        "walls_.*"
+        {
+            newName     walls;
+            type     walls;
+        }
+
+        "atmosphere_.*"
+        {
+            newName     atmosphere;
+            type     patch;
+        }
+    }
+}

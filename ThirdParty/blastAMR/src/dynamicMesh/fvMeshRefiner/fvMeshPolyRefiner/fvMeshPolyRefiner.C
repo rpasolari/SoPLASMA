@@ -100,7 +100,34 @@ Foam::fvMeshPolyRefiner::fvMeshPolyRefiner(fvMesh& mesh)
 :
     fvMeshRefiner(mesh),
 
-    refiner_(nullptr)
+    refiner_(nullptr),
+
+    baseCellLevel_
+    (
+        IOobject
+        (
+            "baseCellLevel",
+            mesh_.facesInstance(),
+            polyMesh::meshSubDir,
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        labelList(mesh_.nCells(), 0)
+    ),
+    basePointLevel_
+    (
+        IOobject
+        (
+            "basePointLevel",
+            mesh_.facesInstance(),
+            polyMesh::meshSubDir,
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        labelList(mesh_.nPoints(), 0)
+    )
 {
     // Added refinement history decomposition constraint to keep all
     // cells with the same parent together
@@ -164,6 +191,11 @@ Foam::fvMeshPolyRefiner::fvMeshPolyRefiner(fvMesh& mesh)
                 << abort(FatalError);
 
     }
+
+    Info<< "Base cell levels for unrefinement floor."
+        << " Min: " << gMin(baseCellLevel_)
+        << " Max: " << gMax(baseCellLevel_)
+        << endl;
 }
 
 
@@ -177,7 +209,34 @@ Foam::fvMeshPolyRefiner::fvMeshPolyRefiner
 :
     fvMeshRefiner(mesh, dict, force, read),
 
-    refiner_(nullptr)
+    refiner_(nullptr),
+
+    baseCellLevel_
+    (
+        IOobject
+        (
+            "baseCellLevel",
+            mesh_.facesInstance(),
+            polyMesh::meshSubDir,
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        labelList(mesh_.nCells(), 0)
+    ),
+    basePointLevel_
+    (
+        IOobject
+        (
+            "basePointLevel",
+            mesh_.facesInstance(),
+            polyMesh::meshSubDir,
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        labelList(mesh_.nPoints(), 0)
+    )
 {
     // Added refinement history decomposition constraint to keep all
     // cells with the same parent together
@@ -255,6 +314,11 @@ Foam::fvMeshPolyRefiner::fvMeshPolyRefiner
                 << abort(FatalError);
 
     }
+
+    Info<< "Base cell levels for unrefinement floor."
+        << " Min: " << gMin(baseCellLevel_)
+        << " Max: " << gMax(baseCellLevel_)
+        << endl;
 }
 
 
@@ -324,8 +388,6 @@ bool Foam::fvMeshPolyRefiner::refine
 
     if (preUpdate())
     {
-        Pout << "Proc " << Pstream::myProcNo() << ": Entered refine() and passed preUpdate." << endl;
-
         // Handle refinementHistory cellZone on first timestep
         if (protectRefinementHistory_)
         {
@@ -334,6 +396,7 @@ bool Foam::fvMeshPolyRefiner::refine
 
             if (zoneID == -1)
             {
+                // Zone doesn't exist, create it with cells that have cellLevel > 0
                 const labelList& cellLevels = refiner_->cellLevel();
                 DynamicList<label> zoneCells(mesh_.nCells());
 
@@ -364,16 +427,23 @@ bool Foam::fvMeshPolyRefiner::refine
                     );
                 }
             }
+            else
+            {
+                Info<< "protectRefinementHistory: Found existing refinementHistory cellZone with "
+                    << returnReduce(cellZones[zoneID].size(), sumOp<label>())
+                    << " cells" << endl;
+            }
         }
 
+        // Cells marked for refinement or otherwise protected from unrefinement.
         boolList refineCell(mesh_.nCells());
 
         if (canRefine(true))
         {
-            Pout << "Proc " << Pstream::myProcNo() << ": Starting candidate selection." << endl;
             labelList maxRefinement(maxCellLevel);
             setMaxCellLevel(maxRefinement);
 
+            // Determine candidates for refinement (looking at field only)
             selectRefineCandidates
             (
                 lowerRefineLevel,
@@ -382,17 +452,16 @@ bool Foam::fvMeshPolyRefiner::refine
                 refineCell
             );
 
-            Pout << "Proc " << Pstream::myProcNo() << ": Candidates selected. Starting buffer layers." << endl;
-
+            // Extend with a buffer layer to refine neighbour cells
             for (label i = 0; i < nRefinementBufferLayers_; i++)
             {
                 extendMarkedCells(refineCell, maxRefinement, i == 0, force_);
             }
 
-            // Boundary protection
             forAll(protectedPatches_, patchi)
             {
-                const polyPatch& p = mesh_.boundaryMesh()[protectedPatches_[patchi]];
+                const polyPatch& p =
+                    mesh_.boundaryMesh()[protectedPatches_[patchi]];
                 forAll(p.faceCells(), facei)
                 {
                     label own = mesh_.faceOwner()[facei + p.start()];
@@ -400,9 +469,8 @@ bool Foam::fvMeshPolyRefiner::refine
                 }
             }
 
-            Pout << "Proc " << Pstream::myProcNo() << ": Starting MPI consistentRefinement check." << endl;
-
-            // This is a common hang point for parallel runs
+            // Select subset of candidates. Take into account max allowable
+            // cells, refinement level, protected cells.
             labelList cellsToRefine
             (
                 refiner_->consistentRefinement
@@ -417,9 +485,6 @@ bool Foam::fvMeshPolyRefiner::refine
                 )
             );
 
-            Pout << "Proc " << Pstream::myProcNo() << ": Consistency check finished. Entering global reduction." << endl;
-
-            // Barrier point: All procs must reach this to continue
             label nCellsToRefine = returnReduce
             (
                 cellsToRefine.size(), sumOp<label>()
@@ -433,28 +498,31 @@ bool Foam::fvMeshPolyRefiner::refine
 
             if (nCellsToRefine > 0)
             {
-                Pout << "Proc " << Pstream::myProcNo() << ": Calling physical refiner_->refine (Mapping starts)." << endl;
                 isRefining_ = true;
-                
-                // This is where field mapping and PETSc matrix rebuilding occurs
                 autoPtr<mapPolyMesh> map = refiner_->refine
                 (
                     mesh_,
                     cellsToRefine
                 );
 
-                Pout << "Proc " << Pstream::myProcNo() << ": Physical refinement and mapping SUCCESSFUL." << endl;
-
-                // Update refineCell list after topology change
+                // Update refineCell. Note that some of the marked ones have
+                // not been refined due to constraints.
                 {
                     const labelList& cellMap = map().cellMap();
                     const labelList& reverseCellMap = map().reverseCellMap();
+
+                    // Create new refineCell
                     boolList newRefineCell(cellMap.size());
 
                     forAll(cellMap, celli)
                     {
                         label oldCelli = cellMap[celli];
-                        if (oldCelli < 0 || reverseCellMap[oldCelli] != celli)
+
+                        if (oldCelli < 0)
+                        {
+                            newRefineCell.set(celli, true);
+                        }
+                        else if (reverseCellMap[oldCelli] != celli)
                         {
                             newRefineCell.set(celli, true);
                         }
@@ -466,6 +534,44 @@ bool Foam::fvMeshPolyRefiner::refine
                     refineCell.transfer(newRefineCell);
                 }
 
+                // Remap baseCellLevel_
+                if (baseCellLevel_.size())
+                {
+                    const labelList& cellMap = map().cellMap();
+                    labelList newBaseCellLevel(mesh_.nCells(), 0);
+                    forAll(newBaseCellLevel, celli)
+                    {
+                        label oldCelli = cellMap[celli];
+                        if (oldCelli >= 0)
+                        {
+                            newBaseCellLevel[celli] =
+                                baseCellLevel_[oldCelli];
+                        }
+                    }
+                    baseCellLevel_.transfer(newBaseCellLevel);
+                }
+
+                // Remap basePointLevel_
+                if (basePointLevel_.size())
+                {
+                    const labelList& pointMap = map().pointMap();
+                    labelList newBasePointLevel(mesh_.nPoints(), 0);
+                    forAll(newBasePointLevel, pointi)
+                    {
+                        label oldPointi = pointMap[pointi];
+                        if
+                        (
+                            oldPointi >= 0
+                         && oldPointi < basePointLevel_.size()
+                        )
+                        {
+                            newBasePointLevel[pointi] =
+                                basePointLevel_[oldPointi];
+                        }
+                    }
+                    basePointLevel_.transfer(newBasePointLevel);
+                }
+
                 hasChanged = true;
                 isRefining_ = false;
             }
@@ -473,35 +579,137 @@ bool Foam::fvMeshPolyRefiner::refine
 
         if (canUnrefine(true))
         {
-            Pout << "Proc " << Pstream::myProcNo() << ": Checking unrefinement." << endl;
-            // ... (unrefinement logic) ...
-            
-            // Note: I left the unrefinement section as-is for brevity, 
-            // but the markers above cover the 'refinement' hang you are seeing.
+            // Extend with a buffer layer to not unrefine neighbour cells
+            for (label i = 0; i < nUnrefinementBufferLayers_; i++)
+            {
+                extendMarkedCellsAcrossPoints(refineCell);
+            }
+
+            forAll(protectedPatches_, patchi)
+            {
+                const polyPatch& p =
+                    mesh_.boundaryMesh()[protectedPatches_[patchi]];
+                forAll(p.faceCells(), facei)
+                {
+                    label own = mesh_.faceOwner()[facei + p.start()];
+                    refineCell.set(own, true);
+                }
+            }
+
+            // Protect cells in refinementHistory zone from unrefinement
+            if (protectRefinementHistory_)
+            {
+                const cellZoneMesh& cellZones = mesh_.cellZones();
+                label zoneID = cellZones.findZoneID("refinementHistory");
+
+                if (zoneID != -1)
+                {
+                    const cellZone& zone = cellZones[zoneID];
+                    forAll(zone, i)
+                    {
+                        refineCell.set(zone[i], true);
+                    }
+                }
+            }
+
+            // Prevent unrefinement below initial mesh (e.g. SHM) level
+            {
+                const labelList& curLevel = refiner_->cellLevel();
+                forAll(curLevel, celli)
+                {
+                    if (curLevel[celli] <= baseCellLevel_[celli])
+                    {
+                        refineCell.set(celli, true);
+                    }
+                }
+            }
+
+            // Select unrefineable points that are not marked in refineCell
+            labelList pointsToUnrefine
+            (
+                selectUnrefinePoints
+                (
+                    unrefineLevel,
+                    refineCell,
+                    maxCellField(error)
+                )
+            );
+
+            label nSplitPoints = returnReduce
+            (
+                pointsToUnrefine.size(),
+                sumOp<label>()
+            );
+
+            reduce(hasChanged, orOp<bool>());
+            if (nSplitPoints > 0)
+            {
+                isUnrefining_ = true;
+                hasChanged = refiner_->unrefine
+                (
+                    mesh_,
+                    pointsToUnrefine
+                ) || hasChanged;
+                isUnrefining_ = false;
+            }
         }
 
-        Pout << "Proc " << Pstream::myProcNo() << ": Reached end of refinement block. Reducing hasChanged." << endl;
         reduce(hasChanged, orOp<bool>());
-
+        // Note: balance() is now called independently in adaptiveFvMesh::update()
+        // to allow balanceInterval to differ from refineInterval
         mesh_.topoChanging(hasChanged);
 
         if (hasChanged)
         {
+            // Reset moving flag (if any). If not using inflation we'll not
+            // move, if are using inflation any follow on movePoints will set
+            // it.
             mesh_.moving(false);
             mesh_.setInstance(mesh_.time().timeName());
         }
     }
 
-    Pout << "Proc " << Pstream::myProcNo() << ": Exiting refine() function." << endl;
     return hasChanged;
 }
 
-void Foam::fvMeshPolyRefiner::updateMesh(const mapPolyMesh& map)
+void Foam::fvMeshPolyRefiner::updateMesh(const mapPolyMesh& mpm)
 {
-    fvMeshRefiner::updateMesh(map);
+    fvMeshRefiner::updateMesh(mpm);
     if (!isBalancing_)
     {
-        refiner_->updateMesh(map);
+        refiner_->updateMesh(mpm);
+    }
+
+    // Remap baseCellLevel_ on topology change
+    if (baseCellLevel_.size() && mpm.cellMap().size())
+    {
+        const labelList& cellMap = mpm.cellMap();
+        labelList newBaseCellLevel(mesh_.nCells(), 0);
+        forAll(newBaseCellLevel, celli)
+        {
+            label oldCelli = cellMap[celli];
+            if (oldCelli >= 0 && oldCelli < baseCellLevel_.size())
+            {
+                newBaseCellLevel[celli] = baseCellLevel_[oldCelli];
+            }
+        }
+        baseCellLevel_.transfer(newBaseCellLevel);
+    }
+
+    // Remap basePointLevel_ on topology change
+    if (basePointLevel_.size() && mpm.pointMap().size())
+    {
+        const labelList& pointMap = mpm.pointMap();
+        labelList newBasePointLevel(mesh_.nPoints(), 0);
+        forAll(newBasePointLevel, pointi)
+        {
+            label oldPointi = pointMap[pointi];
+            if (oldPointi >= 0 && oldPointi < basePointLevel_.size())
+            {
+                newBasePointLevel[pointi] = basePointLevel_[oldPointi];
+            }
+        }
+        basePointLevel_.transfer(newBasePointLevel);
     }
 }
 
@@ -510,6 +718,16 @@ void Foam::fvMeshPolyRefiner::distribute(const mapDistributePolyMesh& map)
 {
     fvMeshRefiner::distribute(map);
     refiner_->distribute(map);
+
+    // Distribute base levels across processors
+    if (baseCellLevel_.size())
+    {
+        map.distributeCellData(baseCellLevel_);
+    }
+    if (basePointLevel_.size())
+    {
+        map.distributePointData(basePointLevel_);
+    }
 }
 
 

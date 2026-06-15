@@ -1,4 +1,0 @@
-loadPolicy/loadPolicy.C
-cellCountPolicy/cellCountPolicy.C
-
-LIB = $(FOAM_USER_LIBBIN)/libamrLoadPolicies

@@ -143,16 +143,26 @@ int main(int argc, char *argv[])
         {
             while (pimple.loop())
             {
+                plasmaSimulationProfiler::start("Electromagnetics");
+                em->solve();
+                plasmaSimulationProfiler::stop("Electromagnetics");
+
                 // Solve transport equations
+                plasmaSimulationProfiler::start("Plasma Transport");
                 transport.solve();
+                plasmaSimulationProfiler::stop("Plasma Transport");
 
                 // Update charge density
+                plasmaSimulationProfiler::start("Update charge density");
                 species.updateChargeDensity();
+                plasmaSimulationProfiler::stop("Update charge density");
 
                 // Update surface charge
+                plasmaSimulationProfiler::start("Update surface charge");
                 transport.updateSurfaceCharge();
+                plasmaSimulationProfiler::stop("Update surface charge");
 
-                em->solve();
+
             }
         }
         
@@ -162,6 +172,7 @@ int main(int argc, char *argv[])
         runTime.printExecutionTime(Info);
     }
 
+    plasmaSimulationProfiler::report();
     Info<< "End\n" << endl;
 
     return 0;

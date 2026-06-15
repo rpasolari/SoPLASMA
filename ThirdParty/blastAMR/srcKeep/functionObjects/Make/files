@@ -1,3 +1,0 @@
-loadBalancedAMR/loadBalancedAMR.C
-
-LIB = $(FOAM_USER_LIBBIN)/libamrFunctionObjects

@@ -164,12 +164,11 @@ driftDiffusion::driftDiffusion
     (
         IOobject
         (
-            "convectiveFlux_" + species.speciesName(specieIndex),
+            "dd_convectiveFlux_" + species.speciesName(specieIndex),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            IOobject::NO_REGISTER
+            IOobject::NO_WRITE
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
@@ -178,12 +177,11 @@ driftDiffusion::driftDiffusion
     (
         IOobject
         (
-            "diffusiveFlux_" + species.speciesName(specieIndex),
+            "dd_diffusiveFlux_" + species.speciesName(specieIndex),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            IOobject::NO_REGISTER
+            IOobject::NO_WRITE
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
@@ -192,12 +190,11 @@ driftDiffusion::driftDiffusion
     (
         IOobject
         (
-            "particleFlux_" + species.speciesName(specieIndex),
+            "dd_particleFlux_" + species.speciesName(specieIndex),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            IOobject::NO_REGISTER
+            IOobject::NO_WRITE
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
