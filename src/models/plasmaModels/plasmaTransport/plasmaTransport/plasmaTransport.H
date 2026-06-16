@@ -101,7 +101,8 @@ protected:
     volScalarField k_eff_;
     volScalarField alpha_;
      volScalarField alphaDx_;
-
+//- Pure ionization source α·μ·E·ne [1/(m3 s)] (for photoionization)
+volScalarField S_iz_;
 public:
 
     //- Runtime type information

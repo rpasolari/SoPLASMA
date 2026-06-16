@@ -13,9 +13,11 @@ EXE_INC = \
     -I$(So_PLASMA_SRC)/models/plasmaModels/plasmaSpecies/lnInclude \
     -I$(So_PLASMA_SRC)/models/plasmaModels/plasmaTransport/lnInclude \
     -I$(So_PLASMA_SRC)/models/plasmaModels/genericPlasmaProperties/lnInclude \
+    -I$(So_PLASMA_SRC)/models/plasmaModels/photoionization/lnInclude \
     -I$(So_PLASMA_SRC)/numerics/lnInclude \
     -I$(So_PLASMA_SRC)/profilers/lnInclude \
-    -I$(So_PLASMA_SRC)/tools/lnInclude
+    -I$(So_PLASMA_SRC)/tools/lnInclude \
+    
 
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
@@ -30,6 +32,7 @@ EXE_LIBS = \
     -lplasmaBcs \
     -lplasmaSpecies \
     -lplasmaTransport \
+    -lphotoionization \
     -lplasmaProperties \
     -lplasmaNumerics \
     -lplasmaProfilers \

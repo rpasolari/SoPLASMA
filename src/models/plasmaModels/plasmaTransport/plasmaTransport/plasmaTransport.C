@@ -133,13 +133,26 @@ plasmaTransport::plasmaTransport
         (
             "alphaDx",
             mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
         mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("zero", dimless, 0.0)
-)
+        dimensionedScalar("zero", dimless, 0.0)
+    ),                                          // ← closes alphaDx_ entirely
+    S_iz_                                       // ← new sibling entry
+    (
+        IOobject
+        (
+            "S_iz",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("zero", dimensionSet(0, -3, -1, 0, 0, 0, 0), 0.0)
+    )
 {
     constructTransportModels();
 
@@ -348,20 +361,26 @@ void plasmaTransport::solve()
         const scalar mu_exp = -0.26;
         const scalar eta    = 340.75;   // moved here
 
-        scalarField& src        = explicitSource.primitiveFieldRef();
-        scalarField& keff       = k_eff_.primitiveFieldRef();
-        const scalarField& aRaw = alpha_.primitiveField();     // α (no η)
-        const scalarField& E    = Emag.primitiveField();
-        const scalarField& neI  = ne.primitiveField();
+scalarField& src        = explicitSource.primitiveFieldRef();
+scalarField& keff       = k_eff_.primitiveFieldRef();
+scalarField& siz        = S_iz_.primitiveFieldRef();
+const scalarField& aRaw = alpha_.primitiveField();
+const scalarField& E    = Emag.primitiveField();
+const scalarField& neI  = ne.primitiveField();
 
-        forAll(src, c)
-        {
-            const scalar Ec   = max(E[c], 1.0);
-            const scalar mu   = mu_ref * Foam::pow(Ec, mu_exp);
-            const scalar aEff = aRaw[c] - eta;                  // ᾱ = α − η
-            keff[c] = aEff * mu * Ec;
-            src[c]  = keff[c] * neI[c];
-        }
+forAll(src, c)
+{
+    const scalar Ec  = max(E[c], 1.0);
+    const scalar mu  = mu_ref * Foam::pow(Ec, mu_exp);
+    const scalar vd  = mu * Ec;                          // drift speed
+    const scalar S_i = aRaw[c] * vd * neI[c];            // α·μ·E·ne  (ionization)
+    const scalar S_a = eta     * vd * neI[c];            // η·μ·E·ne  (attachment)
+
+    siz[c]  = S_i;                                       // for photoionization
+    src[c]  = S_i - S_a;                                 // net, for continuity
+    keff[c] = (aRaw[c] - eta) * vd;                      // net rate, unchanged
+}
+S_iz_.correctBoundaryConditions();
     }
     k_eff_.correctBoundaryConditions();
 
@@ -370,6 +389,16 @@ void plasmaTransport::solve()
     *eqns[eIdx] -= explicitSource;
     *eqns[iIdx] -= explicitSource;
     
+// Photoionization source (if a photoionizationModel is loaded)
+if (mesh_.foundObject<volScalarField>("Sph"))
+{
+    const volScalarField& Sph =
+        mesh_.lookupObject<volScalarField>("Sph");
+
+    *eqns[eIdx] -= Sph;
+    *eqns[iIdx] -= Sph;
+}
+
 
     // plasmaSimulationProfiler::start("Solve equations transport");
     eqns[iIdx]->solve();

@@ -1,0 +1,6 @@
+photoionizationModel.C
+
+noPhotoionization/noPhotoionization.C
+nTermHelmholtzPhotoionization/nTermHelmholtzPhotoionization.C
+
+LIB = $(FOAM_USER_LIBBIN)/libphotoionization
