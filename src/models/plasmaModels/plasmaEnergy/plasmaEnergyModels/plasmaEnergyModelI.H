@@ -11,8 +11,8 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaEnergyModelI_H
-#define Foam_plasmaEnergyModelI_H
+#ifndef plasmaEnergyModelI_H
+#define plasmaEnergyModelI_H
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 

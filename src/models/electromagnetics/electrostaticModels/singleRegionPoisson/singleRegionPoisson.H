@@ -22,7 +22,7 @@ License
     with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::singleRegionPoissonModel
+    Foam::singleRegionPoisson
     
 Description
     Poisson equation solver for the electrostatic potential in a single
@@ -38,12 +38,12 @@ Description
     are purely transport quantities with no reason to persist.
 
 SourceFiles
-    singleRegionPoissonModel.C
+    singleRegionPoisson.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef singleRegionPoissonModel_H
-#define singleRegionPoissonModel_H
+#ifndef singleRegionPoisson_H
+#define singleRegionPoisson_H
 
 #include "electromagneticsModel.H"
 
@@ -53,18 +53,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class singleRegionPoissonModel Declaration
+                    Class singleRegionPoisson Declaration
 \*---------------------------------------------------------------------------*/
 
-class singleRegionPoissonModel
+class singleRegionPoisson
 :
     public electromagneticsModel
 {
 private:
 
     //- Disallow copy
-    singleRegionPoissonModel(const singleRegionPoissonModel&) = delete;
-    void operator=(const singleRegionPoissonModel&) = delete;
+    singleRegionPoisson(const singleRegionPoisson&) = delete;
+    void operator=(const singleRegionPoisson&) = delete;
 
     //- Update E, Emag, phiE, and reducedE from ePotential
     void updateDerivedFields();
@@ -94,14 +94,14 @@ public:
     // Constructors
 
         //- Construct from meshes
-        singleRegionPoissonModel
+        singleRegionPoisson
         (
             const fvMesh& mesh,
             const UPtrList<fvMesh>& dielectricMeshes
         );
 
     //- Destructor
-    virtual ~singleRegionPoissonModel() = default;
+    virtual ~singleRegionPoisson() = default;
 
     // Solve Functions
 

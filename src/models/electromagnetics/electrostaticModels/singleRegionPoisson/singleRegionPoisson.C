@@ -1,10 +1,10 @@
 /*---------------------------------------------------------------------------*\
-  File: singleRegionPoissonModel.C
+  File: singleRegionPoisson.C
   Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::singleRegionPoissonModel.
+    Implementation of Foam::singleRegionPoisson.
 
   Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
@@ -13,7 +13,7 @@
 
 #include "addToRunTimeSelectionTable.H"
 
-#include "singleRegionPoissonModel.H"
+#include "singleRegionPoisson.H"
 #include "plasmaSimulationProfiler.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -23,17 +23,17 @@ namespace Foam
 
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
-defineTypeNameAndDebug(singleRegionPoissonModel, 0);
+defineTypeNameAndDebug(singleRegionPoisson, 0);
 addToRunTimeSelectionTable
 (
     electromagneticsModel,
-    singleRegionPoissonModel,
+    singleRegionPoisson,
     dictionary
 );
 
 // * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * * //
 
-void singleRegionPoissonModel::updateDerivedFields()
+void singleRegionPoisson::updateDerivedFields()
 {
     plasmaSimulationProfiler::start("Electromagnetics", "Calc phiE");
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
@@ -76,7 +76,7 @@ void singleRegionPoissonModel::updateDerivedFields()
 }
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-singleRegionPoissonModel::singleRegionPoissonModel
+singleRegionPoisson::singleRegionPoisson
 (
     const fvMesh& mesh,
     const UPtrList<fvMesh>& dielectricMeshes
@@ -147,7 +147,7 @@ singleRegionPoissonModel::singleRegionPoissonModel
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
 //- Explicit Poisson branch
-void singleRegionPoissonModel::solve()
+void singleRegionPoisson::solve()
 {
     for (label nonOrth = 0; nonOrth <= nNonOrthCorr_; ++nonOrth)
     {
@@ -174,7 +174,7 @@ void singleRegionPoissonModel::solve()
 }
 
 //- Semi-implicit Poisson branch
-void singleRegionPoissonModel::solve
+void singleRegionPoisson::solve
 (
     const volScalarField& electricalConductivity,
     const volScalarField& diffusiveChargeSource

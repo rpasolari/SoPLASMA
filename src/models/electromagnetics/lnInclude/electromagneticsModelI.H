@@ -1,1 +1,1 @@
-../electromagneticsModel/electromagneticsModelI.H
+../electromagneticsModelI.H

@@ -39,8 +39,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_isothermalEnergyModel_H
-#define Foam_isothermalEnergyModel_H
+#ifndef isothermalEnergyModel_H
+#define isothermalEnergyModel_H
 
 #include "plasmaEnergyModel.H"
 

@@ -22,7 +22,7 @@ License
     with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::immobileTransportModel
+    Foam::immobile
     
 Description
     Transport model for stationary species (e.g., heavy ions in fast 
@@ -38,12 +38,12 @@ Description
     in the corresponding species dictionary.
 
 SourceFiles
-    immobileTransportModel.C
+    immobile.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_immobileTransportModel_H
-#define Foam_immobileTransportModel_H
+#ifndef immobile_H
+#define immobile_H
 
 #include "plasmaTransportModel.H"
 
@@ -53,18 +53,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class immobileTransportModel Declaration
+                    Class immobile Declaration
 \*---------------------------------------------------------------------------*/
 
-class immobileTransportModel
+class immobile
 :
     public plasmaTransportModel
 {
 private:
 
     //- Disallow default bitwise copy construct
-    immobileTransportModel(const immobileTransportModel&) = delete;
-    void operator=(const immobileTransportModel&) = delete;
+    immobile(const immobile&) = delete;
+    void operator=(const immobile&) = delete;
     
 public:
 
@@ -74,7 +74,7 @@ public:
     // Constructors
 
         //- Construct from components
-        immobileTransportModel
+        immobile
         (
             const word& modelName,
             const dictionary& dict,
@@ -84,7 +84,7 @@ public:
         );
 
     //- Destructor
-    virtual ~immobileTransportModel() = default;
+    virtual ~immobile() = default;
 
     // Member Functions
         

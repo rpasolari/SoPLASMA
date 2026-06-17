@@ -38,8 +38,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_localFieldEnergyModel_H
-#define Foam_localFieldEnergyModel_H
+#ifndef localFieldEnergyModel_H
+#define localFieldEnergyModel_H
 
 #include "plasmaEnergyModel.H"
 

@@ -1,5 +1,5 @@
-electromagneticsModel/electromagneticsModel.C
-electrostaticModels/singleRegionPoissonModel/singleRegionPoissonModel.C
-electrostaticModels/multiRegionPoissonModel/multiRegionPoissonModel.C
+electromagneticsModel.C
+electrostaticModels/singleRegionPoisson/singleRegionPoisson.C
+electrostaticModels/multiRegionPoisson/multiRegionPoisson.C
 
 LIB = $(FOAM_USER_LIBBIN)/libplasmaElectromagnetics

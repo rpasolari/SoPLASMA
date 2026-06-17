@@ -39,8 +39,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_gasTemperatureEnergyModel_H
-#define Foam_gasTemperatureEnergyModel_H
+#ifndef gasTemperatureEnergyModel_H
+#define gasTemperatureEnergyModel_H
 
 #include "plasmaEnergyModel.H"
 

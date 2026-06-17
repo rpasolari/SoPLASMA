@@ -1,10 +1,10 @@
 /*---------------------------------------------------------------------------*\
-  File: multiRegionPoissonModel.C
+  File: multiRegionPoisson.C
   Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::multiRegionPoissonModel.
+    Implementation of Foam::multiRegionPoisson.
 
   Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
@@ -14,7 +14,7 @@
 #include "addToRunTimeSelectionTable.H"
 #include "mappedPatchBase.H"
 
-#include "multiRegionPoissonModel.H"
+#include "multiRegionPoisson.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -23,17 +23,17 @@ namespace Foam
 
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
-defineTypeNameAndDebug(multiRegionPoissonModel, 0);
+defineTypeNameAndDebug(multiRegionPoisson, 0);
 addToRunTimeSelectionTable
 (
     electromagneticsModel,
-    multiRegionPoissonModel,
+    multiRegionPoisson,
     dictionary
 );
 
 // * * * * * * * * * * * * Private Member Functions * * * * * * * * * * * * //
 
-void multiRegionPoissonModel::updateDerivedFields()
+void multiRegionPoisson::updateDerivedFields()
 {
     phiE_ = -fvc::snGrad(ePotential_) * mesh_.magSf();
 
@@ -66,7 +66,7 @@ void multiRegionPoissonModel::updateDerivedFields()
     }
 }
 
-void multiRegionPoissonModel::solveCoupled()
+void multiRegionPoisson::solveCoupled()
 {
     Info<< "Solving for ePotential in coupled regions "
         << "(monolithically)" << endl;
@@ -104,7 +104,7 @@ void multiRegionPoissonModel::solveCoupled()
     }
 }
 
-void multiRegionPoissonModel::solveCoupled
+void multiRegionPoisson::solveCoupled
 (
     const volScalarField& electricalConductivity,
     const volScalarField& diffusiveChargeSource
@@ -151,7 +151,7 @@ void multiRegionPoissonModel::solveCoupled
     }
 }
 
-void multiRegionPoissonModel::solveSegregated()
+void multiRegionPoisson::solveSegregated()
 {
     Info<< "Solving for ePotential in non-coupled regions "
         << "(segregated)" << endl;
@@ -243,7 +243,7 @@ void multiRegionPoissonModel::solveSegregated()
     }
 }
 
-void multiRegionPoissonModel::solveSegregated
+void multiRegionPoisson::solveSegregated
 (
     const volScalarField& electricalConductivity,
     const volScalarField& diffusiveChargeSource
@@ -336,7 +336,7 @@ void multiRegionPoissonModel::solveSegregated
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
-multiRegionPoissonModel::multiRegionPoissonModel
+multiRegionPoisson::multiRegionPoisson
 (
     const fvMesh& mesh,
     const UPtrList<fvMesh>& dielectricMeshes
@@ -531,7 +531,7 @@ multiRegionPoissonModel::multiRegionPoissonModel
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-void multiRegionPoissonModel::solve()
+void multiRegionPoisson::solve()
 {
     if (coupled_)
     {
@@ -546,7 +546,7 @@ void multiRegionPoissonModel::solve()
 }
 
 
-void multiRegionPoissonModel::solve
+void multiRegionPoisson::solve
 (
     const volScalarField& electricalConductivity,
     const volScalarField& diffusiveChargeSource
@@ -570,7 +570,7 @@ void multiRegionPoissonModel::solve
     updateDerivedFields();
 }
 
-const dielectricRegion& multiRegionPoissonModel::dielectric
+const dielectricRegion& multiRegionPoisson::dielectric
 (
     const word& name
 ) const

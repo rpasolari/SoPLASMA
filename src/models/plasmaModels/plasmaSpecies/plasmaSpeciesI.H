@@ -11,8 +11,8 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaSpeciesI_H
-#define Foam_plasmaSpeciesI_H
+#ifndef plasmaSpeciesI_H
+#define plasmaSpeciesI_H
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 

@@ -45,8 +45,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaEnergy_H
-#define Foam_plasmaEnergy_H
+#ifndef plasmaEnergy_H
+#define plasmaEnergy_H
 
 #include "fvCFD.H"
 #include "fvMesh.H"

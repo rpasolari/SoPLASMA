@@ -41,8 +41,8 @@ SourceFiles
     ddWallFluxMixedFvPatchScalarField.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_ddWallFluxMixedFvPatchScalarField_H
-#define Foam_ddWallFluxMixedFvPatchScalarField_H
+#ifndef ddWallFluxMixedFvPatchScalarField_H
+#define ddWallFluxMixedFvPatchScalarField_H
 
 #include "mixedFvPatchFields.H"
 

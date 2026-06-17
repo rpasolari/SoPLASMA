@@ -13,13 +13,13 @@
 #------------------------------------------------------------------------------#
 
 # Determine SoPLASMA root directory (one level above this file)
-export So_PLASMA=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-alias SoPLASMA='cd "$So_PLASMA"'
+export SoPLASMA=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+alias SoPLASMA='cd "$SoPLASMA"'
 
-export So_PLASMA_ETC="$So_PLASMA/etc"
+export SoPLASMA_ETC="$SoPLASMA/etc"
 
-export So_PLASMA_TUTORIALS="$So_PLASMA/tutorials"
+export SoPLASMA_TUTORIALS="$SoPLASMA/tutorials"
 
-export So_PLASMA_SRC="$So_PLASMA/src"
+export SoPLASMA_SRC="$SoPLASMA/src"
 
-export So_PLASMA_THIRD_PARTY="$So_PLASMA/ThirdParty"
+export SoPLASMA_THIRD_PARTY="$SoPLASMA/ThirdParty"

@@ -6,9 +6,9 @@ EXE_INC = \
     -I$(LIB_SRC)/OpenFOAM/lnInclude \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
-    -I$(So_PLASMA_SRC)/constants/lnInclude \
-    -I$(So_PLASMA_SRC)/models/electromagnetics/lnInclude \
-    -I$(So_PLASMA_SRC)/bcs/lnInclude \
+    -I$(SoPLASMA_SRC)/constants/lnInclude \
+    -I$(SoPLASMA_SRC)/models/electromagnetics/lnInclude \
+    -I$(SoPLASMA_SRC)/bcs/lnInclude \
 
 
 EXE_LIBS = \

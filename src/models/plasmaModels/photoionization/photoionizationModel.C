@@ -52,7 +52,8 @@ photoionizationModel::photoionizationModel(const fvMesh& mesh)
         ),
         mesh,
         dimensionedScalar("zero", dimensionSet(0, -3, -1, 0, 0, 0, 0), 0.0)
-    )
+    ),
+    solveInterval_(getOrDefault<label>("solveInterval", 1))
 {}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //

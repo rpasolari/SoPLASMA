@@ -59,7 +59,7 @@ Info<< "  ELECTROMAGNETICS — gas region" << nl
     << "  " << fieldPair("epsilonR",       Foam::name(em->epsilonR()),
                          "epsilon [F/m]",  Foam::name(em->epsilon().value())) << nl;
 
-const multiRegionPoissonModel* mrp = isA<multiRegionPoissonModel>(em());
+const multiRegionPoisson* mrp = isA<multiRegionPoisson>(em());
 if (mrp)
 {
     const word coupling = mrp->coupled() ? "monolithic" : "segregated";

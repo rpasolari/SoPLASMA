@@ -14,6 +14,7 @@ echo ">>> Cleaning plasmaModels in src/models/plasmaModels"
 echo "----------------------------------------------------"
 
 wclean genericPlasmaProperties
+wclean photoionization
 wclean plasmaSpecies
 wclean plasmaTransport
 

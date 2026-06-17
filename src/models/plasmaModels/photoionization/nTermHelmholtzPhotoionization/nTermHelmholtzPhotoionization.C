@@ -13,7 +13,7 @@
 
 #include "addToRunTimeSelectionTable.H"
 #include "fvm.H"
-#include "zeroGradientFvPatchFields.H"
+#include "fixedValueFvPatchFields.H"
 
 #include "nTermHelmholtzPhotoionization.H"
 
@@ -136,6 +136,22 @@ nTermHelmholtzPhotoionization::nTermHelmholtzPhotoionization
     }
 
     // Partial source fields, one per Helmholtz term.
+    const polyBoundaryMesh& bmesh = mesh_.boundaryMesh();
+
+    wordList patchTypes
+    (
+        bmesh.size(),
+        fixedValueFvPatchScalarField::typeName
+    );
+
+    forAll(bmesh, patchi)
+    {
+        if (polyPatch::constraintType(bmesh[patchi].type()))
+        {
+            patchTypes[patchi] = bmesh[patchi].type();
+        }
+    }
+
     Sph_j_.resize(nTerms_);
 
     forAll(Sph_j_, j)
@@ -151,11 +167,11 @@ nTermHelmholtzPhotoionization::nTermHelmholtzPhotoionization
                     mesh_.time().timeName(),
                     mesh_,
                     IOobject::NO_READ,
-                    IOobject::NO_WRITE
+                    IOobject::AUTO_WRITE
                 ),
                 mesh_,
                 dimensionedScalar("zero", Sph_.dimensions(), 0.0),
-                zeroGradientFvPatchScalarField::typeName
+                patchTypes
             )
         );
     }
@@ -165,6 +181,13 @@ nTermHelmholtzPhotoionization::nTermHelmholtzPhotoionization
 
 void nTermHelmholtzPhotoionization::correct()
 {
+    const label timeIndex = mesh_.time().timeIndex();
+
+    if (!mesh_.changing() && (timeIndex % solveInterval_ != 0))
+    {
+        return;
+    }
+
     const volScalarField& I =
         mesh_.lookupObject<volScalarField>(IName_);
 

@@ -22,7 +22,7 @@ License
     with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::multiRegionPoissonModel
+    Foam::multiRegionPoisson
     
 Description
     Poisson equation solver for the electrostatic potential in multiple
@@ -45,12 +45,12 @@ Description
     of the interface.
 
 SourceFiles
-    multiRegionPoissonModel.C
+    multiRegionPoisson.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef multiRegionPoissonModel_H
-#define multiRegionPoissonModel_H
+#ifndef multiRegionPoisson_H
+#define multiRegionPoisson_H
 
 #include "electromagneticsModel.H"
 #include "dielectricRegion.H"
@@ -61,18 +61,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class multiRegionPoissonModel Declaration
+                    Class multiRegionPoisson Declaration
 \*---------------------------------------------------------------------------*/
 
-class multiRegionPoissonModel
+class multiRegionPoisson
 :
     public electromagneticsModel
 {
 private:
 
     //- Disallow copy
-    multiRegionPoissonModel(const multiRegionPoissonModel&) = delete;
-    void operator=(const multiRegionPoissonModel&) = delete;
+    multiRegionPoisson(const multiRegionPoisson&) = delete;
+    void operator=(const multiRegionPoisson&) = delete;
 
     //- Update E, Emag, phiE, and reducedE from ePotential
     void updateDerivedFields();
@@ -138,14 +138,14 @@ public:
     // Constructors
 
         //- Construct from meshes
-        multiRegionPoissonModel
+        multiRegionPoisson
         (
             const fvMesh& mesh,
             const UPtrList<fvMesh>& dielectricMeshes
         );
 
     //- Destructor
-    virtual ~multiRegionPoissonModel() = default;
+    virtual ~multiRegionPoisson() = default;
 
     // Solve
 

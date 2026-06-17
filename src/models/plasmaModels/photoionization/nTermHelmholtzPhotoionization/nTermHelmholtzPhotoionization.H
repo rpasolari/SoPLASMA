@@ -62,6 +62,7 @@ Usage
     Example of the model in constant/photoionizationProperties:
     \verbatim
     photoionizationModel    nTermHelmholtzPhotoionization;
+    solveInterval           10;         // Default : 1 step
 
     nTermHelmholtzPhotoionizationCoeffs
     {

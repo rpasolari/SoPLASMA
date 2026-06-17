@@ -1,1 +1,1 @@
-../electrostaticModels/multiRegionPoissonModel/dielectricRegion.H
+../electrostaticModels/multiRegionPoisson/dielectricRegion.H

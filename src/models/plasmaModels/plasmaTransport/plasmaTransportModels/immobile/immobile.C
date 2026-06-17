@@ -1,10 +1,10 @@
 /*---------------------------------------------------------------------------*\
-  File: immobileTransportModel.C
+  File: immobile.C
   Part of: SoPLASMA
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::immobileTransportModel.
+    Implementation of Foam::immobile.
 
   Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
@@ -14,7 +14,7 @@
 #include "fvc.H"
 #include "fvm.H"
 
-#include "immobileTransportModel.H"
+#include "immobile.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -23,17 +23,17 @@ namespace Foam
 
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
-defineTypeNameAndDebug(immobileTransportModel, 0);
+defineTypeNameAndDebug(immobile, 0);
 addToRunTimeSelectionTable
 (
     plasmaTransportModel,
-    immobileTransportModel, 
+    immobile, 
     dictionary
 );
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-immobileTransportModel::immobileTransportModel
+immobile::immobile
 (
     const word& modelName,
     const dictionary& dict,
@@ -54,17 +54,17 @@ immobileTransportModel::immobileTransportModel
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
-void immobileTransportModel::correct()
+void immobile::correct()
 {
     // No tranport coefficients to update
 }
 
-tmp<fvScalarMatrix> immobileTransportModel::nEqn() const
+tmp<fvScalarMatrix> immobile::nEqn() const
 {
     return fvm::ddt(species_.numberDensity(specieIndex_));
 }
 
-void immobileTransportModel::updateFluxes
+void immobile::updateFluxes
 (
     const fvScalarMatrix& nEqnMatrix,
     surfaceScalarField&,
@@ -80,7 +80,7 @@ void immobileTransportModel::updateFluxes
         << abort(FatalError);
 }
 
-tmp<volScalarField> immobileTransportModel::electricalConductivity() const
+tmp<volScalarField> immobile::electricalConductivity() const
 {
     FatalErrorInFunction
         << "electricalConductivity() called for immobile species '"
@@ -91,7 +91,7 @@ tmp<volScalarField> immobileTransportModel::electricalConductivity() const
     return nullptr; 
 }
 
-tmp<volScalarField> immobileTransportModel::diffusiveChargeSource() const
+tmp<volScalarField> immobile::diffusiveChargeSource() const
 {
     FatalErrorInFunction
         << "diffusiveChargeSource() called for immobile species '"

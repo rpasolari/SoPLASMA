@@ -44,8 +44,8 @@ SourceFiles
     ddWallFluxImplicitFvPatchScalarField.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_ddWallFluxImplicitFvPatchScalarField_H
-#define Foam_ddWallFluxImplicitFvPatchScalarField_H
+#ifndef ddWallFluxImplicitFvPatchScalarField_H
+#define ddWallFluxImplicitFvPatchScalarField_H
 
 #include "fvPatchFields.H"
 #include "fvPatchField.H"

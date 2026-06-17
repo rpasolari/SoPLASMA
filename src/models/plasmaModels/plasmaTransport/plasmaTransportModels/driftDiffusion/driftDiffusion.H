@@ -43,8 +43,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_driftDiffusion_H
-#define Foam_driftDiffusion_H
+#ifndef driftDiffusion_H
+#define driftDiffusion_H
 
 #include "plasmaTransportModel.H"
 #include "plasmaMobilityModel.H"

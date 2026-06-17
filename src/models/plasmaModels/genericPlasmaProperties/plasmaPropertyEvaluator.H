@@ -35,8 +35,8 @@ SourceFiles:
     plasmaPropertyEvaluator.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaPropertyEvaluator_H
-#define Foam_plasmaPropertyEvaluator_H
+#ifndef plasmaPropertyEvaluator_H
+#define plasmaPropertyEvaluator_H
 
 #include "fvMesh.H"
 #include "autoPtr.H"

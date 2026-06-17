@@ -72,6 +72,9 @@ protected:
     //- Photoionization source [1/(m3 s)]
     volScalarField Sph_;
 
+    //- Interval of solving for photoionization
+    label solveInterval_;
+
 public:
 
     //- Runtime type information
@@ -107,6 +110,9 @@ public:
 
         //- Access the photoionization source field
         const volScalarField& Sph() const noexcept { return Sph_; }
+
+        //- Access the solve interval
+        label solveInterval() const noexcept { return solveInterval_; }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -45,8 +45,8 @@ SourceFiles
     
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaTransport_H
-#define Foam_plasmaTransport_H
+#ifndef plasmaTransport_H
+#define plasmaTransport_H
 
 #include "fvCFD.H"
 #include "fvMesh.H"
@@ -60,7 +60,8 @@ SourceFiles
 
 namespace Foam
 {
-
+    
+class photoionizationModel;
 /*---------------------------------------------------------------------------*\
                     Class plasmaTransport Declaration
 \*---------------------------------------------------------------------------*/
@@ -103,6 +104,8 @@ protected:
      volScalarField alphaDx_;
 //- Pure ionization source α·μ·E·ne [1/(m3 s)] (for photoionization)
 volScalarField S_iz_;
+
+autoPtr<photoionizationModel> photoionization_;
 public:
 
     //- Runtime type information
@@ -118,7 +121,7 @@ public:
         );
 
     //- Destructor
-    virtual ~plasmaTransport() = default;
+    virtual ~plasmaTransport();
 
     // Member functions
 

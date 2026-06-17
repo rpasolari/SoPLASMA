@@ -11,8 +11,8 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaTransportModelI_H
-#define Foam_plasmaTransportModelI_H
+#ifndef plasmaTransportModelI_H
+#define plasmaTransportModelI_H
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 

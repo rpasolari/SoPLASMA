@@ -83,8 +83,8 @@ SourceFiles
     coupledElectricPotentialFvPatchScalarField.C
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_coupledElectricPotentialFvPatchScalarField_H
-#define Foam_coupledElectricPotentialFvPatchScalarField_H
+#ifndef coupledElectricPotentialFvPatchScalarField_H
+#define coupledElectricPotentialFvPatchScalarField_H
 
 #include "mixedFvPatchFields.H"
 #include "scalarList.H"

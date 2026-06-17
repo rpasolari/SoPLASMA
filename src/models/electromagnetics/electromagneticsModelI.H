@@ -11,8 +11,8 @@
       See: <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_electromagneticsModelI_H
-#define Foam_electromagneticsModelI_H
+#ifndef electromagneticsModelI_H
+#define electromagneticsModelI_H
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 

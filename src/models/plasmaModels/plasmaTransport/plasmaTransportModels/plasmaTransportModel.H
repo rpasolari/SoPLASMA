@@ -45,8 +45,8 @@ SourceFiles
     
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaTransportModel_H
-#define Foam_plasmaTransportModel_H
+#ifndef plasmaTransportModel_H
+#define plasmaTransportModel_H
 
 #include "fvMesh.H"
 #include "fvMatrix.H"

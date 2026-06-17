@@ -14,6 +14,7 @@ echo ">>> Building plasmaModels in src/models/plasmaModels"
 echo "-----------------------------------------------------"
 
 wmake libso genericPlasmaProperties
+wmake libso photoionization
 wmake libso plasmaSpecies 
 wmake libso plasmaTransport
 

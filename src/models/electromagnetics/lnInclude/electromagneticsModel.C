@@ -1,1 +1,1 @@
-../electromagneticsModel/electromagneticsModel.C
+../electromagneticsModel.C

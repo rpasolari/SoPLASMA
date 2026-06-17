@@ -2,9 +2,10 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/OpenFOAM/lnInclude \
-    -I$(So_PLASMA_SRC)/constants/lnInclude
+    -I$(SoPLASMA_SRC)/constants/lnInclude
 
-EXE_LIBS = \
+LIB_LIBS = \
+    -L$(FOAM_USER_LIBBIN) \
     -lfiniteVolume \
     -lOpenFOAM \
     -lmeshTools \

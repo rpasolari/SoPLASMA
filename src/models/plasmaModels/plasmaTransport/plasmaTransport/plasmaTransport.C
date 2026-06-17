@@ -14,7 +14,7 @@
 #include "plasmaTransport.H"
 #include "plasmaTransportModel.H"
 #include "plasmaWallBC.H"
-
+#include "photoionizationModel.H"
 
 // Remove these headers later
 #include "interpolationTable.H"
@@ -225,7 +225,15 @@ plasmaTransport::plasmaTransport
             )
         );
     }
+
+            photoionization_ = photoionizationModel::New(mesh_);
+        Info << "Photoionization model loaded: "
+             << photoionization_->type() << endl;
 }
+
+// * * * * * * * * * * * * * * * * Destructors * * * * * * * * * * * * * * * //
+
+plasmaTransport::~plasmaTransport() = default;
 
 // * * * * * * * * * * * * * * Public Member Functions * * * * * * * * * * * //
 
@@ -390,14 +398,11 @@ S_iz_.correctBoundaryConditions();
     *eqns[iIdx] -= explicitSource;
     
 // Photoionization source (if a photoionizationModel is loaded)
-if (mesh_.foundObject<volScalarField>("Sph"))
-{
-    const volScalarField& Sph =
-        mesh_.lookupObject<volScalarField>("Sph");
+        photoionization_->correct();
 
-    *eqns[eIdx] -= Sph;
-    *eqns[iIdx] -= Sph;
-}
+        const volScalarField& Sph = photoionization_->Sph();
+        *eqns[eIdx] -= Sph;
+        *eqns[iIdx] -= Sph;
 
 
     // plasmaSimulationProfiler::start("Solve equations transport");

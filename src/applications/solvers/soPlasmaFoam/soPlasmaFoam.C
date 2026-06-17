@@ -53,12 +53,11 @@ Author
 #include "plasmaConstants.H"
 #include "plasmaTimeControl.H"
 #include "electromagneticsModel.H"
-#include "multiRegionPoissonModel.H"
+#include "multiRegionPoisson.H"
 #include "dielectricRegion.H"
 #include "plasmaSpecies.H"
 #include "plasmaTransport.H"
 #include "driftDiffusion.H"
-#include "photoionizationModel.H"
 #include "plasmaSimulationDiagnostics.H"
 #include "plasmaSimulationProfiler.H"
 
@@ -89,10 +88,6 @@ int main(int argc, char *argv[])
 
     //- Create the plasmaTransport model
     plasmaTransport transport(gasMesh(), species);
-
-    //- Create the photoionization model (reads constant/photoionizationProperties)
-    autoPtr<photoionizationModel> photoIon =
-        photoionizationModel::New(gasMesh());
 
     //- Create the PIMPLE loop control
     pimpleControl pimple(gasMesh());
@@ -134,8 +129,6 @@ int main(int argc, char *argv[])
                 // Solve transport equations
                 transport.solve();
 
-                photoIon->correct();
-
                 if (pimple.finalIter())
                 {
                     // Update charge density
@@ -158,10 +151,6 @@ int main(int argc, char *argv[])
                 plasmaSimulationProfiler::start("Plasma Transport");
                 transport.solve();
                 plasmaSimulationProfiler::stop("Plasma Transport");
-
-    plasmaSimulationProfiler::start("Photoionization");
-    photoIon->correct();                       // ← here
-    plasmaSimulationProfiler::stop("Photoionization");
 
                 // Update charge density
                 plasmaSimulationProfiler::start("Update charge density");

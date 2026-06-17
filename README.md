@@ -206,7 +206,7 @@ source ~/.bashrc
 To verify that the environment was successfully loaded, open a **new terminal** and run:
 
 ```bash
-echo $So_PLASMA   # should print the toolkit folder
+echo $SoPLASMA   # should print the toolkit folder
 ```
 
 ### B. Build SoPLASMA

@@ -46,8 +46,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef Foam_plasmaSpecies_H
-#define Foam_plasmaSpecies_H
+#ifndef plasmaSpecies_H
+#define plasmaSpecies_H
 
 #include "IOdictionary.H"
 #include "fvMesh.H"
