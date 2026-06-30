@@ -4,7 +4,7 @@
   Developed using the OpenFOAM framework and linked against OpenFOAM libraries.
 
   Description:
-    Implementation of Foam::nTermHelmholtzPhotoionization.
+    Implementation of Foam::nTermHelmholtz.
 
   Copyright (C) 2026 Rention Pasolari
   License: GNU General Public License v3 or later
@@ -15,7 +15,7 @@
 #include "fvm.H"
 #include "fixedValueFvPatchFields.H"
 
-#include "nTermHelmholtzPhotoionization.H"
+#include "nTermHelmholtz.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -24,17 +24,17 @@ namespace Foam
 
 // * * * * * * * * * * * * * * Runtime Type Information * * * * * * * * * * //
 
-defineTypeNameAndDebug(nTermHelmholtzPhotoionization, 0);
+defineTypeNameAndDebug(nTermHelmholtz, 0);
 addToRunTimeSelectionTable
 (
     photoionizationModel,
-    nTermHelmholtzPhotoionization,
+    nTermHelmholtz,
     dictionary
 );
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-nTermHelmholtzPhotoionization::nTermHelmholtzPhotoionization
+nTermHelmholtz::nTermHelmholtz
 (
     const fvMesh& mesh
 )
@@ -163,7 +163,7 @@ nTermHelmholtzPhotoionization::nTermHelmholtzPhotoionization
             (
                 IOobject
                 (
-                    "Sph_" + Foam::name(j),
+                    "Sph_" + Foam::name(j + 1),
                     mesh_.time().timeName(),
                     mesh_,
                     IOobject::NO_READ,
@@ -179,7 +179,7 @@ nTermHelmholtzPhotoionization::nTermHelmholtzPhotoionization
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void nTermHelmholtzPhotoionization::correct()
+void nTermHelmholtz::correct()
 {
     const label timeIndex = mesh_.time().timeIndex();
 
@@ -187,6 +187,9 @@ void nTermHelmholtzPhotoionization::correct()
     {
         return;
     }
+
+    Info<< "Solving photoionization (" << nTerms_
+        << "-term Helmholtz)..." << endl;
 
     const volScalarField& I =
         mesh_.lookupObject<volScalarField>(IName_);

@@ -1,0 +1,1 @@
+../threeGroupSP3/threeGroupSP3.C

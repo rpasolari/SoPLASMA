@@ -1,0 +1,1 @@
+../threeGroupEddington/threeGroupEddington.H

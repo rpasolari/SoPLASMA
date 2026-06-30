@@ -1,6 +1,8 @@
 photoionizationModel.C
 
 noPhotoionization/noPhotoionization.C
-nTermHelmholtzPhotoionization/nTermHelmholtzPhotoionization.C
+nTermHelmholtz/nTermHelmholtz.C
+threeGroupEddington/threeGroupEddington.C
+threeGroupSP3/threeGroupSP3.C
 
 LIB = $(FOAM_USER_LIBBIN)/libphotoionization

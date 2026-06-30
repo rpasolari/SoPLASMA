@@ -22,7 +22,7 @@ License
     with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::nTermHelmholtzPhotoionization
+    Foam::nTermHelmholtz
     
 Description
 
@@ -50,6 +50,15 @@ Description
     least-squares fit to the generalized photoionization function:
         Phi_0(r) / p = (p * r) * sum_{j=1}^{N} [ A_j * exp(-lambda_j * p * r) ]
 
+    Note
+        This class solves the PDE for whatever A_j, lambda_j, p, and I are
+        provided; it makes no assumption about the gas. For the
+        Zheleznyak/Bourdon air parametrization, p is the O2 partial
+        pressure (not the total), and I must already include the quenching
+        factor pq/(p+pq) and the xi*nu_u/nu_i ratio. The user is
+        responsible for ensuring A_j, lambda_j, p, and I are consistent
+        for the gas of interest.
+
     Two unit conventions are supported for the fitting coefficients and the
     gas pressure, selected by the 'coefficientUnits' keyword:
 
@@ -61,10 +70,10 @@ Description
 Usage
     Example of the model in constant/photoionizationProperties:
     \verbatim
-    photoionizationModel    nTermHelmholtzPhotoionization;
+    photoionizationModel    nTermHelmholtz;
     solveInterval           10;         // Default : 1 step
 
-    nTermHelmholtzPhotoionizationCoeffs
+    nTermHelmholtzCoeffs
     {
         // Unit convention for p, lambda and A: (SI | TorrCm)
         coefficientUnits    TorrCm;
@@ -100,12 +109,12 @@ Reference
     equations. Plasma Sources Science and Technology, 16(3), 656-678.    
 
 SourceFiles
-    nTermHelmholtzPhotoionization.C
+    nTermHelmholtz.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef nTermHelmholtzPhotoionization_H
-#define nTermHelmholtzPhotoionization_H
+#ifndef nTermHelmholtz_H
+#define nTermHelmholtz_H
 
 #include "PtrList.H"
 #include "scalarList.H"
@@ -120,22 +129,22 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                Class nTermHelmholtzPhotoionization Declaration
+                Class nTermHelmholtz Declaration
 \*---------------------------------------------------------------------------*/
 
-class nTermHelmholtzPhotoionization
+class nTermHelmholtz
 :
     public photoionizationModel
 {
 private:
 
     //- Disallow copy
-    nTermHelmholtzPhotoionization
+    nTermHelmholtz
     (
-        const nTermHelmholtzPhotoionization&
+        const nTermHelmholtz&
     ) = delete;
 
-    void operator=(const nTermHelmholtzPhotoionization&) = delete;
+    void operator=(const nTermHelmholtz&) = delete;
 
     // Private Member Data
 
@@ -163,15 +172,15 @@ private:
 public:
 
     //- Runtime type information
-    TypeName("nTermHelmholtzPhotoionization");
+    TypeName("nTermHelmholtz");
 
     // Constructors
 
         //- Construct from mesh and dictionary
-        nTermHelmholtzPhotoionization(const fvMesh& mesh);
+        nTermHelmholtz(const fvMesh& mesh);
 
     //- Destructor
-    virtual ~nTermHelmholtzPhotoionization() = default;
+    virtual ~nTermHelmholtz() = default;
 
 
     // Member Functions

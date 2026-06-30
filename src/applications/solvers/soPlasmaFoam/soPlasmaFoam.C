@@ -79,6 +79,24 @@ int main(int argc, char *argv[])
     #include "createMeshes.H"
     #include "createFields.H"
 
+
+//- TEMPORARY
+    // MUST_READ: this is the prescribed Gaussian from 0/S_iz
+    volScalarField ionizationSourceField
+    (
+        IOobject
+        (
+            "ionizationSourceField",
+            runTime.timeName(),
+            gasMesh(),
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        gasMesh()
+    );
+
+
+
     //- Create the electromagnetics model
     autoPtr<electromagneticsModel> em =
         electromagneticsModel::New(gasMesh(), dielectricFvMeshes);
