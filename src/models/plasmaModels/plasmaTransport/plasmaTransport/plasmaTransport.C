@@ -434,193 +434,193 @@ void plasmaTransport::correctTransportModels()
 //     plasmaSimulationProfiler::stop("Plasma Transport", "solveEquations");
 // }
 
-// // Solve for SDBD
-// void plasmaTransport::solve()
-// {
-//     // ── 1. Update transport coefficients ──────────────────────────────────────
-//     correctTransportModels();
-
-//     // ── 2. Species and fields ─────────────────────────────────────────────────
-//     const label eIdx = species_.electronSpeciesID();
-//     const label pIdx = species_.speciesID("pIon");
-//     const label nIdx = species_.speciesID("nIon");
-
-//     volScalarField& ne = species_.numberDensity(eIdx);
-//     volScalarField& ni = species_.numberDensity(pIdx);
-//     volScalarField& nn = species_.numberDensity(nIdx);
-
-//     // ── 3. E/N and rate coefficients ──────────────────────────────────────────
-//     const dimensionedScalar N_gas("N_gas", dimless/pow(dimLength,3), 2.4463e25);
-//     const scalar N_val = N_gas.value();
-
-//     const volScalarField safeEmag = max
-//     (
-//         species_.em().Emag(),
-//         dimensionedScalar("minE", species_.em().Emag().dimensions(), 1.0)
-//     );
-
-//     static interpolationTable<scalar> tableAlpha, tableKatt, tableKei;
-//     static bool tablesLoaded = false;
-//     if (!tablesLoaded)
-//     {
-//         tableAlpha = interpolationTable<scalar>
-//             (mesh_.time().constant()/"totalIonizationReducedTownsendCoeffs");
-//         tableKatt  = interpolationTable<scalar>
-//             (mesh_.time().constant()/"totalAttachmentRate");
-//         tableKei   = interpolationTable<scalar>
-//             (mesh_.time().constant()/"totalIonElectronRecombinationRate");
-//         tablesLoaded = true;
-//     }
-
-//     volScalarField alpha
-//     (
-//         IOobject("alpha", mesh_.time().timeName(), mesh_,
-//                  IOobject::NO_READ, IOobject::AUTO_WRITE),
-//         mesh_,
-//         dimensionedScalar("zero", dimensionSet(0,-1,0,0,0,0,0), 0.0)
-//     );
-//     volScalarField k_att
-//     (
-//         IOobject("k_att", mesh_.time().timeName(), mesh_,
-//                  IOobject::NO_READ, IOobject::AUTO_WRITE),
-//         mesh_,
-//         dimensionedScalar("zero", dimensionSet(0,3,-1,0,0,0,0), 0.0)
-//     );
-//     volScalarField k_ei(k_att);
-//     const dimensionedScalar k_ii("k_ii", dimensionSet(0,3,-1,0,0,0,0), 1.7e-12);
-
-//     forAll(ne, cellI)
-//     {
-//         const scalar enKey = safeEmag[cellI] / N_val;
-
-//         auto clamp = [](scalar x, const interpolationTable<scalar>& t) -> scalar
-//         {
-//             return max(t.first().first(), min(t.last().first(), x));
-//         };
-
-//         alpha[cellI]  = tableAlpha(clamp(enKey, tableAlpha)) * N_val;
-//         k_att[cellI]  = tableKatt(clamp(enKey, tableKatt));
-//         k_ei[cellI]   = tableKei(clamp(enKey, tableKei));
-//     }
-
-//     // ── 4. Build equations for all mobile species ─────────────────────────────
-//     // Immobile species have no equation — mobileSpeciesIDs() skips them
-//     List<autoPtr<fvScalarMatrix>> eqns(species_.nSpecies());
-//     for (const label i : species_.mobileSpeciesIDs())
-//         eqns[i].reset(transportModels_[i].nEqn().ptr());
-
-//     // ── 5. Fill old-n fluxes — needed by chemistry below ─────────────────────
-//     // updateFluxes is virtual on plasmaTransportModel — no driftDiffusion cast
-//     // Called BEFORE solve: fvMatrix::flux() uses current (old) n
-//     for (const label i : species_.mobileSpeciesIDs())
-//     {
-//         transportModels_[i].updateFluxes
-//         (
-//             *eqns[i],
-//             convectiveFlux_[i],
-//             diffusiveFlux_[i],
-//             particleFlux_[i]
-//         );
-//     }
-//     // ── 6. Townsend ionization from old-n electron fluxes ────────────────────
-//     // Use plasmaTransport arrays directly — no driftDiffusion cast
-
-//     const volVectorField driftVec    = fvc::reconstruct(convectiveFlux_[eIdx]);
-//     const volVectorField particleVec = fvc::reconstruct(particleFlux_[eIdx]);
-
-//     const dimensionedScalar smallFlux
-//         ("small", driftVec.dimensions(), 1e-6);
-//     const dimensionedScalar zeroFlux
-//         ("zero",  driftVec.dimensions(), 0.0);
-
-//     const volVectorField driftDir    = driftVec / (mag(driftVec) + smallFlux);
-
-//     const volScalarField ionizationFlux = min
-//     (
-//         max(particleVec & driftDir, zeroFlux),
-//         mag(driftVec)
-//     );
-
-//     const volScalarField S_iz = alpha * ionizationFlux;
-
-//     // ── 7. Add chemistry to equations (reactive species only) ─────────────────
-//     *eqns[eIdx] -= S_iz;
-//     *eqns[eIdx] += (k_att * N_gas + k_ei * ni) * ne;
-
-//     *eqns[pIdx] -= S_iz;
-//     *eqns[pIdx] += (k_ei * ne + k_ii * nn) * ni;
-
-//     *eqns[nIdx] -= k_att * N_gas * ne;
-//     *eqns[nIdx] += k_ii * ni * nn;
-
-//     // ── 8. Solve all mobile species ───────────────────────────────────────────
-//     for (const label i : species_.mobileSpeciesIDs())
-//         eqns[i]->solve();
-
-//     // ── 9. Clamp densities ────────────────────────────────────────────────────
-//     species_.clampNumberDensities();
-
-//     for (const label i : species_.mobileSpeciesIDs())
-//     {
-//         transportModels_[i].updateFluxes
-//         (
-//             *eqns[i],
-//             convectiveFlux_[i],
-//             diffusiveFlux_[i],
-//             particleFlux_[i]
-//         );
-//     }
-// }
-
+// Solve for SDBD
 void plasmaTransport::solve()
 {
     // ── 1. Update transport coefficients ──────────────────────────────────────
-    plasmaSimulationProfiler::start("Plasma Transport", "correctTransportModels");
     correctTransportModels();
-    plasmaSimulationProfiler::stop("Plasma Transport", "correctTransportModels");
- 
-    // ── 2. Zero the reaction-derived fields ───────────────────────────────────
-    // These are consumed elsewhere (time-step control, AMR, post-processing),
-    // so they are set explicitly rather than left holding stale values.
-    plasmaSimulationProfiler::start("Plasma Transport", "chemistry");
- 
-    alpha_    == dimensionedScalar(alpha_.dimensions(),    0.0);
-    alphaDx_  == dimensionedScalar(alphaDx_.dimensions(),  0.0);
-    k_eff_    == dimensionedScalar(k_eff_.dimensions(),    0.0);
-    S_iz_     == dimensionedScalar(S_iz_.dimensions(),     0.0);
- 
-    plasmaSimulationProfiler::stop("Plasma Transport", "chemistry");
- 
-    // ── 3. Build equations for ALL species ────────────────────────────────────
-    plasmaSimulationProfiler::start("Plasma Transport", "buildEquations");
- 
+
+    // ── 2. Species and fields ─────────────────────────────────────────────────
+    const label eIdx = species_.electronSpeciesID();
+    const label pIdx = species_.speciesID("pIon");
+    const label nIdx = species_.speciesID("nIon");
+
+    volScalarField& ne = species_.numberDensity(eIdx);
+    volScalarField& ni = species_.numberDensity(pIdx);
+    volScalarField& nn = species_.numberDensity(nIdx);
+
+    // ── 3. E/N and rate coefficients ──────────────────────────────────────────
+    const dimensionedScalar N_gas("N_gas", dimless/pow(dimLength,3), 2.4463e25);
+    const scalar N_val = N_gas.value();
+
+    const volScalarField safeEmag = max
+    (
+        species_.em().Emag(),
+        dimensionedScalar("minE", species_.em().Emag().dimensions(), 1.0)
+    );
+
+    static interpolationTable<scalar> tableAlpha, tableKatt, tableKei;
+    static bool tablesLoaded = false;
+    if (!tablesLoaded)
+    {
+        tableAlpha = interpolationTable<scalar>
+            (mesh_.time().constant()/"totalIonizationReducedTownsendCoeffs");
+        tableKatt  = interpolationTable<scalar>
+            (mesh_.time().constant()/"totalAttachmentRate");
+        tableKei   = interpolationTable<scalar>
+            (mesh_.time().constant()/"totalIonElectronRecombinationRate");
+        tablesLoaded = true;
+    }
+
+    volScalarField alpha
+    (
+        IOobject("alpha", mesh_.time().timeName(), mesh_,
+                 IOobject::NO_READ, IOobject::AUTO_WRITE),
+        mesh_,
+        dimensionedScalar("zero", dimensionSet(0,-1,0,0,0,0,0), 0.0)
+    );
+    volScalarField k_att
+    (
+        IOobject("k_att", mesh_.time().timeName(), mesh_,
+                 IOobject::NO_READ, IOobject::AUTO_WRITE),
+        mesh_,
+        dimensionedScalar("zero", dimensionSet(0,3,-1,0,0,0,0), 0.0)
+    );
+    volScalarField k_ei(k_att);
+    const dimensionedScalar k_ii("k_ii", dimensionSet(0,3,-1,0,0,0,0), 1.7e-12);
+
+    forAll(ne, cellI)
+    {
+        const scalar enKey = safeEmag[cellI] / N_val;
+
+        auto clamp = [](scalar x, const interpolationTable<scalar>& t) -> scalar
+        {
+            return max(t.first().first(), min(t.last().first(), x));
+        };
+
+        alpha[cellI]  = tableAlpha(clamp(enKey, tableAlpha)) * N_val;
+        k_att[cellI]  = tableKatt(clamp(enKey, tableKatt));
+        k_ei[cellI]   = tableKei(clamp(enKey, tableKei));
+    }
+
+    // ── 4. Build equations for all mobile species ─────────────────────────────
+    // Immobile species have no equation — mobileSpeciesIDs() skips them
     List<autoPtr<fvScalarMatrix>> eqns(species_.nSpecies());
- 
-    for (label i = 0; i < species_.nSpecies(); ++i)
-    {
+    for (const label i : species_.mobileSpeciesIDs())
         eqns[i].reset(transportModels_[i].nEqn().ptr());
-    }
- 
-    plasmaSimulationProfiler::stop("Plasma Transport", "buildEquations");
- 
-    // ── 4. Solve ──────────────────────────────────────────────────────────────
-    // With no source the species are independent: ddt(n) + div(phi,n)
-    //   = laplacian(D,n).  Immobile species reduce to ddt(n) = 0, so their
-    // matrix is trivial; solving it is harmless but pointless, hence the skip.
-    plasmaSimulationProfiler::start("Plasma Transport", "solveEquations");
- 
-    const labelList& mobile = species_.mobileSpeciesIDs();
- 
-    for (const label i : mobile)
+
+    // ── 5. Fill old-n fluxes — needed by chemistry below ─────────────────────
+    // updateFluxes is virtual on plasmaTransportModel — no driftDiffusion cast
+    // Called BEFORE solve: fvMatrix::flux() uses current (old) n
+    for (const label i : species_.mobileSpeciesIDs())
     {
-        eqns[i]->solve();
-        species_.numberDensity(i).correctBoundaryConditions();
+        transportModels_[i].updateFluxes
+        (
+            *eqns[i],
+            convectiveFlux_[i],
+            diffusiveFlux_[i],
+            particleFlux_[i]
+        );
     }
- 
+    // ── 6. Townsend ionization from old-n electron fluxes ────────────────────
+    // Use plasmaTransport arrays directly — no driftDiffusion cast
+
+    const volVectorField driftVec    = fvc::reconstruct(convectiveFlux_[eIdx]);
+    const volVectorField particleVec = fvc::reconstruct(particleFlux_[eIdx]);
+
+    const dimensionedScalar smallFlux
+        ("small", driftVec.dimensions(), 1e-6);
+    const dimensionedScalar zeroFlux
+        ("zero",  driftVec.dimensions(), 0.0);
+
+    const volVectorField driftDir    = driftVec / (mag(driftVec) + smallFlux);
+
+    const volScalarField ionizationFlux = min
+    (
+        max(particleVec & driftDir, zeroFlux),
+        mag(driftVec)
+    );
+
+    const volScalarField S_iz = alpha * ionizationFlux;
+
+    // ── 7. Add chemistry to equations (reactive species only) ─────────────────
+    *eqns[eIdx] -= S_iz;
+    *eqns[eIdx] += (k_att * N_gas + k_ei * ni) * ne;
+
+    *eqns[pIdx] -= S_iz;
+    *eqns[pIdx] += (k_ei * ne + k_ii * nn) * ni;
+
+    *eqns[nIdx] -= k_att * N_gas * ne;
+    *eqns[nIdx] += k_ii * ni * nn;
+
+    // ── 8. Solve all mobile species ───────────────────────────────────────────
+    for (const label i : species_.mobileSpeciesIDs())
+        eqns[i]->solve();
+
+    // ── 9. Clamp densities ────────────────────────────────────────────────────
     species_.clampNumberDensities();
- 
-    plasmaSimulationProfiler::stop("Plasma Transport", "solveEquations");
+
+    for (const label i : species_.mobileSpeciesIDs())
+    {
+        transportModels_[i].updateFluxes
+        (
+            *eqns[i],
+            convectiveFlux_[i],
+            diffusiveFlux_[i],
+            particleFlux_[i]
+        );
+    }
 }
+
+// void plasmaTransport::solve()
+// {
+//     // ── 1. Update transport coefficients ──────────────────────────────────────
+//     plasmaSimulationProfiler::start("Plasma Transport", "correctTransportModels");
+//     correctTransportModels();
+//     plasmaSimulationProfiler::stop("Plasma Transport", "correctTransportModels");
+ 
+//     // ── 2. Zero the reaction-derived fields ───────────────────────────────────
+//     // These are consumed elsewhere (time-step control, AMR, post-processing),
+//     // so they are set explicitly rather than left holding stale values.
+//     plasmaSimulationProfiler::start("Plasma Transport", "chemistry");
+ 
+//     alpha_    == dimensionedScalar(alpha_.dimensions(),    0.0);
+//     alphaDx_  == dimensionedScalar(alphaDx_.dimensions(),  0.0);
+//     k_eff_    == dimensionedScalar(k_eff_.dimensions(),    0.0);
+//     S_iz_     == dimensionedScalar(S_iz_.dimensions(),     0.0);
+ 
+//     plasmaSimulationProfiler::stop("Plasma Transport", "chemistry");
+ 
+//     // ── 3. Build equations for ALL species ────────────────────────────────────
+//     plasmaSimulationProfiler::start("Plasma Transport", "buildEquations");
+ 
+//     List<autoPtr<fvScalarMatrix>> eqns(species_.nSpecies());
+ 
+//     for (label i = 0; i < species_.nSpecies(); ++i)
+//     {
+//         eqns[i].reset(transportModels_[i].nEqn().ptr());
+//     }
+ 
+//     plasmaSimulationProfiler::stop("Plasma Transport", "buildEquations");
+ 
+//     // ── 4. Solve ──────────────────────────────────────────────────────────────
+//     // With no source the species are independent: ddt(n) + div(phi,n)
+//     //   = laplacian(D,n).  Immobile species reduce to ddt(n) = 0, so their
+//     // matrix is trivial; solving it is harmless but pointless, hence the skip.
+//     plasmaSimulationProfiler::start("Plasma Transport", "solveEquations");
+ 
+//     const labelList& mobile = species_.mobileSpeciesIDs();
+ 
+//     for (const label i : mobile)
+//     {
+//         eqns[i]->solve();
+//         species_.numberDensity(i).correctBoundaryConditions();
+//     }
+ 
+//     species_.clampNumberDensities();
+ 
+//     plasmaSimulationProfiler::stop("Plasma Transport", "solveEquations");
+// }
 
 
 void plasmaTransport::updateSurfaceCharge()
