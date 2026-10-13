@@ -17,7 +17,10 @@ The project is currently in its **initial development phase**. Functionality, st
 This project is distributed under the terms of the **GNU General Public License v3.0 (GPLv3)**.  
 For full license details, see the [LICENSE](LICENSE) file.
 
-© 2026 Rention Pasolari
+Copyright © 2026 Centre for Research and Technology Hellas (CERTH) –
+Chemical Process and Energy Resources Institute (CPERI).  
+Authors: Rention Pasolari, Konstantinos Kourtzanidis.  
+Licensed under the GNU General Public License v3.0 (see [LICENSE](LICENSE)).
 
 This software is not part of OpenFOAM, but it is developed using the OpenFOAM framework and linked against OpenFOAM libraries (v2412).
 
@@ -227,3 +230,10 @@ Software architecture, implementation, testing, validation, documentation, maint
 
 **Konstantinos Kourtzanidis** <kkourtza@gmail.com>  
 Conceptual design, physical modeling, debugging, testing, validation, scientific supervision
+
+## Funding
+
+This work has received funding from the European Union's Horizon Europe research and
+innovation programme under grant agreement No 101191768 (CAIPIRINH3A). Views and opinions
+expressed are those of the author(s) only and do not necessarily reflect those of the
+European Union or the granting authority, neither of which can be held responsible for them.
